@@ -126,6 +126,12 @@
     </section>
 
 <section class="section">
+
+{% if form.non_field_errors %}
+    <div class="notification is-danger">
+        {{ form.non_field_errors }}
+    </div>
+{% endif %}
 <form action="." method="post">
 {% csrf_token %}
 
@@ -142,13 +148,22 @@
             <label class="label">読み方</label>
             <div class="field has-addons">
                 <p class="control is-expanded">
-                    {{ form.yomi|add_class:"input"|attr:"placeholder:読み方（カタカナ）" }}
+                    {% if form.yomi.errors %}
+                        {{ form.yomi|add_class:"input is-danger"|attr:"placeholder:読み方（カタカナ）" }}
+                    {% else %}
+                        {{ form.yomi|add_class:"input"|attr:"placeholder:読み方（カタカナ）" }}
+                    {% endif %}
                 </p>
                 <p class="control" id="id_set_yomi">
                     <a class="button is-primary">
                     設定
                     </a>
             </div>
+                {% if form.yomi.errors %}
+                    {% for error in form.yomi.errors %}
+                        <p class="help is-danger">{{ error|escape }}</p>
+                    {% endfor %}
+                {% endif %}
         </div>
     </div>
 

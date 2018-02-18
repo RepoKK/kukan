@@ -1,18 +1,39 @@
-from django.forms import Form, ModelForm, Textarea, CharField, TextInput, ChoiceField, Select
+from django.forms import Form, ModelForm, Textarea, CharField, TextInput, ChoiceField, Select, ValidationError
 from .models import Kanji, Bushu, YomiType, YomiJoyo, Reading, Example, ExMap
-from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
 
 class SearchForm(Form):
     search = CharField(widget=TextInput(attrs={'class': 'input is-medium', 'placeholder':'漢字・四字熟語・単語'}))
 
-    def clean(self):
-        cleaned_data=super(SearchForm, self).clean()
-        raise ValidationError('Draft entries may not have a publication date.')
 
+katakana_chart = ("ァアィイゥウェエォオカガキギクグケゲコゴサザシジスズセゼソゾタダチヂッツヅテデトドナニヌネノ"
+                  "ハバパヒビピフブプヘベペホボポマミムメモャヤュユョヨラリルレロヮワヰヱヲンヴヵヶヽヾ")
+hiragana_chart = ("ぁあぃいぅうぇえぉおかがきぎくぐけげこごさざしじすずせぜそぞただちぢっつづてでとどなにぬねの"
+                  "はばぱひびぴふぶぷへべぺほぼぽまみむめもゃやゅゆょよらりるれろゎわゐゑをんゔゕゖゝゞ")
+
+hir2kat = str.maketrans(hiragana_chart, katakana_chart)
+kat2hir  =str.maketrans(katakana_chart, hiragana_chart)
+
+
+
+class Katakana(CharField):
+    def to_python(self, value):
+        """Normalize to Katakana."""
+
+        return value.translate(hir2kat)
+
+    def validate(self, value):
+        """Check if value consists only of Katakana."""
+        super().validate(value)
+        raise ValidationError(
+            _('入力は片仮名以外: %(value)s'),
+            code='invalid',
+            params={'value': value},
+        )
 
 
 class ExampleForm(ModelForm):
+    yomi = Katakana()
     class Meta:
         model = Example
         fields = ['word', 'yomi', 'sentence', 'definition']
@@ -37,7 +58,7 @@ class ExampleForm(ModelForm):
 
     def clean(self):
         cleaned_data=super(ExampleForm, self).clean()
-        raise ValidationError('Draft entries may not have a publication date.')
+        raise ValidationError('現在保存不可。')
 
 
 
