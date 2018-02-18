@@ -1,0 +1,61 @@
+{% extends 'kukan/base_ext.html' %}
+{% load staticfiles %}
+
+{% block title %}
+{{ example.word }}
+{% endblock %}
+
+{% block content %}
+<section class="section">
+    <h1 class="title">{{ example.word }}</h1>
+    <h2 class="subtitle">{{ example.yomi }}</h2>
+    <div>
+    <p><a href="{% url 'kukan:example_update' example.id %}">編集</a></p>
+    </div>
+    <div>
+    {{ example.sentence }}
+    </div>
+    <div>
+        <table class="table is-striped">
+            <thead>
+                <tr>
+                    <th>
+                        漢字
+                    </th>
+                    <th>
+                        読み
+                    </th>
+                    <th>
+                        常用漢字
+                    </th>
+                    <th>
+                        常用漢字票の例
+                    </th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for map in example.exmap_set.all %}
+                <tr>
+                    <td>
+                        <a href="{% url 'kukan:kanji_detail' map.kanji.kanji %}">{{ map.kanji }}</a>
+                    </td>
+                    <td>
+                        {{ map.reading.reading }}
+                    </td>
+                    <td>
+                        {% if map.reading.is_joyo %}
+                        <i class="fas fa-check"></i>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if map.in_joyo_list %}
+                        <i class="fas fa-check"></i>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+{% endblock %}

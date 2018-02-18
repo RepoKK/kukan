@@ -1,0 +1,54 @@
+{% extends 'kukan/base.html' %}
+{% block content %}
+<form action="." method="post">
+    {% csrf_token %}
+    <section class="hero is-fullheight">
+        <div class="hero-body">
+            <div class="container">
+                <div class="columns is-centered">
+                    <div class="column is-two-thirds">
+                        <div class="field">
+                            <div class="control">
+                                <h2 class="subtitle">
+                                    ｆｓｄｆ
+                                </h2>
+                                <h1 class="title">
+                                    漢字辞典
+                                </h1>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="columns is-centered">
+                    <div class="column is-half">
+                        <div class="field">
+                            <div class="control">
+                                {{ form.search }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="columns is-centered">
+                    <div class="column is-half">
+                        <div class="columns">
+                            <div class="column">
+                                <input type="submit" name="kanji" class="button is-primary is-fullwidth" value="漢字" />
+                            </div>
+                            <div class="column is-half">
+                                <div class="columns is-mobile">
+                                    <div class="column">
+                                        <input type="submit" name="yoji" class="button is-fullwidth" value="四字熟語" />
+                                    </div>
+                                    <div class="column">
+                                        <input type="submit" name="tango" class="button is-fullwidth" value="例文" />
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+</form>
+{% endblock %}

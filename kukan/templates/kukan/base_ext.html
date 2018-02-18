@@ -1,0 +1,109 @@
+{% load static %}
+
+<!doctype html>
+<html class="has-navbar-fixed-top">
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>{% block title %}漢字辞典{% endblock %}</title>
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bulma/0.6.2/css/bulma.min.css">
+        <script defer src="https://use.fontawesome.com/releases/v5.0.0/js/all.js"></script>
+    </head>
+
+    <body>
+        <main>
+            <nav class="navbar is-light is-fixed-top">
+                <div class="navbar-brand">
+
+                    <div class="navbar-item is-hidden-desktop">
+                        <div class="field">
+                            <p class="control">
+                                <input class="input" type="text" placeholder="検索" style="width:140px">
+                            </p>
+                        </div>
+                    </div>
+                    <div class="navbar-burger burger" data-target="navbarExampleTransparentExample">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                    </div>
+                </div>
+                <div id="navbarExampleTransparentExample" class="navbar-menu">
+                    <div class="navbar-start">
+                        <div class="navbar-item has-dropdown is-hoverable">
+                            <a class="navbar-link" href="/kukan">
+                                <img src="https://bulma.io/i　mages/bulma-logo.png" alt="漢字辞典" width="100" height="28">
+                                <span class="icon">
+                                    <i class="fas fa-home"></i>
+                                </span>
+                            </a>
+                            <div class="navbar-dropdown is-boxed">
+                                <a class="navbar-item" href="/kukan/file/import/">
+                                インポート
+                                </a>
+                                <a class="navbar-item" href="{% url 'kukan:export' %}">
+                                エクスポート
+                                </a>
+                                <a class="navbar-item" href="{% url 'kukan:example_list' %}">
+                                例文一覧
+                                </a>
+                                <a class="navbar-item" href="{% url 'kukan:example-add' %}">
+                                例文作成
+                                </a>
+                                <a class="navbar-item" href="http://www.bunka.go.jp/kokugo_nihongo/sisaku/joho/joho/kijun/naikaku/pdf/joyokanjihyo_20101130.pdf">
+                                    常用漢字表（平成22年11月30日内閣告示）
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="navbar-end">
+                        <div class="navbar-item">
+                            <form action="/kukan/kanji/multi/" method="get">
+                                <div class="field is-grouped">
+                                    <p class="control">
+                                        <input class="input" name="search" type="text" placeholder="検索">
+                                    </p>
+                                    <input type="submit" class="button is-light" value="漢字" />
+                                    <input type="submit" name="type" class="button is-light" value="四字" />
+                                    <input type="submit" name="type" class="button is-light" value="例文" formaction="/kukan/example/search/"/>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </nav>
+            {% block content %}
+            {% endblock %}
+        </main>
+    </body>
+
+    <script src="https://code.jquery.com/jquery-3.1.0.min.js"></script>
+    {% block javascript %}{% endblock %}
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+
+            // Get all "navbar-burger" elements
+            var $navbarBurgers = Array.prototype.slice.call(document.querySelectorAll('.navbar-burger'), 0);
+
+            // Check if there are any navbar burgers
+            if ($navbarBurgers.length > 0) {
+
+                // Add a click event on each of them
+                $navbarBurgers.forEach(function($el) {
+                    $el.addEventListener('click', function() {
+
+                        // Get the target from the "data-target" attribute
+                        var target = $el.dataset.target;
+                        var $target = document.getElementById(target);
+
+                        // Toggle the class on both the "navbar-burger" and the "navbar-menu"
+                        $el.classList.toggle('is-active');
+                        $target.classList.toggle('is-active');
+
+                    });
+                });
+            }
+
+        });
+    </script>
+</html>
