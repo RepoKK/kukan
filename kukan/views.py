@@ -93,7 +93,7 @@ class ReadingDetail(generic.DetailView):
 
 
 
-def export_anki_csv(request):
+def TODO_export_anki_csv(request):
     # Create the HttpResponse object with the appropriate CSV header.
     response = HttpResponse(content_type='text/csv')
     response['Content-Disposition'] = 'attachment; filename="djangoAnki.csv"'

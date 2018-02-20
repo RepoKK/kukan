@@ -176,13 +176,21 @@ class Reading(models.Model):
         res = re.sub("）", "", res)
         return res
 
+    def get_full(self):
+        res = self.reading
+        if self.joyo.yomi_joyo == '常用・特別':
+            res = '▽' + res
+        if self.joyo.yomi_joyo == '表外':
+            res = '✘ ' + res
+        return res
+
     def get_html_format(self):
         res = re.sub('（', "<span class='okuri'>", self.reading)
         res = re.sub('）', '</span>', res)
         if self.joyo.yomi_joyo == '常用・特別':
             res = '▽' + res
         if self.joyo.yomi_joyo == '表外':
-            res = '▽__ ' + res
+            res = '✘ ' + res
         return res
 
     def get_list_ex(self):

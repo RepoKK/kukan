@@ -1,7 +1,5 @@
 {% extends 'kukan/base_ext.html' %}
 {% block content %}
-<section class="section">
-    <div class="container">
         <div class="columns is-multiline">
             {% for kj in kanji_list %}
             <div class="column is-narrow">
@@ -19,7 +17,7 @@
                         {% for reading in kj.reading_set.all %}
                         <tr>
                             <td>
-                                <a href="{% url 'kukan:reading_detail' reading.pk %}">{{reading.get_html_format|safe}}</a>
+                                {{reading.get_full|safe}}
                             </td>
                             <td>
                                 {{reading.get_list_ex2|safe}}
@@ -42,6 +40,4 @@
             </div>
             {% endfor %}
         </div>
-    </div>
-</section>
 {% endblock %}

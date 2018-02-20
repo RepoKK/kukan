@@ -1,17 +1,33 @@
 {% load static %}
 <!doctype html>
-<html>
+{% block top_html %}<html>{% endblock %}
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <title>{% block title %}漢字辞典{% endblock %}</title>
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bulma/0.6.2/css/bulma.min.css">
         <script defer src="https://use.fontawesome.com/releases/v5.0.0/js/all.js"></script>
+
+        <style type="text/css">
+            @font-face {
+                font-family: KanjiStrokeOrders;
+                src: url({% static 'fonts/KanjiStrokeOrders.ttf' %}) format('truetype');
+                font-weight: bold;
+            }
+
+            h1.kanji
+            {
+                font-family: KanjiStrokeOrders;
+                font-size: 180px
+            }
+        </style>
     </head>
 
     <body>
-    <div id="content">
-        {% block content %}{% endblock %}
-    </div>
+        {% block body %}{% endblock %}
     </body>
+
+    <script>
+        {% block script %}{% endblock %}
+    </script>
 </html>

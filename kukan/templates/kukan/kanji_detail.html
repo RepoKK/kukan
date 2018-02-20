@@ -1,4 +1,4 @@
-{% extends 'kukan/base.html' %}
+{% extends 'kukan/base_ext.html' %}
 {% load my_tags %}
 
 {% load staticfiles %}
@@ -7,9 +7,7 @@
 {% endblock %}
 
 {% block content %}
-<section class="section">
-  <h1 class="title">{{ kanji.kanji }}</h1>
-
+  <h1 class="title kanji">{{ kanji.kanji }}</h1>
   <div>
     <table class="table">
         <thead>
@@ -21,16 +19,14 @@
             </th>
         </thead>
     {% for reading in kanji.reading_set.all %}
-      {% if reading.is_joyo %}
         <tr>
             <td>
-                <a href="{% url 'kukan:reading_detail' reading.pk %}">{{reading.get_html_format|safe}}</a>
+                {{reading.get_full|safe}}
             </td>
             <td>
             {{reading.get_list_ex2|safe}}
             </td>
         </tr>
-      {% endif %}
     {% endfor %}
     {% for exmap in kanji.exmap_set.all %}
       {% if not exmap.reading %}
@@ -46,6 +42,43 @@
     {% endfor %}
     </table>
   </div>
+<br>
+
+<div>
+      <table class="table">
+          <thead>
+            <th>
+                属性
+            </th>
+            <th>
+                値
+            </th>
+        </thead>
+          <tbody>
+          {% for fldname, name, value in kanji.basic_info %}
+          <tr>
+              <th>
+                  {{name}}
+              </th>
+              <td>
+                  {{value}}
+              </td>
+          </tr>
+          {% endfor %}
+          </tbody>
+      </table>
+      <br>
+</div>
+
+<br>
+<table class="table">
+{{kanji.anki_Examples|safe}}
+</table>
+<br>
+
+<!-- Temporary to allow comparaison with Anki -->
+
+
 <br>
 <table class="table">
 {{kanji.anki_Reading_Table|safe}}
@@ -76,23 +109,11 @@
         <tr>
             <td class="C_read C_special" colspan=2>
                 {{kanji.get_jukiji|safe}}
-            </td>xMap  </tr>
-      {% endif %}
-    {% for exmap in kanji.exmap_set.all %}
-      {% if not exmap.reading %}
-        <tr>
-            <td class="C_read C_special" colspan=2>
-                <a href="{% url 'kukan:example_detail' exmap.example.pk %}">{{exmap.example}}</a>
-                <a href=https://dictionary.goo.ne.jp/srch/all/{{exmap.example}}/m0u/>{{exmap.example}}</a>
             </td>
         </tr>
       {% endif %}
-    {% endfor %}
 </table>
 
-<br>
-
-<br>
 <div>
       <table class="table">
           <thead>
@@ -124,47 +145,4 @@
       </table>
       <br>
 </div>
-
-<br>
-<table class="table">
-{{kanji.anki_Examples|safe}}
-</table>
-<br>
-
-
-<br>
-<table class="table">
-{{kanji.anki_Reading_Table|safe}}
-</table>
-<br>
-
-<br>
-<table class="table">
-    {% for reading in kanji.reading_set.all|dictsort:'joyo_order' %}
-      {% if reading.is_joyo %}
-        <tr>
-            <td>
-                {{reading.get_html_format|safe}}
-            </td>
-            <td>
-                {{reading.get_list_ex_anki|safe}}
-                {% if reading.remark %}
-                    <br><span class='rem'>{{reading.remark}}</span></td></tr>
-                {% elif reading.ijidokun %}
-                    <br><span class='rem'>{{reading.ijidokun}}</span></td></tr>
-
-                {% endif %}
-            </td>
-        </tr>
-      {% endif %}
-    {% endfor %}
-    {% if kanji.jukuji %}
-        <tr>
-            <td class="C_read C_special" colspan=2>
-                {{kanji.get_jukiji|safe}}
-            </td>
-        </tr>
-      {% endif %}
-</table>
-</section>
 {% endblock %}

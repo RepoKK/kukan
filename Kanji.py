@@ -25,6 +25,19 @@ def h3_row_nb(node):
     return nb_row
 
 
+def h3_row_nb_all(kanji, node):
+    if len(node.getchildren()) == 0:
+        nname = node.text
+    else:
+        nname = node.getchildren()[0].text
+    nb_row = node.attrib.get("rowspan")
+    if nb_row is None:
+        nb_row = 1
+    else:
+        nb_row = int(nb_row)
+    return nname, nb_row
+
+
 class CExample:
     def __init__(self, word, reading, sentence):
         self.word = word
@@ -71,6 +84,9 @@ class CKanji:
         self._Kanji = kanji
         self._propList = []
         self._readingList = []
+        self._jitenonItem = {'部首':[], '画数':[], '音読み':[], '訓読み':[],
+                            '漢字検定':[], '学年':[], 'JIS水準':[], '意味':[], 'Unicode':[],
+                             '種別':[], '異体字':[]}
 
     def __iter__(self):
         return iter(self._propList)
@@ -97,7 +113,7 @@ class CKanji:
         root_dir = r'E:\CloudStorage\Google Drive\Kanji\資料\\'
         return root_dir + r'Kanji\Kanji_' + self._Kanji + '.html'
 
-    def ProcessJitenon(self):
+    def ProcessJitenon_ini(self):
         page = pickle.load(open(self._get_kanji_file_name(), "rb"));
         tree = html.fromstring(page.content)
 
@@ -117,6 +133,46 @@ class CKanji:
         self['Jouyou Grade'] = jsonpickle.encode(self._readingList)
         #for yomi in self._readingList:
         #    yomi.tmp_enrich_with_reading_table(self["Reading Table"])
+
+    def ProcessJitenon(self):
+        page = pickle.load(open(self._get_kanji_file_name(), "rb"));
+        tree = html.fromstring(page.content)
+
+        block = tree.xpath('//*[@id="kanjiright"]/table/tr/th')
+        startIdx = 0
+        endIdx = 0
+        print("**** " + self._Kanji + " ****")
+        for blk in block:
+            if self._Kanji == "点" and len(blk.getchildren()) == 0: continue
+
+            blkName, blkRow = h3_row_nb_all(self._Kanji, blk)
+
+            # issue with kanji.jineton for 平
+            if self._Kanji == "平" and blkName=='訓読み':
+                blkRow += 1
+            if self._Kanji == "平" and blkName=='意味':
+                blkRow -= 1
+            if self._Kanji == "点" and blkName=='意味':
+                blkRow += 1
+
+            startIdx = endIdx
+            endIdx += blkRow
+            print("Block " + blkName + ", nb row: " + str(blkRow)
+                  + " [" + str(startIdx) + ";" + str(endIdx) + "].")
+            subblock = tree.xpath('//*[@id="kanjiright"]/table/tr/td')
+            for idx in range(startIdx, endIdx):
+                if blkName in ['部首', '画数', '音読み', '訓読み', '漢字検定', '学年', '異体字']:
+                    content = subblock[idx].getchildren()[0].text
+                elif blkName in ['意味', 'Unicode', '種別']:
+                    content = subblock[idx].text
+                elif blkName in ['JIS水準']:
+                    if len(subblock[idx].getchildren()) > 0:
+                        content = subblock[idx].getchildren()[0].text
+                    else:
+                        content = subblock[idx].text
+                self._jitenonItem[blkName].append(content)
+
+            print(self._jitenonItem[blkName])
 
     def GetNbOfReading(self):
         nbOfReading = [0, 0, 0, 0]
