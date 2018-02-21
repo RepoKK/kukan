@@ -25,7 +25,7 @@ SECRET_KEY = '-x1d#d4*ruehq!!bu(u$-ye_umoe%h2esul@-hl#2s)u2clh=y'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['192.168.12.7', '0.0.0.0']
+ALLOWED_HOSTS = ['*', '192.168.12.7', '0.0.0.0']
 
 
 # Application definition
@@ -78,8 +78,8 @@ WSGI_APPLICATION = 'kukansite.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
-        #'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
-        'NAME': os.path.join('D:\KanjiDB', 'db.sqlite3'),
+        'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
+        #'NAME': os.path.join('D:\KanjiDB', 'db.sqlite3'),
     }
 }
 
@@ -121,3 +121,5 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/2.0/howto/static-files/
 
 STATIC_URL = '/static/'
+STATIC_ROOT = '/var/www/environments/static/'
+
