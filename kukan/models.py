@@ -70,6 +70,29 @@ class Kanji(models.Model):
     def __str__(self):
         return self.kanji
 
+    def as_dict(self):
+        res = {}
+        for fld in Kanji._meta.get_fields():
+            if fld.concrete:
+                if fld.name == 'bushu':
+                    res['bushu'] = self.bushu.bushu
+                elif fld.name == 'classification':
+                    res['classification'] = self.classification.classification
+                else:
+                    res[fld.name] = getattr(self, fld.name)
+        return res
+
+
+    @classmethod
+    def fld_lst(cls):
+        list_fld = []
+        for fld in Kanji._meta.get_fields():
+            if fld.concrete:
+                list_fld.append({'title': fld.verbose_name if fld.verbose_name != '' else fld.name,
+                                 'field': fld.name,
+                                 'visible': fld.name not in ['anki_Examples', 'anki_Reading_Table', 'anki_kjIjiDoukun']})
+        return list_fld
+
     class Meta:
         ordering = ['kanji']
 

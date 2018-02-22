@@ -11,6 +11,7 @@ from django.template.loader import render_to_string
 from django.db.models import Q, Count
 from django.http import JsonResponse
 from functools import reduce
+from django.core.paginator import Paginator
 import csv
 import re
 
@@ -48,10 +49,29 @@ class KanjiList(generic.ListView):
         # #some_interesting_query = Kanji.objects.annotate(ex_num = val_ex).filter(ex_num__gt=0).filter(kanken_kyu='２級')
 
         search = self.request.GET.get('search')
+        if search == '' or search is None:
+            search='漢字'
         q_objects = Q()
         for item in search:
             q_objects |= Q(pk=item)
         return Kanji.objects.filter(q_objects)
+
+
+class KanjiListFilter(generic.ListView):
+    model = Kanji
+    template_name = 'kukan/kanji_lstfilter.html'
+
+
+def get_kanji_list(request):
+    page = request.GET.get('page', None)
+    p = Paginator(Kanji.objects.all(), 20)
+    res = [obj.as_dict() for obj in p.page(page).object_list]
+    col_tmplt = [{ 'title': '漢字2', 'field': 'kanji', 'visible': 'true' },
+                { 'title': 'First Name', 'field': 'first_name', 'visible': 'true' }]
+    col_tmplt = Kanji.fld_lst()
+    data = {'page': page, 'total_results': p.count, 'results': res, 'columnsTemplate': col_tmplt}
+    return JsonResponse(data)
+
 
 
 class KanjiDetail(generic.DetailView):

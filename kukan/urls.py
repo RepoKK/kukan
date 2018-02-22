@@ -7,6 +7,8 @@ app_name = 'kukan'
 urlpatterns = [
     path('', views.ContactView.as_view()),
     path('kanji/multi/', views.KanjiList.as_view(), name='kanji_multi'),
+    path('kanji/list/', views.KanjiListFilter.as_view(), name='kanji_lstfilter'),
+    path('ajax/get_kanji_list/', views.get_kanji_list, name='get_kanji_list'),
     path('ajax/get_yomi/', views.get_yomi, name='get_yomi'),
     path('ajax/set_yomi/', views.set_yomi, name='set_yomi'),
     path('ajax/get_goo/', views.get_goo, name='get_goo'),

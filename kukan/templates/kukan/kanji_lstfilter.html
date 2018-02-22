@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html class="has-navbar-fixed-bottom">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Test Filter</title>
+    <link rel="stylesheet" href="https://unpkg.com/buefy/lib/buefy.min.css">
+    <link rel="stylesheet" href="https://cdn.materialdesignicons.com/2.0.46/css/materialdesignicons.min.css">
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.0.6/css/all.css">
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.5.13/dist/vue.js"></script>
+    <script src="https://unpkg.com/buefy"></script>
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+</head>
+<body>
+<section>
+<div id="app" class="container is-fluid">
+
+    <section>
+
+        <p class="content">
+            <b>Selection:</b>
+            [[ checkboxGroup ]]
+        </p>
+
+        <b-field>
+            <b-input icon="magnify" type="search" placeholder="検索..."　size="is-small"></b-input>
+            <p class="control">
+                <button class="button is-primary is-small">
+                    [[searchItem]]
+                </button>
+            </p>
+            <p class="control">
+                <b-dropdown v-model="searchItem" position="is-bottom-left">
+                    <button class="button is-primary is-small" slot="trigger">
+                        <b-icon icon="menu-down"></b-icon>
+                    </button>
+
+                    <b-dropdown-item value="漢字">漢字</b-dropdown-item>
+                    <b-dropdown-item value="四字" disabled>四字熟語</b-dropdown-item>
+                    <b-dropdown-item value="例文">例文</b-dropdown-item>
+                </b-dropdown>
+            </p>
+        </b-field>
+
+        <b-tabs v-model="activeTab">
+            <b-tab-item label="表示設定">
+                <b-field grouped group-multiline>
+            <div class="control">
+                <b-switch v-model="isBordered">Bordered</b-switch>
+            </div>
+            <div class="control">
+                <b-switch v-model="isStriped">Striped</b-switch>
+            </div>
+            <div class="control">
+                <b-switch v-model="isNarrowed">Narrowed</b-switch>
+            </div>
+            <div class="control">
+                <b-switch v-model="isHoverable">Hoverable</b-switch>
+            </div>
+            <div class="control">
+                <b-switch v-model="isFocusable">Focusable</b-switch>
+            </div>
+            <div class="control">
+                <b-switch v-model="isLoading">Loading state</b-switch>
+            </div>
+            <div class="control">
+                <b-switch v-model="isEmpty">Empty</b-switch>
+            </div>
+            <div class="control">
+                <b-switch v-model="hasMobileCards">Mobile cards <small>(collapsed rows)</small></b-switch>
+            </div>
+        </b-field>
+            </b-tab-item>
+
+            <b-tab-item label="一覧">
+                <b-table
+                    :data="isEmpty ? [] : data"
+                    :bordered="isBordered"
+                    :striped="isStriped"
+                    :narrowed="isNarrowed"
+                    :hoverable="isHoverable"
+                    :loading="isLoading"
+                    :focusable="isFocusable"
+                    :mobile-cards="hasMobileCards"
+                    :loading="loading"
+
+                    paginated
+                    backend-pagination
+                    :total="total"
+                    :per-page="perPage"
+                    @page-change="onPageChange"
+
+                    detailed
+
+                    backend-sorting
+                    :default-sort-direction="defaultSortOrder"
+                    :default-sort="[sortField, sortOrder]"
+                    @sort="onSort">
+
+                    <template slot-scope="props">
+                        <b-table-column v-for="(column, index) in columnsTemplate"
+                            :key="index"
+                            :label="column.title"
+                            :visible="column.visible"
+                            sortable>
+                            [[ props.row[column.field] ]]
+                        </b-table-column>
+                    </template>
+
+                    <template slot="detail" slot-scope="props">
+                        <article class="media">
+                            <div class="media-content">
+                                <div class="content">
+                                    <p>
+                                        [[ props.row.kanji ]]
+                                    </p>
+                                </div>
+                            </div>
+                        </article>
+                    </template>
+
+                    <template slot="empty">
+                        <section class="section">
+                            <div class="content has-text-grey has-text-centered">
+                                <p>
+                                    <b-icon
+                                        icon="emoticon-sad"
+                                        size="is-large">
+                                    </b-icon>
+                                </p>
+                                <p>Nothing here.</p>
+                            </div>
+                        </section>
+                    </template>
+
+                </b-table>
+            </b-tab-item>
+
+            <b-tab-item label="Videos" >
+                <div class="field">
+                    <b-switch>Default</b-switch>
+                </div>
+                <div class="field">
+                    <b-switch v-model="isSwitched">
+                        [[ isSwitched ]]
+                    </b-switch>
+                </div>
+                <div class="field">
+                    <b-switch v-model="isSwitchedCustom"
+                        true-value="Yes"
+                        false-value="No">
+                        [[ isSwitchedCustom ]]
+                    </b-switch>
+                </div>
+                <div class="field">
+                    <b-switch disabled>Disabled</b-switch>
+                </div>
+            </b-tab-item>
+        </b-tabs>
+    </section>
+
+
+</div>
+</section>
+</body>
+</html>
+
+
+<script>
+Vue.use(Buefy.default)
+
+
+    const example = {
+        delimiters: ['[[', ']]'],
+        data() {
+            return {
+                searchItem: '漢字',
+                isSwitched: true,
+                isSwitchedCustom: 'CUSTOM_stuff',
+                data: [],
+                isEmpty: false,
+                isBordered: false,
+                isStriped: false,
+                isNarrowed: false,
+                isHoverable: false,
+                isFocusable: false,
+                isLoading: false,
+                hasMobileCards: true,
+
+                columnsTemplate: [
+                    { title: 'ID', field: 'id', visible: true },
+                    { title: 'First Name', field: 'first_name', visible: true },
+                    { title: 'Last Name', field: 'last_name', visible: true },
+                    { title: 'Date', field: 'date', visible: true },
+                    { title: 'Gender', field: 'gender', visible: true }
+                ],
+
+                total: 0,
+                loading: false,
+                sortField: 'vote_count',
+                sortOrder: 'desc',
+                defaultSortOrder: 'desc',
+                page: 1,
+                perPage: 20
+            }
+        },
+        methods: {
+            /*
+             * Load async data
+             */
+            loadAsyncData() {
+                const params = [
+                    'api_key=bb6f51bef07465653c3e553d6ab161a8',
+                    'language=en-US',
+                    'include_adult=false',
+                    'include_video=false',
+                    `sort_by=${this.sortField}.${this.sortOrder}`,
+                    `page=${this.page}`
+                ].join('&')
+
+                this.loading = true
+                axios.get(`http://192.168.12.7:8000/kukan/ajax/get_kanji_list?${params}`)
+                //axios.get(`https://api.themoviedb.org/3/discover/movie?${params}`)
+                    .then(({ data }) => {
+                        // api.themoviedb.org manage max 1000 pages
+                        this.data = []
+                        let currentTotal = data.total_results
+                        if (data.total_results / this.perPage > 1000) {
+                            currentTotal = this.perPage * 1000
+                        }
+                        this.total = currentTotal
+                        data.results.forEach((item) => {
+                            this.data.push(item)
+                        })
+                        this.columnsTemplate = data.columnsTemplate
+                        this.loading = false
+                    })
+                    .catch((error) => {
+                        this.data = []
+                        this.total = 0
+                        this.loading = false
+                        throw error
+                    })
+            },
+            /*
+             * Handle page-change event
+             */
+            onPageChange(page) {
+                this.page = page
+                this.loadAsyncData()
+            },
+            /*
+             * Handle sort event
+             */
+            onSort(field, order) {
+                this.sortField = field
+                this.sortOrder = order
+                this.loadAsyncData()
+            },
+            /*
+             * Type style in relation to the value
+             */
+            type(value) {
+                const number = parseFloat(value)
+                if (number < 6) {
+                    return 'is-danger'
+                } else if (number >= 6 && number < 8) {
+                    return 'is-warning'
+                } else if (number >= 8) {
+                    return 'is-success'
+                }
+            }
+        },
+        filters: {
+            /**
+             * Filter to truncate string, accepts a length parameter
+             */
+            truncate(value, length) {
+            return value.length > length
+                ? value.substr(0, length) + '...'
+                : value
+                        }
+        },
+        mounted() {
+            this.loadAsyncData()
+        }
+    }
+
+
+const app = new Vue(example)
+app.$mount('#app')
+
+</script>

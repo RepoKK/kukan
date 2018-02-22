@@ -7,6 +7,12 @@
         <title>{% block title %}漢字辞典{% endblock %}</title>
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bulma/0.6.2/css/bulma.min.css">
         <script defer src="https://use.fontawesome.com/releases/v5.0.0/js/all.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/buefy/lib/buefy.min.css">
+    <link rel="stylesheet" href="https://cdn.materialdesignicons.com/2.0.46/css/materialdesignicons.min.css">
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.0.6/css/all.css">
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.5.13/dist/vue.js"></script>
+    <script src="https://unpkg.com/buefy"></script>
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
 
         <style type="text/css">
             @font-face {
@@ -15,7 +21,7 @@
                 font-weight: bold;
             }
 
-            h1.kanji
+            div.kanji
             {
                 font-family: KanjiStrokeOrders;
                 font-size: 180px
@@ -28,4 +34,21 @@
     </body>
 
     {% block script %}{% endblock %}
+
+<script>
+Vue.use(Buefy.default)
+
+    const example = {
+        delimiters: ['[[', ']]'],
+        data() {
+            return {
+                data: [],
+                searchItem: '漢字',
+            }
+        }
+    }
+
+const app = new Vue(example)
+app.$mount('#app')
+</script>
 </html>

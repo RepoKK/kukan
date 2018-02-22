@@ -3,11 +3,11 @@
 
 {% load staticfiles %}
 {% block title %}
-{{ kanji.kanji }}
+「{{ kanji.kanji }}」の詳細
 {% endblock %}
 
 {% block content %}
-  <h1 class="title kanji">{{ kanji.kanji }}</h1>
+  <div class="title kanji">{{ kanji.kanji }}</div>
   <div>
     <table class="table">
         <thead>
