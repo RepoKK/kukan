@@ -190,7 +190,7 @@
                 ].join('&')
 
                 this.isLoading = true
-                axios.get(`http://192.168.12.7:8000/kukan/ajax/get_kanji_list?${params}`)
+                axios.get(`/kukan/ajax/get_kanji_list?${params}`)
                 //axios.get(`https://api.themoviedb.org/3/discover/movie?${params}`)
                     .then(({ data }) => {
                         // api.themoviedb.org manage max 1000 pages

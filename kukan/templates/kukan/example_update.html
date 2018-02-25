@@ -209,7 +209,7 @@ const example_id = '{{example.id|default_if_none:'None'}}'
                     `word=${this.word}`,
                     `yomi=${this.yomi}`
                 ].join('&')
-                axios.get(`http://192.168.12.7:8000/kukan/ajax/set_yomi?${params}`)
+                axios.get(`/kukan/ajax/set_yomi?${params}`)
                     .then(({ data }) => {
                         if (data.candidate) {
                             app.reading_selected = data.candidate
