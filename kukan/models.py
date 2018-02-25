@@ -33,6 +33,8 @@ class Bushu(models.Model):
 
 
 class Kanji(models.Model):
+    update_time = models.DateTimeField('変更日付')
+
     kanji = models.CharField('漢字', max_length=1, primary_key=True)
     bushu = models.ForeignKey(Bushu, on_delete=models.CASCADE, verbose_name='部首')
     kanken_kyu = models.CharField('漢字検定', max_length=3)
@@ -67,8 +69,15 @@ class Kanji(models.Model):
     anki_kjBunrui = models.CharField(max_length=10)
     anki_kjIjiDoukun = models.CharField(max_length=5000)
 
+
     def __str__(self):
         return self.kanji
+
+
+    def save(self, *args, **kwargs):
+        self.pub_date = datetime.now()
+        super(models.Model, self).save(*args, **kwargs)
+
 
     def as_dict(self):
         res = {}

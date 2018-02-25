@@ -348,6 +348,7 @@ def get_yomi(request):
     word = request.GET.get('word', None)
     ex_id= request.GET.get('ex_id', None)
     linked_ex = []
+    example = None
     if ex_id != '':
         try:
             example = Example.objects.get(id=ex_id)
@@ -363,7 +364,11 @@ def get_yomi(request):
             continue
         reading_data[kj] = {}
         reading_data[kj]['kanji'] = kj
-        linked_ex = ExMap.objects.filter(kanji=kj, example=example)
+        if example is not None:
+            linked_ex = ExMap.objects.filter(kanji=kj, example=example)
+
+        reading_data[kj]['readings'] = \
+            [{'key': x.id, 'read': x.reading} for x in Reading.objects.filter(kanji=kj)]
         if len(linked_ex) and linked_ex[0].reading:
             reading_data[kj]['selected'] = linked_ex[0].reading.reading
             reading_data[kj]['joyo'] = linked_ex[0].in_joyo_list
@@ -374,12 +379,10 @@ def get_yomi(request):
 
             reading_data[kj]['selected'] = Reading.objects.get(id=ini_reading_selected[idx]).reading
             reading_data[kj]['joyo'] = False
-            reading_data[kj]['readings'] = [{'key': x.id, 'read': x.reading} for x in Reading.objects.filter(kanji=kj)]
             reading_selected.append(ini_reading_selected[idx])
         else:
             reading_data[kj]['selected'] = None
             reading_data[kj]['joyo'] = False
-            reading_data[kj]['readings']=[{'key':x.id, 'read':x.reading} for x in Reading.objects.filter(kanji=kj)]
             reading_selected.append(None)
     data = {'reading_selected': reading_selected, 'reading_data': reading_data}
     return JsonResponse(data)

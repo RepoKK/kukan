@@ -29,6 +29,7 @@
 
 <section class="section">
 <div id="upd_kanji" class="container">
+<div v-cloak>
 {% if form.non_field_errors %}
     <div class="notification is-danger">
         {{ form.non_field_errors }}
@@ -117,7 +118,7 @@
         </div>
     </div>
 
-    <input readonly="readonly" class="input is-static" type="hidden" v-model="reading_selected">
+    <!--<input readonly="readonly" class="input is-static" type="text" v-model="reading_selected">-->
     <input readonly="readonly" name="reading_selected" class="input is-static" type="hidden" v-model="reading_selected">
     <b-field label="例文">
         <b-input v-model="sentence" name="sentence" placeholder="単語を含む例文を入力ください。"></b-input>
@@ -141,6 +142,7 @@
       </div>
     </div>
 </form>
+</div>
 </div>
 </section>
 {% endblock %}
