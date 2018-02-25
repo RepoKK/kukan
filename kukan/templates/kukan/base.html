@@ -33,22 +33,9 @@
         {% block body %}{% endblock %}
     </body>
 
-    {% block script %}{% endblock %}
+    <script>
+        Vue.use(Buefy.default)
+    </script>
+        {% block script %}{% endblock %}
 
-<script>
-Vue.use(Buefy.default)
-
-    const example = {
-        delimiters: ['[[', ']]'],
-        data() {
-            return {
-                data: [],
-                searchItem: '漢字',
-            }
-        }
-    }
-
-const app = new Vue(example)
-app.$mount('#app')
-</script>
 </html>

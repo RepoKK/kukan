@@ -5,104 +5,6 @@
 例文の訂正
 {% endblock %}
 
-{% block javascript %}
-<script>
-
-    function get_yomi(word) {
-        console.log(word);
-        console.log("YOYO");
-        $.ajax({
-            url: '/kukan/ajax/get_yomi/',
-            data: {
-                'word': word
-            },
-            dataType: 'json',
-
-            success: function(data) {
-                console.log(data);
-                idx = 0;
-                $.each(data, function(name, value) {
-                    console.log(name + '-' + value + idx);
-
-                    $('#id_select_kanji_' + idx).html(name)
-                    $('#id_select_label_' + idx).text(name)
-                    $('#id_select_' + idx).prop('disabled', value['joyo']);
-                    $('#id_select_' + idx).children('option:not(:first)').remove();
-
-                    $.each(value['readings'], function(i, item) {
-                        $('#id_select_' + idx).append($('<option>', {
-                            value: item,
-                            text: item
-                        }));
-                        if(value['selected']!=null) {
-                            $('#id_select_' + idx).val(value['selected']).trigger('change');
-                        } else {
-                            $('#id_select_' + idx).val("未設定");
-                        }
-                        $('#id_select_column_' + idx).show();
-                    });
-                    idx += 1;
-                });
-                for (i = idx; i < 10; i++) {
-                    $('#id_select_column_' + idx).hide();
-                }
-            }
-        });
-    };
-
-    function set_yomi() {
-        console.log('set yomi');
-        $.ajax({
-            url: '/kukan/ajax/set_yomi/',
-            data: {
-                'word': $('#id_word').val(),
-                'yomi': $('#id_yomi').val()
-            },
-            dataType: 'json',
-
-            success: function(data) {
-                console.log(data);
-            }
-        });
-    };
-
-    function get_goo(word) {
-        $.ajax({
-            url: '/kukan/ajax/get_goo/',
-            data: {
-                'word': $('#id_word').val()
-            },
-            dataType: 'json',
-
-            success: function(data) {
-                console.log(data);
-                $('#id_definition').text(data['meaning'])
-                $('#get_goo').removeClass('is-loading');
-            }
-        });
-    };
-
-    $('#id_word').change(function() {
-        get_yomi($(this).val());
-    });
-
-    $('#get_goo').click(function() {
-        $(this).addClass('is-loading');
-        get_goo();
-    });
-
-    $('#id_set_yomi').click(function() {
-        set_yomi();
-    });
-
-    $(document).ready(function() {
-            console.log("Ready");
-        get_yomi($('#id_word').val());
-    });
-
-</script>
-{% endblock %}
-
 
 {% block content %}
     <section class="hero is-link is-hidden-mobile">
@@ -126,7 +28,7 @@
     </section>
 
 <section class="section">
-
+<div id="upd_kanji" class="container">
 {% if form.non_field_errors %}
     <div class="notification is-danger">
         {{ form.non_field_errors }}
@@ -140,25 +42,38 @@
             <div class="field">
                 <label class="label">単語</label>
                 <div class="control">
-                    {{ form.word|add_class:"input"|attr:"placeholder:単語（漢字・仮名）" }}
+                    <input placeholder="単語（漢字・仮名）" :readonly=is_joyo class="input" type="text"
+                            v-model="word"
+                            name="word"
+                            v-bind:class="{ 'is-static': is_joyo }"
+
+                           @blur="onChangeWord">
                 </div>
             </div>
+                <b-notification v-if='info_similar_word' type="is-info" has-icon>
+                    [[info_similar_word]]
+                </b-notification>
         </div>
         <div class="column">
-            <label class="label">読み方</label>
-            <div class="field has-addons">
-                <p class="control is-expanded">
-                    {% if form.yomi.errors %}
-                        {{ form.yomi|add_class:"input is-danger"|attr:"placeholder:読み方（カタカナ）" }}
-                    {% else %}
-                        {{ form.yomi|add_class:"input"|attr:"placeholder:読み方（カタカナ）" }}
-                    {% endif %}
-                </p>
-                <p class="control" id="id_set_yomi">
-                    <a class="button is-primary">
-                    設定
-                    </a>
+            <div class="field">
+                <label class="label">読み方</label>
+                <div class="field-body">
+                    <div class="field is-expanded">
+                        <div class="field has-addons">
+                            <p class="control is-expanded">
+                                <b-input v-model="yomi" name="yomi" placeholder="読み方（カタカナ）" expanded required></b-input>
+                            </p>
+                            <p class="control">
+                                <a class="button is-primary"
+                                   @click="onGuessReadings"
+                                   :disabled="yomi==''">設定</a>
+                            </p>
+                        </div>
+                        <!--<p class="help is-danger">Do not enter the first zero</p>-->
+                    </div>
+                </div>
             </div>
+
                 {% if form.yomi.errors %}
                     {% for error in form.yomi.errors %}
                         <p class="help is-danger">{{ error|escape }}</p>
@@ -169,46 +84,53 @@
 
 
     <div class="columns is-multiline">
-            {% for i in "xxxxxxxxxx" %}
-                <div class="column" style="display:none" id="id_select_column_{{ forloop.counter0 }}">
-                    <div class="columns is-mobile">
-                        <div class="column is-narrow">
-                            <p class="is-size-1" id="id_select_kanji_{{ forloop.counter0 }}">{{ kanji }}</p>
-                        </div>
-                        <div class="column">
-                            <div class="field">
-                                <label class="label help" id="id_select_label_{{ forloop.counter0 }}"></label>
-                                <div class="control is-expanded">
-                                    <div class="select is-fullwidth">
-                                        <select name="yomi_{{ forloop.counter0 }}" id="id_select_{{ forloop.counter0 }}">
-                                        <option value="未設定" disabled selected>未設定</option>
-                                        </select>
-                                    </div>
-                                </div>
+        <div v-for="(kj, dummy, idx) in reading_data" class="column">
+            <div class="columns is-mobile　is-vcentered">
+                <div class="column is-narrow">
+                    <p class="is-size-1">[[ kj.kanji ]]</p>
+                </div>
+                <div class="column">
+                    <div class="field">
+                        <label class="label help">[[kj.joyo ? '常用漢字票の読み' : '「'+kj.kanji+'」の読み']]</label>
+                        <div class="control is-expanded">
+
+                            <div v-if="kj.joyo" class="">
+                                <input readonly="readonly" class="input is-static" type="text"
+                                    v-model="kj.selected">
                             </div>
+                            <div v-else class="select is-fullwidth">
+                                <b-select placeholder="未設定" expanded v-model="reading_selected[idx]" name="reading_selected">
+                                    <option
+                                        v-for="rd in kj.readings"
+                                        :value="rd.key"
+                                        :key="rd.key">
+                                        [[ rd.read ]]
+                                    </option>
+                                </b-select>
+                            </div>
+
+
                         </div>
                     </div>
                 </div>
-            {% endfor %}
+            </div>
         </div>
-
-    <div class="field">
-      <label class="label">例文</label>
-      <div class="control">
-          {{ form.sentence|add_class:"input"|attr:"placeholder:単語を含む例文を入力ください。" }}
-      </div>
     </div>
 
+    <input readonly="readonly" class="input is-static" type="text" v-model="reading_selected">
+    <input readonly="readonly" name="reading_selected" class="input is-static" type="hidden" v-model="reading_selected">
+    <b-field label="例文">
+        <b-input v-model="sentence" name="sentence" placeholder="単語を含む例文を入力ください。"></b-input>
+    </b-field>
 
     <div class="field">
         <div class="control has-addons">
             <label class="label">単語の意味 <a class="button is-small is-primary"  id="get_goo">習得</a></label>
         </div>
         <div class="control">
-            {{ form.definition|add_class:"textarea"|attr:"placeholder:単語の意味・説明の文章を入力ください。" }}
+            <textarea v-model="definition" name="definition" class="textarea" placeholder="単語の意味・説明の文章を入力ください。"></textarea>
         </div>
     </div>
-
 
     <div class="field is-grouped">
       <div class="control">
@@ -218,11 +140,99 @@
         <button class="button is-text">取り消し</button>
       </div>
     </div>
-  </div>
-
-
 </form>
-
+</div>
 </section>
 {% endblock %}
 
+{% block script %}
+
+<script>
+
+const example_id = '{{example.id|default_if_none:'None'}}'
+
+    const example = {
+        delimiters: ['[[', ']]'],
+
+        data() {
+            return {
+                word: '{{ form.word.value|default_if_none:'' }}',
+                info_similar_word: '',
+                yomi: '{{ form.yomi.value|default_if_none:'' }}',
+                sentence: '{{ form.sentence.value|default_if_none:'' }}',
+                definition: '{{ form.definition.value|default_if_none:'' }}',
+                is_joyo: {{ example.is_joyo|yesno:"true,false" }},
+                reading_data: [],
+                reading_selected: [{{form.reading_selected.value|default_if_none:''}}],
+            }
+        },
+        methods: {
+            loadReadings() {
+                const params = [
+                    `ex_id=${example_id}`,
+                    `word=${this.word}`,
+                    `reading_selected=${this.reading_selected}`,
+                ].join('&')
+                axios.get(`/kukan/ajax/get_yomi?${params}`)
+                    .then(({ data }) => {
+                        this.reading_data = data.reading_data
+                        this.reading_selected = data.reading_selected
+                        console.log(this.reading_data);
+                    })
+                    .catch((error) => {
+                        console.log('loadReadings failed:' + error);
+                    })
+            },
+            findSimilarWords() {
+                const params = [
+                    `ex_id=${example_id}`,
+                    `word=${this.word}`,
+                ].join('&')
+                axios.get(`/kukan/ajax/get_similar_word?${params}`)
+                    .then(({ data }) => {
+                        this.info_similar_word = data.info_similar_word
+                    })
+                    .catch((error) => {
+                        this.$toast.open({
+                            message: `類義語検索失敗`,
+                            type: 'is-danger'
+                        })
+                    })
+            },
+            onChangeWord() {
+                this.loadReadings()
+                this.findSimilarWords()
+            },
+            onGuessReadings() {
+                const params = [
+                    `ex_id=${example_id}`,
+                    `word=${this.word}`,
+                    `yomi=${this.yomi}`
+                ].join('&')
+                axios.get(`http://192.168.12.7:8000/kukan/ajax/set_yomi?${params}`)
+                    .then(({ data }) => {
+                        if (data.candidate) {
+                            app.reading_selected = data.candidate
+                        } else {
+                            this.$toast.open({
+                                message: `読み方の自動設定失敗`,
+                                type: 'is-warning'
+                            })
+                        }
+                    })
+                    .catch((error) => {
+                            this.$toast.open({
+                                message: `読み方の自動設定失敗`,
+                                type: 'is-danger'
+                            })
+                    })
+            },
+        },
+        mounted() {
+           this.loadReadings()
+        }
+    }
+    const app = new Vue(example)
+    app.$mount('#upd_kanji')
+</script>
+{% endblock %}

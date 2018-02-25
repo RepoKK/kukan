@@ -1,26 +1,8 @@
-<!DOCTYPE html>
-<html class="has-navbar-fixed-bottom">
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Test Filter</title>
-    <link rel="stylesheet" href="https://unpkg.com/buefy/lib/buefy.min.css">
-    <link rel="stylesheet" href="https://cdn.materialdesignicons.com/2.0.46/css/materialdesignicons.min.css">
-    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.0.6/css/all.css">
-    <script src="https://cdn.jsdelivr.net/npm/vue@2.5.13/dist/vue.js"></script>
-    <script src="https://unpkg.com/buefy"></script>
-    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
-</head>
-<body>
-<section>
+{% extends 'kukan/base_ext.html' %}
+{% block content %}
 <div id="app" class="container is-fluid">
 
     <section>
-
-        <p class="content">
-            <b>Selection:</b>
-            [[ checkboxGroup ]]
-        </p>
 
         <b-field>
             <b-input icon="magnify" type="search" placeholder="検索..."　size="is-small"></b-input>
@@ -45,31 +27,31 @@
         <b-tabs v-model="activeTab">
             <b-tab-item label="表示設定">
                 <b-field grouped group-multiline>
-            <div class="control">
-                <b-switch v-model="isBordered">Bordered</b-switch>
-            </div>
-            <div class="control">
-                <b-switch v-model="isStriped">Striped</b-switch>
-            </div>
-            <div class="control">
-                <b-switch v-model="isNarrowed">Narrowed</b-switch>
-            </div>
-            <div class="control">
-                <b-switch v-model="isHoverable">Hoverable</b-switch>
-            </div>
-            <div class="control">
-                <b-switch v-model="isFocusable">Focusable</b-switch>
-            </div>
-            <div class="control">
-                <b-switch v-model="isLoading">Loading state</b-switch>
-            </div>
-            <div class="control">
-                <b-switch v-model="isEmpty">Empty</b-switch>
-            </div>
-            <div class="control">
-                <b-switch v-model="hasMobileCards">Mobile cards <small>(collapsed rows)</small></b-switch>
-            </div>
-        </b-field>
+                    <div class="control">
+                        <b-switch v-model="isBordered">Bordered</b-switch>
+                    </div>
+                    <div class="control">
+                        <b-switch v-model="isStriped">Striped</b-switch>
+                    </div>
+                    <div class="control">
+                        <b-switch v-model="isNarrowed">Narrowed</b-switch>
+                    </div>
+                    <div class="control">
+                        <b-switch v-model="isHoverable">Hoverable</b-switch>
+                    </div>
+                    <div class="control">
+                        <b-switch v-model="isFocusable">Focusable</b-switch>
+                    </div>
+                    <div class="control">
+                        <b-switch v-model="isLoading">Loading state</b-switch>
+                    </div>
+                    <div class="control">
+                        <b-switch v-model="isEmpty">Empty</b-switch>
+                    </div>
+                    <div class="control">
+                        <b-switch v-model="hasMobileCards">Mobile cards <small>(collapsed rows)</small></b-switch>
+                    </div>
+                </b-field>
             </b-tab-item>
 
             <b-tab-item label="一覧">
@@ -100,6 +82,7 @@
                     <template slot-scope="props">
                         <b-table-column v-for="(column, index) in columnsTemplate"
                             :key="index"
+                            :field="column.field"
                             :label="column.title"
                             :visible="column.visible"
                             sortable>
@@ -161,19 +144,16 @@
 
 
 </div>
-</section>
-</body>
-</html>
+{% endblock %}
 
-
+{% block script %}
 <script>
-Vue.use(Buefy.default)
-
 
     const example = {
         delimiters: ['[[', ']]'],
         data() {
             return {
+                activeTab: 1,
                 searchItem: '漢字',
                 isSwitched: true,
                 isSwitchedCustom: 'CUSTOM_stuff',
@@ -187,18 +167,12 @@ Vue.use(Buefy.default)
                 isLoading: false,
                 hasMobileCards: true,
 
-                columnsTemplate: [
-                    { title: 'ID', field: 'id', visible: true },
-                    { title: 'First Name', field: 'first_name', visible: true },
-                    { title: 'Last Name', field: 'last_name', visible: true },
-                    { title: 'Date', field: 'date', visible: true },
-                    { title: 'Gender', field: 'gender', visible: true }
-                ],
+                columnsTemplate: [],
 
                 total: 0,
                 loading: false,
-                sortField: 'vote_count',
-                sortOrder: 'desc',
+                sortField: 'kanji',
+                sortOrder: 'asc',
                 defaultSortOrder: 'desc',
                 page: 1,
                 perPage: 20
@@ -209,12 +183,9 @@ Vue.use(Buefy.default)
              * Load async data
              */
             loadAsyncData() {
+                sortDir = this.sortOrder == 'asc' ? '' : '-'
                 const params = [
-                    'api_key=bb6f51bef07465653c3e553d6ab161a8',
-                    'language=en-US',
-                    'include_adult=false',
-                    'include_video=false',
-                    `sort_by=${this.sortField}.${this.sortOrder}`,
+                    `sort_by=${sortDir}${this.sortField}`,
                     `page=${this.page}`
                 ].join('&')
 
@@ -224,11 +195,7 @@ Vue.use(Buefy.default)
                     .then(({ data }) => {
                         // api.themoviedb.org manage max 1000 pages
                         this.data = []
-                        let currentTotal = data.total_results
-                        if (data.total_results / this.perPage > 1000) {
-                            currentTotal = this.perPage * 1000
-                        }
-                        this.total = currentTotal
+                        this.total = data.total_results
                         data.results.forEach((item) => {
                             this.data.push(item)
                         })
@@ -291,3 +258,4 @@ const app = new Vue(example)
 app.$mount('#app')
 
 </script>
+{% endblock %}

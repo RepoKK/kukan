@@ -9,6 +9,7 @@ urlpatterns = [
     path('kanji/multi/', views.KanjiList.as_view(), name='kanji_multi'),
     path('kanji/list/', views.KanjiListFilter.as_view(), name='kanji_lstfilter'),
     path('ajax/get_kanji_list/', views.get_kanji_list, name='get_kanji_list'),
+    path('ajax/get_similar_word/', views.get_similar_word, name='get_similar_word'),
     path('ajax/get_yomi/', views.get_yomi, name='get_yomi'),
     path('ajax/set_yomi/', views.set_yomi, name='set_yomi'),
     path('ajax/get_goo/', views.get_goo, name='get_goo'),

@@ -1,6 +1,7 @@
 from django.forms import Form, ModelForm, Textarea, CharField, TextInput, ChoiceField, Select, ValidationError
 from .models import Kanji, Bushu, YomiType, YomiJoyo, Reading, Example, ExMap
 from django.utils.translation import gettext_lazy as _
+import kukan.jautils as jau
 
 class SearchForm(Form):
     search = CharField(widget=TextInput(attrs={'class': 'input is-medium', 'placeholder':'漢字・四字熟語・単語'}))
@@ -19,21 +20,26 @@ kat2hir  =str.maketrans(katakana_chart, hiragana_chart)
 class Katakana(CharField):
     def to_python(self, value):
         """Normalize to Katakana."""
-
-        return value.translate(hir2kat)
+        if value:
+            value = value.translate(hir2kat)
+        return value
 
     def validate(self, value):
         """Check if value consists only of Katakana."""
         super().validate(value)
-        raise ValidationError(
-            _('入力は片仮名以外: %(value)s'),
-            code='invalid',
-            params={'value': value},
+        for char in value:
+            if char not in jau.katakana_chart:
+                raise ValidationError(
+                    _('入力は片仮名以外: %(value)s'),
+                    code='invalid',
+                    params={'value': value},
         )
 
 
 class ExampleForm(ModelForm):
     yomi = Katakana()
+    reading_selected = CharField(label='reading_selected', max_length=100)
+
     class Meta:
         model = Example
         fields = ['word', 'yomi', 'sentence', 'definition']

@@ -14,6 +14,7 @@ from functools import reduce
 from django.core.paginator import Paginator
 import csv
 import re
+import kukan.jautils as jau
 
 from lxml import html
 import requests
@@ -64,7 +65,8 @@ class KanjiListFilter(generic.ListView):
 
 def get_kanji_list(request):
     page = request.GET.get('page', None)
-    p = Paginator(Kanji.objects.all(), 20)
+    sort = request.GET.get('sort_by', None)
+    p = Paginator(Kanji.objects.all().order_by(sort), 20)
     res = [obj.as_dict() for obj in p.page(page).object_list]
     col_tmplt = [{ 'title': '漢字2', 'field': 'kanji', 'visible': 'true' },
                 { 'title': 'First Name', 'field': 'first_name', 'visible': 'true' }]
@@ -344,36 +346,72 @@ class ExampleDelete(DeleteView):
 
 def get_yomi(request):
     word = request.GET.get('word', None)
-    data = {}
-    for kj in word:
-        data[kj] = {}
-        linked_ex = ExMap.objects.filter(kanji=kj, example__word=word)
+    ex_id= request.GET.get('ex_id', None)
+    linked_ex = []
+    if ex_id != '':
+        try:
+            example = Example.objects.get(id=ex_id)
+            linked_ex = ExMap.objects.filter(kanji=kj, example=example)
+        except Example.DoesNotExist:
+            pass
+
+    ini_reading_selected = request.GET.get('reading_selected', None).split(',')
+    ini_reading_selected = [int(x) if x != '' else -1 for x in ini_reading_selected]
+    reading_data = {}
+    reading_selected = []
+    for idx, kj in enumerate(word):
+        if len(Kanji.objects.filter(kanji=kj)) == 0:
+            continue
+        reading_data[kj] = {}
+        reading_data[kj]['kanji'] = kj
         if len(linked_ex) and linked_ex[0].reading:
-            data[kj]['selected'] = linked_ex[0].reading.reading
-            data[kj]['joyo'] = linked_ex[0].in_joyo_list
+            reading_data[kj]['selected'] = linked_ex[0].reading.reading
+            reading_data[kj]['joyo'] = linked_ex[0].in_joyo_list
+            reading_selected.append(linked_ex[0].reading.id)
+        elif len(ini_reading_selected) > idx \
+                and ini_reading_selected[idx] > -1\
+                and Reading.objects.get(id=ini_reading_selected[idx]).kanji.kanji == kj:
+
+            reading_data[kj]['selected'] = Reading.objects.get(id=ini_reading_selected[idx]).reading
+            reading_data[kj]['joyo'] = False
+            reading_data[kj]['readings'] = [{'key': x.id, 'read': x.reading} for x in Reading.objects.filter(kanji=kj)]
+            reading_selected.append(ini_reading_selected[idx])
         else:
-            data[kj]['selected'] = None
-            data[kj]['joyo'] = False
-        data[kj]['readings']=[x.reading for x in Reading.objects.filter(kanji=kj)]
+            reading_data[kj]['selected'] = None
+            reading_data[kj]['joyo'] = False
+            reading_data[kj]['readings']=[{'key':x.id, 'read':x.reading} for x in Reading.objects.filter(kanji=kj)]
+            reading_selected.append(None)
+    data = {'reading_selected': reading_selected, 'reading_data': reading_data}
     return JsonResponse(data)
 
 
 def set_yomi(request):
     word = request.GET.get('word', None)
     yomi = request.GET.get('yomi', None)
+    yomi = yomi.translate(jau.hir2kat)
+
     data = {}
     lst_reading = []
     lst_id = []
     for kj in word:
-        lst_reading.append([x.reading for x in Reading.objects.filter(kanji=kj)])
+        lst_reading.append([x.reading.translate(jau.hir2kat) for x in Reading.objects.filter(kanji=kj)])
         lst_id.append([x.id for x in Reading.objects.filter(kanji=kj)])
 
     candidate = reduce(lambda a, b: [x + y for x in a for y in b], lst_reading)
-    idx = candidate.index(yomi)
-    ID = lst_id[idx]
-    data = {'candidate':candidate}
+    candidate_id = reduce(lambda a, b: [([x] if isinstance(x, int) else x) + [y] for x in a for y in b], lst_id)
+    data = {'candidate': None}
+    if yomi in candidate:
+        idx = candidate.index(yomi)
+        ids = candidate_id[idx]
+        data = {'candidate':ids}
     return JsonResponse(data)
 
+
+def get_similar_word(request):
+    word = request.GET.get('word', None)
+    sim_word=', '.join([x.word for x in Example.objects.filter(word__contains=word)])
+    data={'info_similar_word':sim_word}
+    return JsonResponse(data)
 
 def get_goo(request):
     word = request.GET.get('word', None)
