@@ -351,7 +351,6 @@ def get_yomi(request):
     if ex_id != '':
         try:
             example = Example.objects.get(id=ex_id)
-            linked_ex = ExMap.objects.filter(kanji=kj, example=example)
         except Example.DoesNotExist:
             pass
 
@@ -364,6 +363,7 @@ def get_yomi(request):
             continue
         reading_data[kj] = {}
         reading_data[kj]['kanji'] = kj
+        linked_ex = ExMap.objects.filter(kanji=kj, example=example)
         if len(linked_ex) and linked_ex[0].reading:
             reading_data[kj]['selected'] = linked_ex[0].reading.reading
             reading_data[kj]['joyo'] = linked_ex[0].in_joyo_list
