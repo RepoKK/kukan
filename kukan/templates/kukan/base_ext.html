@@ -50,7 +50,8 @@
                     <div class="navbar-start">
                         <div class="navbar-item has-dropdown is-hoverable">
                             <a class="navbar-link" href="/kukan">
-                                <img src="https://bulma.io/i　mages/bulma-logo.png" alt="漢字辞典" width="100" height="28">
+                                <!-- TODO -->
+                                <!--<img src="https://bulma.io/i　mages/bulma-logo.png" alt="漢字辞典" width="100" height="28">-->
                                 <span class="icon">
                                     <i class="fas fa-home"></i>
                                 </span>
@@ -62,6 +63,8 @@
                                 <a class="navbar-item" href="{% url 'kukan:export' %}">
                                 エクスポート
                                 </a>
+                                <a class="navbar-item" href="{% url 'kukan:kanji_lstfilter' %}">
+                                漢字一覧
                                 <a class="navbar-item" href="{% url 'kukan:example_list' %}">
                                 例文一覧
                                 </a>
@@ -95,9 +98,9 @@
         </main>
 {% endblock body%}
 
-{% block script %}
+{% block ext_script %}
     <script src="https://code.jquery.com/jquery-3.1.0.min.js"></script>
-    {% block javascript %}{% endblock %}
+    {% block script %}{% endblock %}
     <script>
         document.addEventListener('DOMContentLoaded', function() {
 
@@ -125,5 +128,5 @@
 
         });
     </script>
-{% endblock script%}
+{% endblock%}
 </html>

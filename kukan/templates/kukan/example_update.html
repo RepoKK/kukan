@@ -83,13 +83,13 @@
     </div>
 
 
-    <div class="columns is-multiline">
+    <div class="columns is-multiline is-centered">
         <div v-for="(kj, dummy, idx) in reading_data" class="column">
-            <div class="columns is-mobile　is-vcentered">
+            <div class="columns is-mobile">
                 <div class="column is-narrow">
                     <p class="is-size-1">[[ kj.kanji ]]</p>
                 </div>
-                <div class="column">
+                <div class="column" style="min-width: 180px;">
                     <div class="field">
                         <label class="label help">[[kj.joyo ? '常用漢字票の読み' : '「'+kj.kanji+'」の読み']]</label>
                         <div class="control is-expanded">
@@ -117,7 +117,7 @@
         </div>
     </div>
 
-    <input readonly="readonly" class="input is-static" type="text" v-model="reading_selected">
+    <input readonly="readonly" class="input is-static" type="hidden" v-model="reading_selected">
     <input readonly="readonly" name="reading_selected" class="input is-static" type="hidden" v-model="reading_selected">
     <b-field label="例文">
         <b-input v-model="sentence" name="sentence" placeholder="単語を含む例文を入力ください。"></b-input>
