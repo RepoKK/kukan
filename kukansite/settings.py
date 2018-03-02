@@ -125,3 +125,10 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'static')
 
 CERT_ROOT = os.path.join(BASE_DIR, '.well-known')
 CERT_URL = '/.well-known/'
+
+X_FRAME_OPTIONS='DENY'
+
+try:
+    from kukansite.settings_prod import *
+except ImportError as e:
+    pass
