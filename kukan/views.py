@@ -1,26 +1,67 @@
-from django.shortcuts import get_object_or_404, render
-from django.http import HttpResponseRedirect, HttpResponse
+from django.http import HttpResponse
 from django.urls import reverse
 from django.views import generic
 from django.views.generic.edit import CreateView, UpdateView, DeleteView
+from django.views.generic.base import TemplateView
 from django.urls import reverse_lazy
-from .models import Kanji, Bushu, YomiType, YomiJoyo, Reading, Example, ExMap
+from .models import Kanji, YomiType, YomiJoyo, Reading, Example, ExMap
 from .forms import SearchForm, ExampleForm, ExportForm
-from django.forms import Textarea
 from django.template.loader import render_to_string
-from django.db.models import Q, Count
+from django.db.models import Q
 from django.http import JsonResponse
 from functools import reduce
 from django.core.paginator import Paginator
 import csv
 import re
 import kukan.jautils as jau
+import json
+
+import html2text
 
 from lxml import html
 import requests
 
-import CKanjiDeck
+from utilskanji import CKanjiDeck
 
+
+
+class StatsPage(TemplateView):
+    template_name = "kukan/stats.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        data_list = []
+        data = {}
+        data['cat'] = '漢字'
+        data['total'] = Kanji.objects.all().count()
+        data['joyo'] = Kanji.objects.filter(classification__classification='常用漢字').count()
+        data['non_joyo'] = Kanji.objects.exclude(classification__classification='常用漢字').count()
+        data_list.append(data.copy())
+        data = {}
+        data['cat'] = '総合読み'
+        data['total'] = Reading.objects.all().count()
+        data['joyo'] = Reading.objects.exclude(joyo__yomi_joyo = '表外').count()
+        data['non_joyo'] = Reading.objects.filter(joyo__yomi_joyo = '表外').count()
+        data_list.append(data.copy())
+        data['cat'] = '音読み'
+        yomi_filt=Reading.objects.filter(yomi_type__yomi_type='音')
+        data['total'] = yomi_filt.count()
+        data['joyo'] = yomi_filt.exclude(joyo__yomi_joyo = '表外').count()
+        data['non_joyo'] = yomi_filt.filter(joyo__yomi_joyo = '表外').count()
+        data_list.append(data.copy())
+        yomi_filt = Reading.objects.filter(yomi_type__yomi_type='訓')
+        data['cat'] = '訓読み'
+        data['total'] = yomi_filt.count()
+        data['joyo'] = yomi_filt.exclude(joyo__yomi_joyo = '表外').count()
+        data['non_joyo'] = yomi_filt.filter(joyo__yomi_joyo = '表外').count()
+        data_list.append(data.copy())
+        data['cat'] = '例文'
+        data['total'] = Example.objects.all().count()
+        data['joyo'] = 0
+        data['non_joyo'] = 0
+        data_list.append(data.copy())
+        context['stats_table_data'] = json.dumps(data_list)
+        return context
 
 class ContactView(generic.FormView):
     template_name = 'kukan/index.html'
@@ -115,160 +156,6 @@ class ReadingDetail(generic.DetailView):
 
 
 
-def TODO_export_anki_csv(request):
-    # Create the HttpResponse object with the appropriate CSV header.
-    response = HttpResponse(content_type='text/csv')
-    response['Content-Disposition'] = 'attachment; filename="djangoAnki.csv"'
-
-    root_dir = r'E:\CloudStorage\Google Drive\Kanji\資料\\'
-    exportFileName = root_dir + r'AnkiImport\DjangoKanji.txt'
-    with open(exportFileName, 'w', encoding='utf-8', newline='') as fDeck:
-        writer = csv.writer(response, delimiter='\t', quotechar='"')
-        for kj in Kanji.objects.filter():
-            anki_read_table = render_to_string('kukan/AnkiReadTable.html', {'kanji': kj})
-            anki_read_table = re.sub('^( *)', '', anki_read_table, flags=re.MULTILINE)
-            anki_read_table = anki_read_table.replace('\n', '')
-            writer.writerow([kj.kanji,
-                         kj.anki_Onyomi,
-                         kj.anki_Kunyomi,
-                         kj.anki_Nanori,
-                         kj.anki_English,
-                         kj.anki_Examples,
-                         kj.anki_JLPT_Level,
-                         kj.anki_Jouyou_Grade,
-                         kj.anki_Frequency,
-                         kj.anki_Components,
-                         kj.anki_Number_of_Strokes,
-                         kj.anki_Kanji_Radical,
-                         kj.anki_Radical_Number,
-                         kj.anki_Radical_Strokes,
-                         kj.anki_Radical_Reading,
-                         kj.anki_Traditional_Form,
-                         kj.anki_Classification,
-                         kj.anki_Keyword,
-                         kj.anki_Traditional_Radical,
-                         #kj.anki_Reading_Table,
-                         anki_read_table,
-                         kj.bushu.bushu,
-                         kj.anki_kjBushuMei,
-                         kj.kanken_kyu,
-                         kj.classification,
-                         kj.anki_kjIjiDoukun])
-    return response
-
-
-
-def example_from_csv(request):
-    exDict = {}
-
-    importCsvName = r'E:\CloudStorage\Google Drive\Kanji\資料\AnkiExport\書き取り.txt'
-    with open(importCsvName, 'r', encoding='utf-8') as fDeck:
-        csvIn = csv.reader(fDeck, delimiter='\t', quotechar='"')
-        for row in csvIn:
-            inc = False
-            for kj in row[1]:
-                try:
-                    if Kanji.objects.get(kanji=kj).kanken_kyu == '２級':
-                        inc = True
-                        break
-                except Kanji.DoesNotExist:
-                    pass
-            if inc and not Example.objects.filter(word=row[1]).exists():
-                m = re.search('<span class="font-color01">(.*)</span>', row[0])
-                sentence = re.sub('<span class="font-color01">.*</span>', row[1], row[0])
-                ex = Example(word=row[1], yomi=m[1], sentence=sentence, is_joyo=False )
-                ex.save()
-                idx = -1
-                for kj in row[1]:
-                    idx += 1
-                    try:
-                        m1 = ExMap(example=ex,
-                                   kanji=Kanji.objects.get(kanji=kj),
-                                   map_order=idx,
-                                   in_joyo_list=False)
-                        m1.save()
-                    except Kanji.DoesNotExist:
-                        print('Skip Kanji ' + kj)
-                break
-
-    return HttpResponse("example_from_csv")
-
-
-
-def example_from_csv_old(request):
-    exDict = {}
-
-    importCsvName = r'E:\CloudStorage\Google Drive\Kanji\資料\AnkiExport\書き取り.txt'
-    with open(importCsvName, 'r', encoding='utf-8') as fDeck:
-        csvIn = csv.reader(fDeck, delimiter='\t', quotechar='"')
-        for row in csvIn:
-            exDict[row[1]] = row[0]
-
-    for example in Example.objects.all():
-        if example.word in exDict:
-            example.sentence = exDict[example.word]
-            m = re.search('<span class="font-color01">(.*)</span>', example.sentence)
-            example.yomi = m[1]
-            example.sentence = re.sub('<span class="font-color01">.*</span>', example.word, example.sentence)
-            example.save()
-
-    return HttpResponse("example_from_csv")
-
-def read_from_csv(request):
-    readingDict = {}
-    importCsvName = r'E:\CloudStorage\Google Drive\Kanji\資料\joyo_ref.csv'
-    with open(importCsvName, 'r', encoding='utf-8') as fDeck:
-        csvIn = csv.reader(fDeck, delimiter=',', quotechar='"')
-        for row in csvIn:
-            reading = row[3]
-            if reading[0] == "▽":
-                special = True
-                reading = reading[1:]
-            else:
-                special = False
-            readingDict[(row[0], reading)] = (special, row[5], row[6])
-
-    joyo = YomiJoyo.objects.all()
-    for reading in Reading.objects.all():
-        if reading.is_joyo():
-            dct = readingDict[(reading.kanji.kanji, reading.get_simple())]
-            reading.remark = dct[1]
-            reading.ijidokun = dct[2]
-            if dct[0]:
-                reading.joyo = joyo[1]
-            reading.save()
-
-    return HttpResponse("readcsv")
-
-
-def add_ex(request):
-    readingDict = {}
-    importCsvName = r'E:\CloudStorage\Google Drive\Kanji\資料\joyo_ref.csv'
-    with open(importCsvName, 'r', encoding='utf-8') as fDeck:
-        csvIn = csv.reader(fDeck, delimiter=',', quotechar='"')
-        for row in csvIn:
-            reading = row[3]
-            if reading[0] == "▽":
-                special = True
-                reading = reading[1:]
-            else:
-                special = False
-            readingDict[(row[0], reading)] = (special, row[5], row[6], row[4])
-
-    joyo = YomiJoyo.objects.all()
-    for reading in Reading.objects.all():
-        if reading.is_joyo():
-            dct = readingDict[(reading.kanji.kanji, reading.get_simple())]
-            for ex in dct[3].split('、'):
-                ex, created = Example.objects.get_or_create(word=ex, yomi='', is_joyo=True)
-                m1 = ExMap(example=ex,
-                           kanji=reading.kanji,
-                           reading=reading,
-                           in_joyo_list=True)
-                #reading.example_set.add(ex)
-                m1.save()
-
-    return HttpResponse("add_ex")
 
 def import_file(request):
 
@@ -333,11 +220,6 @@ class ExampleUpdate(UpdateView):
     form_class = ExampleForm
     context_object_name = 'example'
 
-    def form_valid(self, form):
-        # This method is called when valid form data has been POSTed.
-        # It should return an HttpResponse.
-        fld = form.fields
-        return super().form_valid(form)
 
 class ExampleDelete(DeleteView):
     model = Example
@@ -412,19 +294,45 @@ def set_yomi(request):
 
 def get_similar_word(request):
     word = request.GET.get('word', None)
-    sim_word=', '.join([x.word for x in Example.objects.filter(word__contains=word)])
+    sim_word=[x.word + ('（'+ x.yomi +'）' if x.yomi!='' else '')
+                        for x in Example.objects.filter(word__contains=word)]
     data={'info_similar_word':sim_word}
     return JsonResponse(data)
 
 def get_goo(request):
     word = request.GET.get('word', None)
-    link = 'https://dictionary.goo.ne.jp/srch/jn/' + word + '/m1u/'
+    link = request.GET.get('link', None)
+    if link == '':
+        link = 'https://dictionary.goo.ne.jp/srch/jn/' + word + '/m1u/'
+    else:
+        link = 'https://dictionary.goo.ne.jp' + link
     page = requests.get(link)
     tree = html.fromstring(page.content)
-    block = tree.xpath('//*[@id="NR-main-in"]/section/div/div[2]/div')
-    text = html.tostring(block[0], encoding='unicode')
-    meaning = block[0].getchildren()[0].text
-    data = {'meaning':meaning}
+    text = ""
+    candidates = ""
+    try:
+        block = tree.xpath('//*[@id="NR-main-in"]/section/div/div[2]/div')
+        text = html.tostring(block[0], encoding='unicode')
+        definition = block[0].getchildren()[0].text
+    except IndexError:
+        block = tree.xpath('//dt[@class="title search-ttl-a"]')
+        candidates=[]
+        for block in tree.xpath('//dt[@class="title search-ttl-a"]'):
+            candidates.append({'word':block.text,'link':block.getparent().getparent().get('href')})
+
+    h = html2text.HTML2Text()
+    h.ignore_links = True
+    if text != '':
+        text = text.replace('<ol', '<ul')
+        # text = text.replace('<li', '<ul')
+        text = h.handle(text)
+        # text = text.replace('\n\n', '\n')
+        text = re.sub(r'  \* \*\*(\d*)\*\*',
+                      lambda match: match.group(1).translate(jau.digit_ful2half) + '. ',
+                      text)
+
+        #text=text.strip()
+    data = {'definition':text, 'candidates':candidates}
 
     return JsonResponse(data)
 

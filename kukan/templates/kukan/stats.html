@@ -1,0 +1,40 @@
+{% extends 'kukan/base_ext.html' %}
+
+{% block title %}
+統計
+{% endblock %}
+
+{% block content %}
+<template>
+    <b-table :data="data" :columns="columns" striped narrowed></b-table>
+</template>
+{% endblock content %}
+
+{% block vue_data %}
+        data() {
+            return {
+                data: {{stats_table_data|safe}},
+                columns: [
+                    {
+                        field: 'cat',
+                        label: '項目',
+                    },
+                    {
+                        field: 'total',
+                        label: '総合数',
+                        numeric: true
+                    },
+                    {
+                        field: 'joyo',
+                        label: '常用漢字表',
+                        numeric: true
+                    },
+                    {
+                        field: 'non_joyo',
+                        label: '表外',
+                        numeric: true
+                    },
+                ]
+            }
+        }
+{% endblock vue_data %}

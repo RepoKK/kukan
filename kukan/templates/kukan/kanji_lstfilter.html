@@ -1,9 +1,7 @@
 {% extends 'kukan/base_ext.html' %}
 {% block content %}
-<div id="app" class="container is-fluid">
 
     <section>
-
         <b-field>
             <b-input icon="magnify" type="search" placeholder="検索..."　size="is-small"></b-input>
             <p class="control">
@@ -143,119 +141,110 @@
     </section>
 
 
-</div>
+
 {% endblock %}
 
-{% block script %}
-<script>
+{% block vue_data %}
+    data() {
+        return {
+            containerSize: "is-fluid",
+            activeTab: 1,
+            searchItem: '漢字',
+            isSwitched: true,
+            isSwitchedCustom: 'CUSTOM_stuff',
+            data: [],
+            isEmpty: false,
+            isBordered: false,
+            isStriped: false,
+            isNarrowed: false,
+            isHoverable: false,
+            isFocusable: false,
+            isLoading: false,
+            hasMobileCards: true,
 
-    const example = {
-        delimiters: ['[[', ']]'],
-        data() {
-            return {
-                activeTab: 1,
-                searchItem: '漢字',
-                isSwitched: true,
-                isSwitchedCustom: 'CUSTOM_stuff',
-                data: [],
-                isEmpty: false,
-                isBordered: false,
-                isStriped: false,
-                isNarrowed: false,
-                isHoverable: false,
-                isFocusable: false,
-                isLoading: false,
-                hasMobileCards: true,
+            columnsTemplate: [],
 
-                columnsTemplate: [],
-
-                total: 0,
-                loading: false,
-                sortField: 'kanji',
-                sortOrder: 'asc',
-                defaultSortOrder: 'desc',
-                page: 1,
-                perPage: 20
-            }
-        },
-        methods: {
-            /*
-             * Load async data
-             */
-            loadAsyncData() {
-                sortDir = this.sortOrder == 'asc' ? '' : '-'
-                const params = [
-                    `sort_by=${sortDir}${this.sortField}`,
-                    `page=${this.page}`
-                ].join('&')
-
-                this.isLoading = true
-                axios.get(`/kukan/ajax/get_kanji_list?${params}`)
-                //axios.get(`https://api.themoviedb.org/3/discover/movie?${params}`)
-                    .then(({ data }) => {
-                        // api.themoviedb.org manage max 1000 pages
-                        this.data = []
-                        this.total = data.total_results
-                        data.results.forEach((item) => {
-                            this.data.push(item)
-                        })
-                        this.columnsTemplate = data.columnsTemplate
-                        this.isLoading = false
-                    })
-                    .catch((error) => {
-                        this.data = []
-                        this.total = 0
-                        this.loading = false
-                        throw error
-                    })
-            },
-            /*
-             * Handle page-change event
-             */
-            onPageChange(page) {
-                this.page = page
-                this.loadAsyncData()
-            },
-            /*
-             * Handle sort event
-             */
-            onSort(field, order) {
-                this.sortField = field
-                this.sortOrder = order
-                this.loadAsyncData()
-            },
-            /*
-             * Type style in relation to the value
-             */
-            type(value) {
-                const number = parseFloat(value)
-                if (number < 6) {
-                    return 'is-danger'
-                } else if (number >= 6 && number < 8) {
-                    return 'is-warning'
-                } else if (number >= 8) {
-                    return 'is-success'
-                }
-            }
-        },
-        filters: {
-            /**
-             * Filter to truncate string, accepts a length parameter
-             */
-            truncate(value, length) {
-            return value.length > length
-                ? value.substr(0, length) + '...'
-                : value
-                        }
-        },
-        mounted() {
-            this.loadAsyncData()
+            total: 0,
+            loading: false,
+            sortField: 'kanji',
+            sortOrder: 'asc',
+            defaultSortOrder: 'desc',
+            page: 1,
+            perPage: 20
         }
+    },
+    methods: {
+        /*
+         * Load async data
+         */
+        loadAsyncData() {
+            sortDir = this.sortOrder == 'asc' ? '' : '-'
+            const params = [
+                `sort_by=${sortDir}${this.sortField}`,
+                `page=${this.page}`
+            ].join('&')
+
+            this.isLoading = true
+            axios.get(`/kukan/ajax/get_kanji_list?${params}`)
+            //axios.get(`https://api.themoviedb.org/3/discover/movie?${params}`)
+                .then(({ data }) => {
+                    // api.themoviedb.org manage max 1000 pages
+                    this.data = []
+                    this.total = data.total_results
+                    data.results.forEach((item) => {
+                        this.data.push(item)
+                    })
+                    this.columnsTemplate = data.columnsTemplate
+                    this.isLoading = false
+                })
+                .catch((error) => {
+                    this.data = []
+                    this.total = 0
+                    this.loading = false
+                    throw error
+                })
+        },
+        /*
+         * Handle page-change event
+         */
+        onPageChange(page) {
+            this.page = page
+            this.loadAsyncData()
+        },
+        /*
+         * Handle sort event
+         */
+        onSort(field, order) {
+            this.sortField = field
+            this.sortOrder = order
+            this.loadAsyncData()
+        },
+        /*
+         * Type style in relation to the value
+         */
+        type(value) {
+            const number = parseFloat(value)
+            if (number < 6) {
+                return 'is-danger'
+            } else if (number >= 6 && number < 8) {
+                return 'is-warning'
+            } else if (number >= 8) {
+                return 'is-success'
+            }
+        }
+    },
+    filters: {
+        /**
+         * Filter to truncate string, accepts a length parameter
+         */
+        truncate(value, length) {
+        return value.length > length
+            ? value.substr(0, length) + '...'
+            : value
+                    }
+    },
+    mounted() {
+        this.loadAsyncData()
     }
+{% endblock vue_data%}
 
-
-const app = new Vue(example)
-app.$mount('#app')
-
-</script>
-{% endblock %}

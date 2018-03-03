@@ -1,5 +1,5 @@
 import csv
-from Kanji import CKanji
+from utilskanji.Kanji import CKanji
 
 
 class CKanjiDeck:

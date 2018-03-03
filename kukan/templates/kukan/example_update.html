@@ -26,14 +26,51 @@
         </div>
       </div>
     </section>
-
 <section class="section">
-<div id="upd_kanji" class="container">
-<div v-cloak>
+
+    <b-modal :active.sync="showCandidateDefinition" :width="500">
+        <div class="box">
+            <div class="columns">
+                <div class="column is-narrow">
+                    <div class="content"><strong>候補選択</strong></div>
+                </div>
+                <div class="column">
+                    <div class="columns" v-for="item in candidates">
+                        <div class="column">
+                            <nav class="level">
+                                <div class="level-item">
+                                    <button class="button is-info"
+                                            @click="getDefinition(item.link)">
+                                        [[item.word]]
+                                    </button>
+                                </div>
+                            </nav>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </b-modal>
+
 {% if form.non_field_errors %}
     <div class="notification is-danger">
         {{ form.non_field_errors }}
     </div>
+{% endif %}
+{% if form.errors %}
+    {% for field in form %}
+        {% for error in field.errors %}
+            <div class="notification is-danger">
+                <strong>{{ field.label |escape }}: </strong>
+                <strong>{{ error|escape }}</strong>
+            </div>
+        {% endfor %}
+    {% endfor %}
+    {% for error in form.non_field_errors %}
+        <div class="alert alert-danger">
+            <strong>{{ error|escape }}</strong>
+        </div>
+    {% endfor %}
 {% endif %}
 <form action="." method="post">
 {% csrf_token %}
@@ -48,12 +85,17 @@
                             name="word"
                             v-bind:class="{ 'is-static': is_joyo }"
 
-                           @blur="onChangeWord">
+                            @blur="onChangeWord"
+
+                            expanded required>
                 </div>
             </div>
-                <b-notification v-if='info_similar_word' type="is-info" has-icon>
-                    [[info_similar_word]]
-                </b-notification>
+            <b-notification v-if='info_similar_word.length > 0' type="is-info">
+                単語を含む既存の例文：<br>
+                    <div v-for="item in info_similar_word">
+                        <b-icon icon="__mydumy__" size="is-small"></b-icon>[[ item ]]<br>
+                    </div>
+            </b-notification>
         </div>
         <div class="column">
             <div class="field">
@@ -70,7 +112,6 @@
                                    :disabled="yomi==''">設定</a>
                             </p>
                         </div>
-                        <!--<p class="help is-danger">Do not enter the first zero</p>-->
                     </div>
                 </div>
             </div>
@@ -109,8 +150,6 @@
                                     </option>
                                 </b-select>
                             </div>
-
-
                         </div>
                     </div>
                 </div>
@@ -126,11 +165,22 @@
 
     <div class="field">
         <div class="control has-addons">
-            <label class="label">単語の意味 <a class="button is-small is-primary"  id="get_goo">習得</a></label>
+            <label class="label">単語の意味
+                <a class="button is-small is-primary"  @click="getDefinition('')" :disabled="word==''">習得</a>
+            </label>
         </div>
         <div class="control">
-            <textarea v-model="definition" name="definition" class="textarea" placeholder="単語の意味・説明の文章を入力ください。"></textarea>
+            <textarea v-model="definition"
+                      name="definition"
+                      class="textarea"
+                      placeholder="単語の意味・説明の文章を入力ください。"
+                      rows="10"></textarea>
         </div>
+        {% if form.definition.errors %}
+            {% for error in form.definition.errors %}
+                <p class="help is-danger">{{ error|escape }}</p>
+            {% endfor %}
+        {% endif %}
     </div>
 
     <div class="field is-grouped">
@@ -142,50 +192,49 @@
       </div>
     </div>
 </form>
-</div>
-</div>
 </section>
 {% endblock %}
 
 {% block script %}
-
 <script>
+    const example_id = '{{example.id|default_if_none:'None'}}'
+</script>
+{% endblock %}
 
-const example_id = '{{example.id|default_if_none:'None'}}'
-
-    const example = {
-        delimiters: ['[[', ']]'],
-
-        data() {
-            return {
-                word: '{{ form.word.value|default_if_none:'' }}',
-                info_similar_word: '',
-                yomi: '{{ form.yomi.value|default_if_none:'' }}',
-                sentence: '{{ form.sentence.value|default_if_none:'' }}',
-                definition: '{{ form.definition.value|default_if_none:'' }}',
-                is_joyo: {{ example.is_joyo|yesno:"true,false" }},
-                reading_data: [],
-                reading_selected: [{{form.reading_selected.value|default_if_none:''}}],
-            }
+{% block vue_data %}
+    data() {
+        return {
+            showCandidateDefinition:false,
+            word: '{{ form.word.value|default_if_none:'' }}',
+            info_similar_word: [],
+            yomi: '{{ form.yomi.value|default_if_none:'' }}',
+            sentence: '{{ form.sentence.value|default_if_none:'' }}',
+            definition: '{{ form.definition.value|default_if_none:''|escapejs }}',
+            is_joyo: {{ example.is_joyo|yesno:"true,false" }},
+            reading_data: [],
+            reading_selected: [{{form.reading_selected.value|default_if_none:''}}],
+            candidates: '',
+        }
+    },
+    methods: {
+        loadReadings() {
+            const params = [
+                `ex_id=${example_id}`,
+                `word=${this.word}`,
+                `reading_selected=${this.reading_selected}`,
+            ].join('&')
+            axios.get(`/kukan/ajax/get_yomi?${params}`)
+                .then(({ data }) => {
+                    this.reading_data = data.reading_data
+                    this.reading_selected = data.reading_selected
+                    console.log(this.reading_data);
+                })
+                .catch((error) => {
+                    console.log('loadReadings failed:' + error);
+                })
         },
-        methods: {
-            loadReadings() {
-                const params = [
-                    `ex_id=${example_id}`,
-                    `word=${this.word}`,
-                    `reading_selected=${this.reading_selected}`,
-                ].join('&')
-                axios.get(`/kukan/ajax/get_yomi?${params}`)
-                    .then(({ data }) => {
-                        this.reading_data = data.reading_data
-                        this.reading_selected = data.reading_selected
-                        console.log(this.reading_data);
-                    })
-                    .catch((error) => {
-                        console.log('loadReadings failed:' + error);
-                    })
-            },
-            findSimilarWords() {
+        findSimilarWords() {
+            if (!this.is_joyo && this.word.length > 0) {
                 const params = [
                     `ex_id=${example_id}`,
                     `word=${this.word}`,
@@ -200,41 +249,69 @@ const example_id = '{{example.id|default_if_none:'None'}}'
                             type: 'is-danger'
                         })
                     })
-            },
-            onChangeWord() {
-                this.loadReadings()
-                this.findSimilarWords()
-            },
-            onGuessReadings() {
-                const params = [
-                    `ex_id=${example_id}`,
-                    `word=${this.word}`,
-                    `yomi=${this.yomi}`
-                ].join('&')
-                axios.get(`/kukan/ajax/set_yomi?${params}`)
-                    .then(({ data }) => {
-                        if (data.candidate) {
-                            app.reading_selected = data.candidate
-                        } else {
-                            this.$toast.open({
-                                message: `読み方の自動設定失敗`,
-                                type: 'is-warning'
-                            })
-                        }
-                    })
-                    .catch((error) => {
-                            this.$toast.open({
-                                message: `読み方の自動設定失敗`,
-                                type: 'is-danger'
-                            })
-                    })
-            },
+            } else {
+                this.info_similar_word = ''
+            }
         },
-        mounted() {
-           this.loadReadings()
-        }
+        onChangeWord() {
+            this.loadReadings()
+            this.findSimilarWords()
+        },
+        onGuessReadings() {
+            const params = [
+                `ex_id=${example_id}`,
+                `word=${this.word}`,
+                `yomi=${this.yomi}`
+            ].join('&')
+            axios.get(`/kukan/ajax/set_yomi?${params}`)
+                .then(({ data }) => {
+                    if (data.candidate) {
+                        this.reading_selected = data.candidate
+                    } else {
+                        this.$toast.open({
+                            message: `読み方の自動設定失敗`,
+                            type: 'is-warning'
+                        })
+                    }
+                })
+                .catch((error) => {
+                        this.$toast.open({
+                            message: `読み方の自動設定失敗`,
+                            type: 'is-danger'
+                        })
+                })
+        },
+        getDefinition(link='') {
+            this.showCandidateDefinition=false
+            const params = [
+                `word=${this.word}`,
+                `link=${link}`
+            ].join('&')
+            axios.get(`/kukan/ajax/get_goo?${params}`)
+                .then(({ data }) => {
+                    if (data.definition) {
+                        this.definition = data.definition
+                        this.candidates = data.definition
+                    } else if (data.candidates) {
+                        this.candidates = data.candidates
+                        this.showCandidateDefinition=true
+                    } else {
+                        this.$toast.open({
+                            message: `定義獲得失敗`,
+                            type: 'is-warning'
+                        })
+                    }
+                })
+                .catch((error) => {
+                        this.$toast.open({
+                            message: `定義獲得失敗`,
+                            type: 'is-danger'
+                        })
+                })
+        },
+    },
+    mounted() {
+       this.loadReadings()
     }
-    const app = new Vue(example)
-    app.$mount('#upd_kanji')
-</script>
-{% endblock %}
+{% endblock vue_data %}
+

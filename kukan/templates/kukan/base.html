@@ -5,8 +5,6 @@
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <title>{% block title %}漢字辞典{% endblock %}</title>
-        <!--<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bulma/0.6.2/css/bulma.min.css">-->
-        <!--<script>import_from kukan_pkg</script>-->
 
         <link rel="stylesheet" href="{% static 'js/node_modules/buefy/lib/buefy.css' %}">
         <link rel="stylesheet" href="{% static 'js/node_modules/mdi/css/materialdesignicons.min.css' %}">
@@ -14,15 +12,6 @@
         <script src="{% static 'js/node_modules/buefy/lib/index.js' %}"></script>
         <script src="{% static 'js/node_modules/axios/dist/axios.min.js' %}"></script>
 
-        <!--<link rel="stylesheet" href="https://unpkg.com/buefy/lib/buefy.min.css">-->
-        <!--<script src="kukan/static/js/node_modules/buefy/lib/index.js"></script>-->
-        <!--<script src="https://unpkg.com/buefy"></script>-->
-        <!--<script src="https://unpkg.com/axios/dist/axios.min.js"></script>-->
-        <!--<script src="https://unpkg.com/axios/dist/axios.min.js"></script>-->
-
-        <!--<link rel="stylesheet" href="https://cdn.materialdesignicons.com/2.0.46/css/materialdesignicons.min.css">-->
-        <!--<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.0.6/css/all.css">-->
-        <!--<script defer src="https://use.fontawesome.com/releases/v5.0.0/js/all.js"></script>-->
         <style>
           [v-cloak] {
             display: none;
@@ -44,7 +33,11 @@
     </head>
 
     <body>
-        {% block body %}{% endblock %}
+        <div id="vue_app" class="container" v-bind:class="containerSize">
+            <div v-cloak>
+                {% block body %}{% endblock %}
+            </div>
+        </div>
     </body>
 
     <script>
@@ -52,4 +45,14 @@
     </script>
         {% block ext_script %}{% endblock %}
 
+    <script>
+        const app_data = {
+            delimiters: ['[[', ']]'],
+            {% block vue_data %}
+                containerSize: "is-fluid",
+            {% endblock %}
+        }
+        const app = new Vue(app_data)
+        app.$mount('#vue_app')
+    </script>
 </html>

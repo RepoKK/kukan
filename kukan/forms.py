@@ -21,7 +21,7 @@ class Katakana(CharField):
     def to_python(self, value):
         """Normalize to Katakana."""
         if value:
-            value = value.translate(hir2kat)
+            value = value.translate(hir2kat).strip()
         return value
 
     def validate(self, value):
@@ -64,7 +64,6 @@ class ExampleForm(ModelForm):
 
     def clean(self):
         cleaned_data=super(ExampleForm, self).clean()
-        # raise ValidationError('現在保存不可。')
         return self.cleaned_data
 
 
@@ -78,22 +77,25 @@ class ExampleForm(ModelForm):
             reading_selected = self.cleaned_data['reading_selected'].split(',')
             map_list = []
             for idx, kj in enumerate(example.word):
-                kanji = Kanji.objects.get(kanji=kj)
-                # check if the reading is a Joyo one - in which case it can't be changed
                 try:
-                    map = example.exmap_set.get(kanji = kanji,
-                                                         example = example,
-                                                         map_order = idx,
-                                                         in_joyo_list = True)
-                except ExMap.DoesNotExist:
-                    reading = Reading.objects.get(kanji=kj, id=reading_selected[idx])
-                    map, create = example.exmap_set.get_or_create(kanji = kanji,
-                                                                  reading = reading,
-                                                                  example = example,
-                                                                  map_order = idx,
-                                                                  in_joyo_list = False)
-                map_list.append(map.id)
-
+                    kanji = Kanji.objects.get(kanji=kj)
+                    # check if the reading is a Joyo one - in which case it can't be changed
+                    try:
+                        map = example.exmap_set.get(kanji = kanji,
+                                                             example = example,
+                                                             map_order = idx,
+                                                             in_joyo_list = True)
+                    except ExMap.DoesNotExist:
+                        reading = Reading.objects.get(kanji=kj, id=reading_selected[idx])
+                        map, create = example.exmap_set.get_or_create(kanji = kanji,
+                                                                      reading = reading,
+                                                                      example = example,
+                                                                      map_order = idx,
+                                                                      in_joyo_list = False)
+                    map_list.append(map.id)
+                except Kanji.DoesNotExist:
+                    # Not a Kanji (kana, or kanji not in the list)
+                    pass
             # Delete the maps not relevant anymore
             extra_maps = ExMap.objects.filter(example = example).exclude(id__in=map_list)
             extra_maps.delete()

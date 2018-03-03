@@ -1,7 +1,7 @@
 from django.urls import path
 
 from . import views
-from kukan.views import ExampleCreate, ExampleUpdate, ExampleDelete, ExportView
+from kukan.views import ExampleCreate, ExampleUpdate, ExampleDelete, ExportView, StatsPage
 
 app_name = 'kukan'
 urlpatterns = [
@@ -14,8 +14,7 @@ urlpatterns = [
     path('ajax/set_yomi/', views.set_yomi, name='set_yomi'),
     path('ajax/get_goo/', views.get_goo, name='get_goo'),
     path('import/', views.import_file, name='import'),
-    path('add_ex/', views.add_ex, name='add_ex'),
-    path('example_from_csv/', views.example_from_csv, name='example_from_csv'),
+    path('stats', StatsPage.as_view(), name='stats'),
     path('kanji/<str:pk>/', views.KanjiDetail.as_view(), name='kanji_detail'),
     path('reading/<int:pk>/', views.ReadingDetail.as_view(), name='reading_detail'),
     path('example/<int:pk>/', views.ExampleDetail.as_view(), name='example_detail'),

@@ -5,6 +5,7 @@ import datetime
 import re
 import csv
 from django.db.models import Count
+import markdown
 
 class Classification(models.Model):
     classification = models.CharField('種別', max_length=6)
@@ -33,8 +34,6 @@ class Bushu(models.Model):
 
 
 class Kanji(models.Model):
-    update_time = models.DateTimeField('変更日付')
-
     kanji = models.CharField('漢字', max_length=1, primary_key=True)
     bushu = models.ForeignKey(Bushu, on_delete=models.CASCADE, verbose_name='部首')
     kanken_kyu = models.CharField('漢字検定', max_length=3)
@@ -72,12 +71,6 @@ class Kanji(models.Model):
 
     def __str__(self):
         return self.kanji
-
-
-    def save(self, *args, **kwargs):
-        self.pub_date = datetime.now()
-        super(models.Model, self).save(*args, **kwargs)
-
 
     def as_dict(self):
         res = {}
@@ -245,14 +238,16 @@ class Reading(models.Model):
         return self.joyo.yomi_joyo != '表外'
 
 
-
 class Example(models.Model):
+
+    created_time = models.DateTimeField('作成日付', auto_now_add=True)
+    update_time = models.DateTimeField('変更日付', auto_now=True)
     readings = models.ManyToManyField(Reading)
     kanjis = models.ManyToManyField(Kanji, through='ExMap')
     word = models.CharField('例', max_length=5)
     yomi = models.CharField('読み方', max_length=30, blank=True)
     sentence = models.CharField('文章', max_length=300, blank=True)
-    definition = models.CharField('定義', max_length=2000, blank=True)
+    definition = models.CharField('定義', max_length=10000, blank=True)
     is_joyo = models.BooleanField('常用漢字表の例')
 
     class Meta:
@@ -261,9 +256,6 @@ class Example(models.Model):
             models.Index(fields=['word', 'yomi']),
             models.Index(fields=['word'])
         ]
-
-    def get_absolute_url(self):
-        return reverse('example_detail', kwargs={'pk': self.pk})
 
     def __str__(self):
         return self.word
@@ -278,9 +270,12 @@ class Example(models.Model):
     def goo_link(self):
         link = ''
         if self.word:
-            simple = re.sub(r'（.*）','' ,self.word)
+            simple = re.sub(r'（.*）', '', self.word)
             link = "<a href=https://dictionary.goo.ne.jp/srch/all/" + simple + "/m0u/>" + self.word + "</a>"
         return link
+
+    def get_definition_html(self):
+        return markdown.markdown(self.definition)
 
 
 class ExMap(models.Model):
@@ -288,7 +283,7 @@ class ExMap(models.Model):
     kanji = models.ForeignKey(Kanji, on_delete=models.CASCADE)
     reading = models.ForeignKey(Reading,
                                 on_delete=models.CASCADE,
-                                null = True,
+                                null=True,
                                 blank=True)
     in_joyo_list = models.BooleanField()
     map_order = models.IntegerField()
