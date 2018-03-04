@@ -53,14 +53,14 @@ def TODO_export_anki_csv(request):
                          anki_read_table,
                          kj.bushu.bushu,
                          kj.anki_kjBushuMei,
-                         kj.kanken_kyu,
+                         kj.kanken.kyu,
                          kj.classification,
                          kj.anki_kjIjiDoukun])
     return response
 
 
 
-def example_from_csv(request):
+def example_from_csv():
     exDict = {}
 
     importCsvName = r'E:\CloudStorage\Google Drive\Kanji\資料\AnkiExport\書き取り.txt'
@@ -68,16 +68,24 @@ def example_from_csv(request):
         csvIn = csv.reader(fDeck, delimiter='\t', quotechar='"')
         for row in csvIn:
             inc = False
-            for kj in row[1]:
-                try:
-                    if Kanji.objects.get(kanji=kj).kanken_kyu == '２級':
-                        inc = True
-                        break
-                except Kanji.DoesNotExist:
-                    pass
-            if inc and not Example.objects.filter(word=row[1]).exists():
-                m = re.search('<span class="font-color01">(.*)</span>', row[0])
-                sentence = re.sub('<span class="font-color01">.*</span>', row[1], row[0])
+            if row[2] == '2.0':
+                inc = True
+                print('Check ex:' + row[1] )
+            else:
+                continue
+            # for kj in row[1]:
+                # try:
+                #     if Kanji.objects.get(kanji=kj).kanken == '２級':
+                #         inc = True
+                #         break
+                # except Kanji.DoesNotExist:
+                #     pass
+
+            m = re.search('<span class="font-color01">(.*)</span>', row[0])
+            sentence = re.sub('<span class="font-color01">.*</span>', row[1], row[0])
+
+            if not Example.objects.filter(word__contains=row[1]).exists() or True:
+
                 ex = Example(word=row[1], yomi=m[1], sentence=sentence, is_joyo=False )
                 ex.save()
                 idx = -1
@@ -91,13 +99,18 @@ def example_from_csv(request):
                         m1.save()
                     except Kanji.DoesNotExist:
                         print('Skip Kanji ' + kj)
-                break
+            elif Example.objects.filter(word=row[1]).count()==1:
+                example = Example.objects.get(word=row[1])
+                example.sentence = sentence
+                example.yomi=m[1]
+                example.save()
+            elif Example.objects.filter(word=row[1]).count()>1:
+                print('Multiple candidate example - ' + row[1])
+            else:
+                print('Failed condition - ' + row[1])
 
-    return HttpResponse("example_from_csv")
 
-
-
-def example_from_csv_old(request):
+def example_from_csv_old():
     exDict = {}
 
     importCsvName = r'E:\CloudStorage\Google Drive\Kanji\資料\AnkiExport\書き取り.txt'
@@ -106,16 +119,13 @@ def example_from_csv_old(request):
         for row in csvIn:
             exDict[row[1]] = row[0]
 
-    for example in Example.objects.all():
+    for example in Example.objects.filter(kanken__kyu='２級'):
         if example.word in exDict:
             example.sentence = exDict[example.word]
             m = re.search('<span class="font-color01">(.*)</span>', example.sentence)
             example.yomi = m[1]
             example.sentence = re.sub('<span class="font-color01">.*</span>', example.word, example.sentence)
             example.save()
-
-    return HttpResponse("example_from_csv")
-
 
 
 def read_from_csv(request):

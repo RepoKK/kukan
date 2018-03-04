@@ -24,7 +24,6 @@ import requests
 from utilskanji import CKanjiDeck
 
 
-
 class StatsPage(TemplateView):
     template_name = "kukan/stats.html"
 
@@ -63,6 +62,7 @@ class StatsPage(TemplateView):
         context['stats_table_data'] = json.dumps(data_list)
         return context
 
+
 class ContactView(generic.FormView):
     template_name = 'kukan/index.html'
     form_class = SearchForm
@@ -79,7 +79,6 @@ class ContactView(generic.FormView):
 
     def get_success_url(self):
         return self.success_url
-
 
 
 class KanjiList(generic.ListView):
@@ -116,7 +115,6 @@ def get_kanji_list(request):
     return JsonResponse(data)
 
 
-
 class KanjiDetail(generic.DetailView):
     model = Kanji
     #template_name = 'kukan/detail.html'
@@ -143,9 +141,8 @@ class ExampleList2(generic.ListView):
 
     def get_queryset(self):
         #TODO
-        return Example.objects.exclude(exmap__example__yomi='').filter(exmap__kanji__kanken_kyu='２級').distinct()
-
-
+        return Example.objects.exclude(exmap__example__yomi='')\
+            .exclude(exmap__example__yomi='jukuji').filter(exmap__kanji__kanken__kyu='２級').distinct()
 
 
 class ExampleDetail(generic.DetailView):
@@ -153,8 +150,6 @@ class ExampleDetail(generic.DetailView):
 
 class ReadingDetail(generic.DetailView):
     model = Reading
-
-
 
 
 def import_file(request):
@@ -187,7 +182,6 @@ def import_file(request):
                 joyo=jy
              )
     return HttpResponse("y9o")
-
 
 
 class ExampleCreate(CreateView):
@@ -288,6 +282,9 @@ def set_yomi(request):
     if yomi in candidate:
         idx = candidate.index(yomi)
         ids = candidate_id[idx]
+        # For the case there's only one element - will not be included in a list, so add it here
+        if not type(ids) is list:
+            ids = [ids]
         data = {'candidate':ids}
     return JsonResponse(data)
 
@@ -378,7 +375,7 @@ def export_anki_kanji(request):
                      anki_read_table,
                      kj.bushu.bushu,
                      kj.anki_kjBushuMei,
-                     kj.kanken_kyu,
+                     kj.kanken.kyu,
                      kj.classification,
                      kj.anki_kjIjiDoukun])
     return response

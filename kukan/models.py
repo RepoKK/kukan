@@ -6,6 +6,8 @@ import re
 import csv
 from django.db.models import Count
 import markdown
+from django.db.models import Max
+
 
 class Classification(models.Model):
     classification = models.CharField('種別', max_length=6)
@@ -26,6 +28,14 @@ class YomiType(models.Model):
         return self.yomi_type
 
 
+class Kanken(models.Model):
+    kyu = models.CharField('漢字検定', max_length=3)
+    difficulty = models.IntegerField()
+    def __str__(self):
+        return self.kyu
+    class Meta:
+        ordering = ['difficulty']
+
 class Bushu(models.Model):
     bushu = models.CharField('BUSHU', max_length=1, primary_key=True)
     reading = models.CharField('READING', max_length=3)
@@ -36,7 +46,7 @@ class Bushu(models.Model):
 class Kanji(models.Model):
     kanji = models.CharField('漢字', max_length=1, primary_key=True)
     bushu = models.ForeignKey(Bushu, on_delete=models.CASCADE, verbose_name='部首')
-    kanken_kyu = models.CharField('漢字検定', max_length=3)
+    kanken = models.ForeignKey(Kanken, on_delete=models.CASCADE, verbose_name='漢検')
     strokes = models.IntegerField('画数')
     classification = models.ForeignKey(Classification, on_delete=models.CASCADE, verbose_name='種別')
 
@@ -176,7 +186,7 @@ class Kanji(models.Model):
                                  kj.anki_Reading_Table,
                                  kj.bushu.bushu,
                                  kj.bushu.reading,
-                                 kj.kanken_kyu,
+                                 kj.kanken.kyu,
                                  kj.classification,
                                  kj.anki_kjIjiDoukun])
 
@@ -241,7 +251,7 @@ class Reading(models.Model):
 class Example(models.Model):
 
     created_time = models.DateTimeField('作成日付', auto_now_add=True)
-    update_time = models.DateTimeField('変更日付', auto_now=True)
+    updated_time = models.DateTimeField('変更日付', auto_now=True)
     readings = models.ManyToManyField(Reading)
     kanjis = models.ManyToManyField(Kanji, through='ExMap')
     word = models.CharField('例', max_length=5)
@@ -249,6 +259,7 @@ class Example(models.Model):
     sentence = models.CharField('文章', max_length=300, blank=True)
     definition = models.CharField('定義', max_length=10000, blank=True)
     is_joyo = models.BooleanField('常用漢字表の例')
+    kanken = models.ForeignKey(Kanken, on_delete=models.CASCADE, verbose_name='漢検')
 
     class Meta:
         unique_together = ['word', 'yomi']
@@ -259,6 +270,11 @@ class Example(models.Model):
 
     def __str__(self):
         return self.word
+
+    def save(self, *args, **kwargs):
+        self.kanken=Kanken.objects.get(id=Kanji.objects.filter(kanji__in=self.word).
+                                       aggregate(Max('kanken'))['kanken__max'])
+        super().save(*args, **kwargs)
 
     def get_absolute_url(self):
         return reverse('kukan:example_detail', kwargs={'pk': self.pk})

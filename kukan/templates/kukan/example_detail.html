@@ -6,61 +6,70 @@
 
 {% block content %}
 <section class="section">
-    <h1 class="title">{{ example.word }}</h1>
-    <h2 class="subtitle">{{ example.yomi }}</h2>
-    <div>
-    <p><a href="{% url 'kukan:example_update' example.id %}">編集</a></p>
+    <div class="columns is-mobile">
+        <div class="column">
+            <h1 class="title">{{ example.word }}</h1>({{ example.yomi }})
+        </div>
+        <div class="column is-narrow">
+            <a class="button is-link" href="{% url 'kukan:example_update' example.id %}">編集</a>
+        </div>
     </div>
-    <div>
-    {{ example.sentence }}
-        <div>作成 {{example.created_time}}</div>
-       <div>更新 {{example.updated_time}}</div>
-    </div>
-    <div class="content"><h2>読み方</h2></div>
-    <div>
-        <table class="table is-striped">
-            <thead>
-                <tr>
-                    <th>
-                        漢字
-                    </th>
-                    <th>
-                        読み
-                    </th>
-                    <th>
-                        常用漢字
-                    </th>
-                    <th>
-                        常用漢字票の例
-                    </th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for map in example.exmap_set.all %}
-                <tr>
-                    <td>
-                        <a href="{% url 'kukan:kanji_detail' map.kanji.kanji %}">{{ map.kanji }}</a>
-                    </td>
-                    <td>
-                        {{ map.reading.reading }}
-                    </td>
-                    <td>
-                        {% if map.reading.is_joyo %}
-                            <b-icon icon="check"></b-icon>
-                        {% endif %}
-                    </td>
-                    <td>
-                        {% if map.in_joyo_list %}
-                            <b-icon icon="check"></b-icon>
-                        {% endif %}
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
-    <div class="content">
-        <h2>意味</h2></div>
-    <div class="content">{{ example.get_definition_html|safe  }}</div>
+    <div class="columns">
+        <div class="column is-two-thirds">
+            <div class="content">
+                <h2>意味</h2></div>
+            <div class="content">{{ example.get_definition_html|safe  }}</div>
+        </div>
+        <div class="column">
+            <div class="content"><h2>情報</h2></div>
+            <ul>
+                <li><strong>漢検：</strong>{{example.kanken}}</li>
+                <li><strong>例文：</strong>{{example.sentence}}</li>
+                <li><strong>作成：</strong>{{example.created_time}}</li>
+                <li><strong>更新：</strong>{{example.updated_time}}</li>
+            </ul>
+            <div>
+                <table class="table is-striped">
+                    <thead>
+                        <tr>
+                            <th>
+                                漢字
+                            </th>
+                            <th>
+                                読み
+                            </th>
+                            <th>
+                                常用読み
+                            </th>
+                            <th>
+                                常用例
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for map in example.exmap_set.all %}
+                        <tr>
+                            <td>
+                                <a href="{% url 'kukan:kanji_detail' map.kanji.kanji %}">{{ map.kanji }}</a>
+                            </td>
+                            <td>
+                                {{ map.reading.reading }}
+                            </td>
+                            <td>
+                                {% if map.reading.is_joyo %}
+                                    <b-icon icon="check"></b-icon>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if map.in_joyo_list %}
+                                    <b-icon icon="check"></b-icon>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
 </section>
 {% endblock %}

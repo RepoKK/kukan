@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Kanji, Reading, Bushu, Classification, YomiType, YomiJoyo, Example
+from .models import Kanji, Reading, Bushu, Classification, YomiType, YomiJoyo, Example, Kanken
 
 
 class KanjiInline(admin.TabularInline):
@@ -11,10 +11,10 @@ class KanjiInline(admin.TabularInline):
 class KanjiAdmin(admin.ModelAdmin):
     fieldsets = [
         (None,      {'fields': ['kanji']}),
-        ('漢字情報', {'fields': ['bushu', 'kanken_kyu', 'strokes', 'classification', 'update_time', 'jukuji']}),
+        ('漢字情報', {'fields': ['bushu', 'kanken', 'strokes', 'classification', 'jukuji']}),
     ]
     inlines = [KanjiInline]
-    list_display = ('kanji', 'bushu', 'kanken_kyu', 'strokes', 'classification')
+    list_display = ('kanji', 'bushu', 'kanken', 'strokes', 'classification')
 
 
 admin.site.register(Kanji, KanjiAdmin)
@@ -24,3 +24,4 @@ admin.site.register(Reading)
 admin.site.register(YomiType)
 admin.site.register(YomiJoyo)
 admin.site.register(Example)
+admin.site.register(Kanken)
