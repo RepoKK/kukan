@@ -344,9 +344,28 @@ class ExportView(generic.FormView):
     form_class = ExportForm
     success_url = reverse_lazy('kukan:export')
 
-    def form_valid(self, form):
-        type = form.cleaned_data['type']
-        return super().form_valid(form)
+    def render_to_response(self, context, **response_kwargs):
+        # Look for a 'format=json' GET argument
+        if self.request.method == 'POST':
+            return self.export_anki_kakitori()
+        else:
+            return super().render_to_response(context)
+
+    def export_anki_kakitori(self):
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = 'attachment; filename="djAnkiKakitori.csv"'
+        writer = csv.writer(response, delimiter='\t', quotechar='"')
+
+        for example in Example.objects.exclude(sentence=''):
+            sentence = example.sentence.replace(example.word,
+                                                '<span class="font-color01">' +
+                                                example.yomi + '</span>')
+            writer.writerow([sentence,
+                             example.word,
+                             example.kanken,
+                             example.id])
+        return response
+
 
 def export_anki_kanji(request):
     # Create the HttpResponse object with the appropriate CSV header.

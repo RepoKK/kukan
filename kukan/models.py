@@ -207,6 +207,12 @@ class Reading(models.Model):
         list_ex = "、".join(map(Example.get_url,
                                Example.objects.filter(exmap__reading=self,
                                                       exmap__in_joyo_list=True)))
+        list_ex_non_joyo = "、".join(map(Example.get_url,
+                               Example.objects.filter(exmap__reading=self,
+                                                      exmap__in_joyo_list=False)))
+        if list_ex_non_joyo != '':
+            list_ex += ' / ' + list_ex_non_joyo
+
         return list_ex
 
     def get_list_ex_anki(self):

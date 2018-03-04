@@ -1,7 +1,7 @@
 {% extends 'kukan/base_ext.html' %}
 {% block content %}
 <section class="section">
-        <form action="/kukan/export_csv/" method="post">
+        <form action="{% url 'kukan:export' %}" method="post">
             {% csrf_token %}
             <b-field label="{{ form.type.label }}">
                 <b-select placeholder="Select a name">
