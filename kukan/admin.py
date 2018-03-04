@@ -11,7 +11,7 @@ class KanjiInline(admin.TabularInline):
 class KanjiAdmin(admin.ModelAdmin):
     fieldsets = [
         (None,      {'fields': ['kanji']}),
-        ('漢字情報', {'fields': ['bushu', 'kanken', 'strokes', 'classification', 'jukuji']}),
+        ('漢字情報', {'fields': ['bushu', 'kanken', 'strokes', 'classification']}),
     ]
     inlines = [KanjiInline]
     list_display = ('kanji', 'bushu', 'kanken', 'strokes', 'classification')

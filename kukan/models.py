@@ -50,32 +50,14 @@ class Kanji(models.Model):
     strokes = models.IntegerField('画数')
     classification = models.ForeignKey(Classification, on_delete=models.CASCADE, verbose_name='種別')
 
-    jukuji = models.CharField('熟字・当て字', max_length=200, blank=True)
-
-    anki_Kanji = models.CharField(max_length=10)
-    anki_Onyomi = models.CharField(max_length=100)
-    anki_Kunyomi = models.CharField(max_length=100)
-    anki_Nanori = models.CharField(max_length=100)
     anki_English = models.CharField(max_length=1000)
     anki_Examples = models.CharField(max_length=1000)
-    anki_JLPT_Level = models.CharField(max_length=10)
-    anki_Jouyou_Grade = models.CharField(max_length=10)
-    anki_Frequency = models.CharField(max_length=10)
-    anki_Components = models.CharField(max_length=1000)
-    anki_Number_of_Strokes = models.CharField(max_length=10)
     anki_Kanji_Radical = models.CharField(max_length=10)
-    anki_Radical_Number = models.CharField(max_length=10)
-    anki_Radical_Strokes = models.CharField(max_length=10)
-    anki_Radical_Reading = models.CharField(max_length=10)
     anki_Traditional_Form = models.CharField(max_length=10)
-    anki_Classification = models.CharField(max_length=10)
-    anki_Keyword = models.CharField(max_length=100)
     anki_Traditional_Radical = models.CharField(max_length=10)
     anki_Reading_Table = models.CharField(max_length=10000)
     anki_kjBushu = models.CharField(max_length=10)
     anki_kjBushuMei = models.CharField(max_length=100)
-    anki_kjKanjiKentei = models.CharField(max_length=10)
-    anki_kjBunrui = models.CharField(max_length=10)
     anki_kjIjiDoukun = models.CharField(max_length=5000)
 
 
@@ -88,16 +70,20 @@ class Kanji(models.Model):
             if fld.concrete:
                 if fld.name == 'bushu':
                     res['bushu'] = self.bushu.bushu
+                elif fld.name == 'kanken':
+                    res['kanken'] = self.kanken.kyu
                 elif fld.name == 'classification':
                     res['classification'] = self.classification.classification
                 else:
                     res[fld.name] = getattr(self, fld.name)
+        res['ex_num'] = Example.objects.filter(kanjis=self.kanji).exclude(sentence='').count()
         return res
 
 
     @classmethod
     def fld_lst(cls):
         list_fld = []
+        list_fld.append({'title': '例文数', 'field': 'ex_num', 'visible': True})
         for fld in Kanji._meta.get_fields():
             if fld.concrete:
                 list_fld.append({'title': fld.verbose_name if fld.verbose_name != '' else fld.name,
@@ -121,21 +107,6 @@ class Kanji(models.Model):
 
     def get_anki_read(self):
         self.reading
-
-    def get_jukiji_old(self):
-        list_juku = []
-        for jk in self.jukuji.split(','):
-            jk = jk.replace(' ', '')
-            word = re.sub(r'（.*', '', jk)
-            #TODO: just to be able to do the comparaison with old data
-            word = re.sub(r'（.*','' ,word)
-            res = '<a href=https://dictionary.goo.ne.jp/srch/all/'
-            res += word
-            res += '/m0u/>'
-            res += jk
-            res += '</a>'
-            list_juku.append(res)
-        return '<br>'.join(list_juku)
 
     def get_jukiji(self):
         list_juku = []

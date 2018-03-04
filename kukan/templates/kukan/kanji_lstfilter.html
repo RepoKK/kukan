@@ -84,7 +84,12 @@
                             :label="column.title"
                             :visible="column.visible"
                             sortable>
-                            [[ props.row[column.field] ]]
+                            <span v-if="column.field == 'kanji'">
+                                <a :href="'/kukan/kanji/' + props.row[column.field]">[[ props.row[column.field] ]]</a>
+                            </span>
+                            <span v-else>
+                                [[ props.row[column.field] ]]
+                            </span>
                         </b-table-column>
                     </template>
 

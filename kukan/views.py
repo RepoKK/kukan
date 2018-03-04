@@ -15,6 +15,7 @@ import csv
 import re
 import kukan.jautils as jau
 import json
+from django.db.models import Count
 
 import html2text
 
@@ -106,7 +107,11 @@ class KanjiListFilter(generic.ListView):
 def get_kanji_list(request):
     page = request.GET.get('page', None)
     sort = request.GET.get('sort_by', None)
-    p = Paginator(Kanji.objects.all().order_by(sort), 20)
+    val_ex = Count('exmap', filter=~Q(exmap__example__sentence=''))
+    # qry = Kanji.objects.filter(kanken__kyu='２級').annotate(ex_num=val_ex).filter(ex_num__gt=0)
+    qry = Kanji.objects.filter(kanken__kyu='２級').annotate(ex_num=val_ex)
+    p = Paginator(qry.order_by(sort), 20)
+    # p = Paginator(Kanji.objects.all().order_by(sort), 20)
     res = [obj.as_dict() for obj in p.page(page).object_list]
     col_tmplt = [{ 'title': '漢字2', 'field': 'kanji', 'visible': 'true' },
                 { 'title': 'First Name', 'field': 'first_name', 'visible': 'true' }]
@@ -354,23 +359,10 @@ def export_anki_kanji(request):
         anki_read_table = re.sub('^( *)', '', anki_read_table, flags=re.MULTILINE)
         anki_read_table = anki_read_table.replace('\n', '')
         writer.writerow([kj.kanji,
-                     kj.anki_Onyomi,
-                     kj.anki_Kunyomi,
-                     kj.anki_Nanori,
                      kj.anki_English,
                      kj.anki_Examples,
-                     kj.anki_JLPT_Level,
-                     kj.anki_Jouyou_Grade,
-                     kj.anki_Frequency,
-                     kj.anki_Components,
-                     kj.anki_Number_of_Strokes,
                      kj.anki_Kanji_Radical,
-                     kj.anki_Radical_Number,
-                     kj.anki_Radical_Strokes,
-                     kj.anki_Radical_Reading,
                      kj.anki_Traditional_Form,
-                     kj.anki_Classification,
-                     kj.anki_Keyword,
                      kj.anki_Traditional_Radical,
                      anki_read_table,
                      kj.bushu.bushu,
