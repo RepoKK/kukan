@@ -292,6 +292,9 @@
                     if (data.definition) {
                         this.definition = data.definition
                         this.candidates = data.definition
+                        if (this.yomi=='') {
+                            this.yomi = data.reading
+                        }
                     } else if (data.candidates) {
                         this.candidates = data.candidates
                         this.showCandidateDefinition=true

@@ -267,6 +267,14 @@ class Example(models.Model):
             link = "<a href=https://dictionary.goo.ne.jp/srch/all/" + simple + "/m0u/>" + self.word + "</a>"
         return link
 
+    def goo_link_exact(self):
+        link = ''
+        if self.word:
+            simple = re.sub(r'（.*）', '', self.word)
+            link = "<a href=https://dictionary.goo.ne.jp/srch/all/" + simple + "/m1u/>" \
+                   + '「' + self.word + "」で一致する言葉を検索</a>"
+        return link
+
     def get_definition_html(self):
         return markdown.markdown(self.definition)
 

@@ -315,6 +315,9 @@ def get_goo(request):
     try:
         block = tree.xpath('//*[@id="NR-main-in"]/section/div/div[2]/div')
         text = html.tostring(block[0], encoding='unicode')
+        yomi = tree.xpath('//*[@id="NR-main-in"]/section/div/div[1]/h1/text()')[0]
+        yomi = yomi[0:yomi.index('【')].replace('‐','')
+        yomi = yomi.translate(jau.hir2kat)
         definition = block[0].getchildren()[0].text
     except IndexError:
         block = tree.xpath('//dt[@class="title search-ttl-a"]')
@@ -334,7 +337,7 @@ def get_goo(request):
                       text)
 
         #text=text.strip()
-    data = {'definition':text, 'candidates':candidates}
+    data = {'definition':text, 'reading': yomi, 'candidates':candidates}
 
     return JsonResponse(data)
 
