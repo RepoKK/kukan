@@ -116,11 +116,11 @@
                 </div>
             </div>
 
-                {% if form.yomi.errors %}
-                    {% for error in form.yomi.errors %}
-                        <p class="help is-danger">{{ error|escape }}</p>
-                    {% endfor %}
-                {% endif %}
+            {% if form.yomi.errors %}
+                {% for error in form.yomi.errors %}
+                    <p class="help is-danger">{{ error|escape }}</p>
+                {% endfor %}
+            {% endif %}
         </div>
     </div>
 
@@ -159,9 +159,19 @@
 
     <!--<input readonly="readonly" class="input is-static" type="text" v-model="reading_selected">-->
     <input readonly="readonly" name="reading_selected" class="input is-static" type="hidden" v-model="reading_selected">
-    <b-field label="例文">
-        <b-input v-model="sentence" name="sentence" placeholder="単語を含む例文を入力ください。"></b-input>
-    </b-field>
+    <div class="field">
+        <label class="label">例文</label>
+        <input class="input "
+               v-model="sentence"
+               name="sentence"
+               {% if form.sentence.errors %}v-bind:class="{'is-danger':true}"{% endif %}
+               placeholder="単語を含む例文を入力ください。">
+        {% if form.sentence.errors %}
+            {% for error in form.sentence.errors %}
+                <p class="help is-danger">{{ error|escape }}</p>
+            {% endfor %}
+        {% endif %}
+    </div>
 
     <div class="field">
         <div class="control has-addons">
