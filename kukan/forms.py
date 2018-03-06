@@ -64,6 +64,23 @@ class ExampleForm(ModelForm):
 
     def clean(self):
         cleaned_data=super(ExampleForm, self).clean()
+        sentence = cleaned_data.get('sentence')
+        word = cleaned_data.get('word')
+        if sentence != '':
+            if word not in sentence:
+                self.add_error('sentence',
+                               ValidationError(_('例文は単語「%(word)s」を含んでない。'),
+                                               code='invalid',
+                                               params={'word': word}))
+            no_word_sentence=sentence.replace(word, '')
+            for kj in word:
+                if kj in no_word_sentence:
+                    self.add_error('sentence',
+                                   ValidationError(
+                                       _('漢字「%(kj)s」は単語「%(word)s」以外では使えない。'),
+                                       code = 'invalid',
+                                       params = {'kj': kj, 'word':word}))
+
         return self.cleaned_data
 
 
