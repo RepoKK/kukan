@@ -312,6 +312,7 @@ def get_goo(request):
     tree = html.fromstring(page.content)
     text = ""
     candidates = ""
+    yomi=""
     try:
         block = tree.xpath('//*[@id="NR-main-in"]/section/div/div[2]/div')
         text = html.tostring(block[0], encoding='unicode')
@@ -325,9 +326,9 @@ def get_goo(request):
         for block in tree.xpath('//dt[@class="title search-ttl-a"]'):
             candidates.append({'word':block.text,'link':block.getparent().getparent().get('href')})
 
-    h = html2text.HTML2Text()
-    h.ignore_links = True
     if text != '':
+        h = html2text.HTML2Text()
+        h.ignore_links = True
         text = text.replace('<ol', '<ul')
         # text = text.replace('<li', '<ul')
         text = h.handle(text)
