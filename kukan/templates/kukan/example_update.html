@@ -5,8 +5,8 @@
 例文の訂正
 {% endblock %}
 
-
-{% block content %}
+{% block banner %}
+<div style="padding-bottom: 1rem">
     <section class="hero is-link is-hidden-mobile">
       <div class="hero-body">
         <div class="container">
@@ -17,15 +17,15 @@
       </div>
     </section>
 
-    <section class="hero is-link is-hidden-tablet">
-      <div class="hero-body">
-        <div class="container">
-          <h2 class="subtitle">
-            例文の訂正
-          </h2>
-        </div>
-      </div>
-    </section>
+<div class="container">
+  <div class="notification is-primary is-hidden-tablet">
+    <strong>例文の訂正</strong>
+  </div>
+</div>
+</div>
+{% endblock %}
+
+{% block content %}
 
     <b-modal :active.sync="showCandidateDefinition" :width="500">
         <div class="box">
