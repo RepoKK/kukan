@@ -249,7 +249,7 @@ def get_yomi(request):
             linked_ex = ExMap.objects.filter(kanji=kj, example=example)
 
         reading_data[kj]['readings'] = \
-            [{'key': x.id, 'read': x.reading} for x in Reading.objects.filter(kanji=kj)]
+            [{'key': x.id, 'read': x.get_full()} for x in Reading.objects.filter(kanji=kj)]
         if len(linked_ex) and linked_ex[0].reading:
             reading_data[kj]['selected'] = linked_ex[0].reading.reading
             reading_data[kj]['joyo'] = linked_ex[0].in_joyo_list
@@ -311,7 +311,7 @@ def get_goo(request):
     page = requests.get(link)
     tree = html.fromstring(page.content)
     text = ""
-    candidates = ""
+    candidates = []
     yomi=""
     try:
         block = tree.xpath('//*[@id="NR-main-in"]/section/div/div[2]/div')
@@ -322,9 +322,9 @@ def get_goo(request):
         definition = block[0].getchildren()[0].text
     except IndexError:
         block = tree.xpath('//dt[@class="title search-ttl-a"]')
-        candidates=[]
         for block in tree.xpath('//dt[@class="title search-ttl-a"]'):
-            candidates.append({'word':block.text,'link':block.getparent().getparent().get('href')})
+            if block.getparent().getparent().get('href')[0:3] == '/jn':
+                candidates.append({'word':block.text,'link':block.getparent().getparent().get('href')})
 
     if text != '':
         h = html2text.HTML2Text()
@@ -337,8 +337,7 @@ def get_goo(request):
                       lambda match: match.group(1).translate(jau.digit_ful2half) + '. ',
                       text)
 
-        #text=text.strip()
-    data = {'definition':text, 'reading': yomi, 'candidates':candidates}
+    data = {'definition': text, 'reading': yomi, 'candidates': candidates if len(candidates) > 0 else ''}
 
     return JsonResponse(data)
 
