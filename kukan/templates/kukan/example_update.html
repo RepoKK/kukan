@@ -138,7 +138,7 @@
                                     v-model="kj.selected">
                             </div>
                             <div v-else class="select is-fullwidth">
-                                <b-select placeholder="未設定" expanded v-model="reading_selected[idx]" name="reading_selected">
+                                <b-select required placeholder="未設定" expanded v-model="reading_selected[idx]" name="reading_selected">
                                     <option
                                         v-for="rd in kj.readings"
                                         :value="rd.key"
