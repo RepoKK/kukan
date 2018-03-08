@@ -49,7 +49,15 @@
         {% block ext_script %}{% endblock %}
 
     <script>
+        var mixin = {
+            data: function () {
+                return {
+                    containerSize: "is-desktop",
+                }
+            }
+        }
         const app_data = {
+            mixins:[mixin],
             delimiters: ['[[', ']]'],
             {% block vue_data %}
                 containerSize: "is-fluid",
