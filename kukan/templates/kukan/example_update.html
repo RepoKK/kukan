@@ -119,6 +119,42 @@
                 {% endfor %}
             {% endif %}
         </div>
+        <div class="column">
+            <div class="field">
+                <label class="label">単語（例文）</label>
+                <div class="control">
+                    <input placeholder="（任意）例文中の語形" class="input" type="text"
+                            v-model="word_native"
+                            name="word_native"
+
+                            @blur="onChangeWord"
+
+                            expanded>
+                </div>
+            </div>
+        </div>
+        <div class="column">
+            <div class="field">
+                <label class="label">読み方（例文）</label>
+                <div class="field-body">
+                    <div class="field is-expanded">
+                        <p class="control is-expanded">
+                            <input v-model="yomi_native"
+                                   class="input" type="text"
+                                   name="yomi_native"
+                                   placeholder="（任意）例文中の読み方（カタカナ）"
+                                   expanded></input>
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            {% if form.yomi_native.errors %}
+                {% for error in form.yomi_native.errors %}
+                    <p class="help is-danger">{{ error|escape }}</p>
+                {% endfor %}
+            {% endif %}
+        </div>
     </div>
 
 
@@ -212,8 +248,10 @@
         return {
             showCandidateDefinition:false,
             word: '{{ form.word.value|default_if_none:'' }}',
+            word_native: '{{ form.word_native.value|default_if_none:'' }}',
             info_similar_word: [],
             yomi: '{{ form.yomi.value|default_if_none:'' }}',
+            yomi_native: '{{ form.yomi_native.value|default_if_none:'' }}',
             sentence: '{{ form.sentence.value|default_if_none:'' }}',
             definition: '{{ form.definition.value|default_if_none:''|escapejs }}',
             is_joyo: {{ example.is_joyo|yesno:"true,false" }},
@@ -227,6 +265,7 @@
             const params = [
                 `ex_id=${example_id}`,
                 `word=${this.word}`,
+                `word_native=${this.word_native}`,
                 `reading_selected=${this.reading_selected}`,
             ].join('&')
             axios.get(`/kukan/ajax/get_yomi?${params}`)

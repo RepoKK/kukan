@@ -226,7 +226,9 @@ class ExampleDelete(DeleteView):
 
 
 def get_yomi(request):
-    word = request.GET.get('word', None)
+    word = request.GET.get('word_native', None)
+    if word is None or word == '':
+        word = request.GET.get('word', None)
     ex_id= request.GET.get('ex_id', None)
     linked_ex = []
     example = None
@@ -250,15 +252,24 @@ def get_yomi(request):
 
         reading_data[kj]['readings'] = \
             [{'key': x.id, 'read': x.get_full()} for x in Reading.objects.filter(kanji=kj)]
-        if len(linked_ex) and linked_ex[0].reading:
-            reading_data[kj]['selected'] = linked_ex[0].reading.reading
+        reading_data[kj]['readings'] = [{'key':0, 'read': ExMap.ateji_option_disp}] + reading_data[kj]['readings']
+        if len(linked_ex) and (linked_ex[0].reading or linked_ex[0].is_ateji):
+            if linked_ex[0].is_ateji:
+                reading_data[kj]['selected'] = ExMap.ateji_option_disp
+                reading_selected.append(0)
+            else:
+                reading_data[kj]['selected'] = linked_ex[0].reading.reading
+                reading_selected.append(linked_ex[0].reading.id)
             reading_data[kj]['joyo'] = linked_ex[0].in_joyo_list
-            reading_selected.append(linked_ex[0].reading.id)
+
         elif len(ini_reading_selected) > idx \
                 and ini_reading_selected[idx] > -1\
-                and Reading.objects.get(id=ini_reading_selected[idx]).kanji.kanji == kj:
-
-            reading_data[kj]['selected'] = Reading.objects.get(id=ini_reading_selected[idx]).reading
+                and (ini_reading_selected[idx] == 0
+                     or Reading.objects.get(id=ini_reading_selected[idx]).kanji.kanji == kj):
+            if ini_reading_selected[idx] == 0:
+                reading_data[kj]['selected'] = ExMap.ateji_option_disp
+            else:
+                reading_data[kj]['selected'] = Reading.objects.get(id=ini_reading_selected[idx]).reading
             reading_data[kj]['joyo'] = False
             reading_selected.append(ini_reading_selected[idx])
         else:
@@ -319,6 +330,8 @@ def get_goo(request):
         yomi = tree.xpath('//*[@id="NR-main-in"]/section/div/div[1]/h1/text()')[0]
         yomi = yomi[0:yomi.index('【')].replace('‐','')
         yomi = yomi.translate(jau.hir2kat)
+        yomi = yomi.replace('・', '')
+        yomi = re.sub('〔.*〕','', yomi)
         definition = block[0].getchildren()[0].text
     except IndexError:
         block = tree.xpath('//dt[@class="title search-ttl-a"]')
@@ -359,14 +372,16 @@ class ExportView(generic.FormView):
         response['Content-Disposition'] = 'attachment; filename="djAnkiKakitori.csv"'
         writer = csv.writer(response, delimiter='\t', quotechar='"')
 
-        for example in Example.objects.exclude(sentence=''):
-            sentence = example.sentence.replace(example.word,
+        for example in Example.objects.exclude(sentence='').exclude(kanken__difficulty__lt=8):
+            word = example.word_native if example.word_native != "" else example.word
+            yomi = example.yomi_native if example.yomi_native != "" else example.yomi
+            sentence = example.sentence.replace(word,
                                                 '<span class="font-color01">' +
-                                                example.yomi + '</span>')
-            writer.writerow([sentence,
-                             example.word,
-                             example.kanken,
-                             example.id])
+                                                yomi + '</span>')
+            writer.writerow([example.id,
+                             sentence,
+                             word,
+                             example.kanken])
         return response
 
 

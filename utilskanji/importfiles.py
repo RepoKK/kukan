@@ -64,27 +64,34 @@ def example_from_csv():
     exDict = {}
 
     importCsvName = r'E:\CloudStorage\Google Drive\Kanji\資料\AnkiExport\書き取り.txt'
-    with open(importCsvName, 'r', encoding='utf-8') as fDeck:
+    exportCsvName = r'E:\CloudStorage\Google Drive\Kanji\資料\AnkiExport\書き取り_proc.txt'
+    with open(importCsvName, 'r', encoding='utf-8') as fDeck, open(exportCsvName, 'w', encoding='utf-8') as outputDeck:
+        csvOut = csv.writer(outputDeck, delimiter='\t', quotechar='"')
         csvIn = csv.reader(fDeck, delimiter='\t', quotechar='"')
         for row in csvIn:
+            if row[0]!='':
+                continue
+
             inc = False
-            if row[2] == '2.0':
+            if '級' not in row[3]:
                 inc = True
-                print('Check ex:' + row[1] )
+                print('Check ex:' + row[2] )
             else:
                 continue
-            # for kj in row[1]:
-                # try:
-                #     if Kanji.objects.get(kanji=kj).kanken == '２級':
-                #         inc = True
-                #         break
-                # except Kanji.DoesNotExist:
-                #     pass
 
-            m = re.search('<span class="font-color01">(.*)</span>', row[0])
-            sentence = re.sub('<span class="font-color01">.*</span>', row[1], row[0])
+            for kj in row[2]:
+                try:
+                    kanji=Kanji.objects.get(kanji=kj)
+                except Kanji.DoesNotExist:
+                    print('Skip Kanji ' + row[2])
+                    inc = False
+            if not inc: continue
 
-            if not Example.objects.filter(word__contains=row[1]).exists() or True:
+
+            m = re.search('<span class="font-color01">(.*)</span>', row[1])
+            sentence = re.sub('<span class="font-color01">.*</span>', row[2], row[1])
+
+            if not Example.objects.filter(word__contains=row[2]).exists():
 
                 ex = Example(word=row[1], yomi=m[1], sentence=sentence, is_joyo=False )
                 ex.save()
@@ -99,15 +106,17 @@ def example_from_csv():
                         m1.save()
                     except Kanji.DoesNotExist:
                         print('Skip Kanji ' + kj)
-            elif Example.objects.filter(word=row[1]).count()==1:
+            elif Example.objects.filter(word=row[2]).count()==1:
                 example = Example.objects.get(word=row[1])
                 example.sentence = sentence
                 example.yomi=m[1]
                 example.save()
-            elif Example.objects.filter(word=row[1]).count()>1:
+            elif Example.objects.filter(word=row[2]).count()>1:
                 print('Multiple candidate example - ' + row[1])
             else:
-                print('Failed condition - ' + row[1])
+                print('Failed condition - ' + row[2])
+                row[1]=sentence
+                csvOut.writerow(row)
 
 
 def example_from_csv_old():

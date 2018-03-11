@@ -53,7 +53,11 @@
                                 <a href="{% url 'kukan:kanji_detail' map.kanji.kanji %}">{{ map.kanji }}</a>
                             </td>
                             <td>
-                                {{ map.reading.reading }}
+                                {% if map.is_ateji %}
+                                    {{ map.ateji_option_disp }}
+                                {% else %}
+                                    {{ map.reading.reading }}
+                                {% endif %}
                             </td>
                             <td>
                                 {% if map.reading.is_joyo %}

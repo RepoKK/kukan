@@ -11,6 +11,9 @@
                     例文の単語
                 </th>
                 <th>
+                    Reading
+                </th>
+                <th>
                     読み方
                 </th>
                 <th class="is-hidden-tablet">
@@ -25,6 +28,9 @@
                 <tr>
                     <td>
                         <a href="{% url 'kukan:example_detail' ex.id %}">{{ ex.word }}</a>
+                    </td>
+                    <td>
+                        {{ ex.reading.yomi }}
                     </td>
                     <td>
                         {{ ex.yomi }}

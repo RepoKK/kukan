@@ -231,8 +231,12 @@ class Example(models.Model):
     updated_time = models.DateTimeField('変更日付', auto_now=True)
     readings = models.ManyToManyField(Reading)
     kanjis = models.ManyToManyField(Kanji, through='ExMap')
-    word = models.CharField('例', max_length=5)
-    yomi = models.CharField('読み方', max_length=30, blank=True)
+    # The 'display' version of the word - for instance the infinitive for verb, extra info, etc...
+    word = models.CharField('単語－表示', max_length=20)
+    # The word as per the sentence - optional
+    word_native = models.CharField('単語', max_length=10, blank=True)
+    yomi = models.CharField('読み方－表示', max_length=30, blank=True)
+    yomi_native = models.CharField('読み方', max_length=30, blank=True)
     sentence = models.CharField('文章', max_length=300, blank=True)
     definition = models.CharField('定義', max_length=10000, blank=True)
     is_joyo = models.BooleanField('常用漢字表の例')
@@ -260,6 +264,9 @@ class Example(models.Model):
         link = "<a href=" + self.get_absolute_url() + ">" + self.word + "</a>"
         return link
 
+    def get_word_native(self):
+        return self.word_native if self.word_native != '' else self.word
+
     def goo_link(self):
         link = ''
         if self.word:
@@ -286,6 +293,8 @@ class ExMap(models.Model):
                                 on_delete=models.CASCADE,
                                 null=True,
                                 blank=True)
+    is_ateji = models.BooleanField()
+    ateji_option_disp = '当て字・熟字'
     in_joyo_list = models.BooleanField()
     map_order = models.IntegerField()
 
