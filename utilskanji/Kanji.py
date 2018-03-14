@@ -4,6 +4,7 @@ from lxml import html
 import re
 import pickle
 import jsonpickle
+import html2text
 
 
 katakana_chart = ("ァアィイゥウェエォオカガキギクグケゲコゴサザシジスズセゼソゾタダチヂッツヅテデトドナニヌネノ"
@@ -163,8 +164,15 @@ class CKanji:
             for idx in range(startIdx, endIdx):
                 if blkName in ['部首', '画数', '音読み', '訓読み', '漢字検定', '学年', '異体字']:
                     content = subblock[idx].getchildren()[0].text
-                elif blkName in ['意味', 'Unicode', '種別']:
+                elif blkName in ['Unicode', '種別']:
                     content = subblock[idx].text
+                elif blkName in ['意味']:
+                    content = lxml.html.tostring(subblock[idx], encoding='unicode')
+                    h = html2text.HTML2Text()
+                    h.ignore_links = True
+                    content = h.handle(content)
+                    # m = re.search("<td>(.*)</td>", content, flags=re.MULTILINE)
+                    # content = m[1]
                 elif blkName in ['JIS水準']:
                     if len(subblock[idx].getchildren()) > 0:
                         content = subblock[idx].getchildren()[0].text

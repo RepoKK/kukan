@@ -1,6 +1,7 @@
 import csv
 from utilskanji.Kanji import CKanji
-
+from kukan.models import Kanji, YomiType, YomiJoyo, Reading, Example, ExMap
+import json
 
 class CKanjiDeck:
     def DiffDeck(deck1, deck2):
@@ -47,7 +48,11 @@ class CKanjiDeck:
 
     def ProcessJitenon(self):
         for kj in iter(self._kanjiMap.values()):
+            db_kj = Kanji.objects.get(kanji=kj._Kanji)
             kj.ProcessJitenon()
+            db_kj.strokes = int(kj._jitenonItem['画数'][0].replace('画',''))
+            db_kj.meaning = json.dumps(kj._jitenonItem['意味'])
+            db_kj.save()
 
     def GetNbOfReading(self):
         nbOfReading = [0, 0, 0, 0]

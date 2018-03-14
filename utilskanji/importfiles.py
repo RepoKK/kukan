@@ -13,7 +13,7 @@ from django.core.paginator import Paginator
 import csv
 import re
 import kukan.jautils as jau
-
+from utilskanji import CKanjiDeck
 
 
 
@@ -251,3 +251,14 @@ def add_ex_special():
                            map_order=ex.index(row[0]),
                            in_joyo_list=True)
                 m1.save()
+
+
+def import_kanji():
+
+    root_dir = r'E:\CloudStorage\Google Drive\Kanji\資料\\'
+    importFileName = root_dir + r'AnkiExport\漢字.txt'
+    outputFileName = root_dir + r'AnkiImport\DeckKanji.txt'
+
+    deck = CKanjiDeck.CKanjiDeck()
+    deck.CreateDeckFromAnkiFile(importFileName)
+    deck.ProcessJitenon()

@@ -4,6 +4,7 @@ from django.utils import timezone
 import datetime
 import re
 import csv
+import json
 from django.db.models import Count
 import markdown
 from django.db.models import Max
@@ -49,6 +50,8 @@ class Kanji(models.Model):
     kanken = models.ForeignKey(Kanken, on_delete=models.CASCADE, verbose_name='漢検')
     strokes = models.IntegerField('画数')
     classification = models.ForeignKey(Classification, on_delete=models.CASCADE, verbose_name='種別')
+    meaning = models.CharField('意味', max_length=1000, blank=True)
+    external_ref = models.CharField('外部辞典', max_length=1000, blank=True)
 
     anki_English = models.CharField(max_length=1000)
     anki_Examples = models.CharField(max_length=1000)
@@ -104,6 +107,19 @@ class Kanji(models.Model):
                 if fld.verbose_name[0:4]!='anki':
                     list_fld.append([fld.name, fld.verbose_name, getattr(self, fld.name)])
         return list_fld
+
+    def basic_info2(self):
+        list_fld = []
+        for fld in ['bushu', 'strokes', 'classification', 'kanken']:
+                    list_fld.append([ self._meta.get_field(fld).verbose_name, getattr(self, fld)])
+        return list_fld
+
+    def meaning_list(self):
+        res = ""
+        if self.meaning != "":
+            res = json.loads(self.meaning)
+        return res
+
 
     def get_anki_read(self):
         self.reading
