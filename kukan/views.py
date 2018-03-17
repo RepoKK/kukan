@@ -107,9 +107,27 @@ class KanjiListFilter(generic.ListView):
 def get_kanji_list(request):
     page = request.GET.get('page', None)
     sort = request.GET.get('sort_by', None)
+    f_ex_num = request.GET.get('文例数', None)
+    f_ex_kakusu = request.GET.get('画数', None)
+    f_ex_kanken = request.GET.get('漢検', None)
+
+
     val_ex = Count('exmap', filter=~Q(exmap__example__sentence=''))
     # qry = Kanji.objects.filter(kanken__kyu='２級').annotate(ex_num=val_ex).filter(ex_num__gt=0)
-    qry = Kanji.objects.filter(kanken__kyu='２級').annotate(ex_num=val_ex)
+    qry = Kanji.objects.annotate(ex_num=val_ex)
+
+    if f_ex_num is not None:
+        f_ex_num = f_ex_num.split('~')
+        qry = qry.filter(ex_num__gte=f_ex_num[0]).filter(ex_num__lte=f_ex_num[1])
+
+    if f_ex_kakusu is not None:
+        f_ex_kakusu = f_ex_kakusu.split('~')
+        qry = qry.filter(strokes__gte=f_ex_kakusu[0]).filter(strokes__lte=f_ex_kakusu[1])
+
+    if f_ex_kanken is not None:
+        f_ex_kanken = f_ex_kanken.split(', ')
+        qry = qry.filter(kanken__kyu__in=f_ex_kanken)
+
     p = Paginator(qry.order_by(sort), 20)
     # p = Paginator(Kanji.objects.all().order_by(sort), 20)
     res = [obj.as_dict() for obj in p.page(page).object_list]
