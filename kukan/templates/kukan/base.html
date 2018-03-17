@@ -56,11 +56,14 @@
                 }
             }
         }
+
+        {% block mixin_ext %}
+        {% endblock %}
+
         const app_data = {
-            mixins:[mixin],
+            mixins:[mixin, mixin_ext],
             delimiters: ['[[', ']]'],
             {% block vue_data %}
-                containerSize: "is-fluid",
             {% endblock %}
         }
         const app = new Vue(app_data)

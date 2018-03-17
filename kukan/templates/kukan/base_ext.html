@@ -6,38 +6,29 @@
                 <div class="navbar-brand">
 
                     <div class="navbar-item is-hidden-desktop">
+                        <!--<div class="field">-->
+                            <!--<p class="control">-->
+                                <!--<input class="input" name="search" type="text" placeholder="検索" style="width:140px">-->
+                            <!--</p>-->
+                        <!--</div>-->
                         <form action="/kukan/kanji/multi/" method="get">
-                        <div class="field">
+                        <b-field>
+                            <b-input type="search" placeholder="検索..." style="width:140px" name="search"></b-input>
                             <p class="control">
-                                <input class="input" name="search" type="text" placeholder="検索" style="width:140px">
+                                <input type="submit" name="type" class="button is-primary" :value="searchItem" />
                             </p>
-                        </div>
-                        <!-- TODO: drop down button
-
-                        <span id="app">
-                            <b-field>
-
-                                <b-input type="search" placeholder="検索..." style="width:140px"></b-input>
-
-                                <p class="control">
-                                    <button class="button is-primary">
-                                        [[ searchItem ]]
+                            <p class="control">
+                                <b-dropdown v-model="searchItem" position="is-bottom-left" @submit.prevent>
+                                    <button class="button is-primary" slot="trigger" @click.prevent>
+                                        <b-icon icon="menu-down"></b-icon>
                                     </button>
-                                </p>
-                                <p class="control">
-                                    <b-dropdown v-model="searchItem" position="is-bottom-left">
-                                        <button class="button is-primary" slot="trigger">
-                                            <b-icon icon="menu-down"></b-icon>
-                                        </button>
-                                        <b-dropdown-item value="漢字">漢字</b-dropdown-item>
-                                        <b-dropdown-item value="四字" disabled>四字熟語</b-dropdown-item>
-                                        <b-dropdown-item value="例文">例文</b-dropdown-item>
-                                    </b-dropdown>
-                                </p>
-                            </b-field>
-                        </span>
 
-                            -->
+                                    <b-dropdown-item value="漢字">漢字</b-dropdown-item>
+                                    <b-dropdown-item value="四字" disabled>四字熟語</b-dropdown-item>
+                                    <b-dropdown-item value="例文">例文</b-dropdown-item>
+                                </b-dropdown>
+                            </p>
+                        </b-field>
                         </form>
                     </div>
                     <div class="navbar-burger burger" data-target="navbarExampleTransparentExample">
@@ -127,4 +118,14 @@
         });
     </script>
 {% endblock%}
+
+{% block mixin_ext %}
+        var mixin_ext = {
+            data: function () {
+                return {
+                    searchItem: "漢字",
+                }
+            }
+        }
+{% endblock %}
 </html>
