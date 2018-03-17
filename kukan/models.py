@@ -85,12 +85,13 @@ class Kanji(models.Model):
     @classmethod
     def fld_lst(cls):
         list_fld = []
-        list_fld.append({'title': '例文数', 'field': 'ex_num', 'visible': True})
         for fld in Kanji._meta.get_fields():
             if fld.concrete and fld.name[0:4]!='anki':
                 list_fld.append({'title': fld.verbose_name if fld.verbose_name != '' else fld.name,
                                  'field': fld.name,
-                                 'visible': fld.name not in ['anki_Examples', 'anki_Reading_Table', 'anki_kjIjiDoukun', 'meaning']})
+                                 'visible': fld.name not in ['anki_Examples', 'anki_Reading_Table',
+                                                             'anki_kjIjiDoukun', 'meaning', 'external_ref']})
+        list_fld.append({'title': '例文数', 'field': 'ex_num', 'visible': True})
         return list_fld
 
     class Meta:

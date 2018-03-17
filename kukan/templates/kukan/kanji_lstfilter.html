@@ -279,7 +279,7 @@ Vue.component('fr-filter-min-max', {
     <fr-filter v-on:apply="handleApply" @rm_fil="$emit('rm_fil')" :title="title" :current_filter="filter">
         <b-dropdown-item custom>
             <div v-for="(elem, index) in elements" class="field">
-                <b-checkbox size="is-small" v-model="checkboxGroup" :native-value=index>[[elem.label]]</b-checkbox>
+                <b-checkbox v-model="checkboxGroup" :native-value=index>[[elem.label]]</b-checkbox>
             </div>
         </b-dropdown-item custom>
     </fr-filter>
@@ -368,6 +368,12 @@ var FrCompKanken = {
                 {'native':'3kyu', 'label': '３級'},
                 {'native':'4kyu', 'label': '４級'},
                 {'native':'5kyu', 'label': '５級'},
+                {'native':'6kyu', 'label': '６級'},
+                {'native':'7kyu', 'label': '７級'},
+                {'native':'8kyu', 'label': '８級'},
+                {'native':'9kyu', 'label': '９級'},
+                {'native':'10kyu', 'label': '１０級'},
+
             ],
         }
     },
@@ -394,12 +400,12 @@ var FrCompType = {
     <div>
         <b-dropdown>
             <span slot="trigger" class="button is-selected is-primary is-outlined">
-                [[title]]<b-icon icon="plus-circle-outline" size="is-small"></b-icon>
+                [[title_btn]]<b-icon icon="plus-circle-outline" size="is-small"></b-icon>
             </span>
             <drop-down-top :title="title" @apply="handleApply"></drop-down-top>
             <b-dropdown-item custom>
                 <div v-for="(elem, index) in elements" class="field">
-                    <b-checkbox size="is-small" v-model="checkboxGroup" :native-value=elem.native>[[elem.label]]</b-checkbox>
+                    <b-checkbox v-model="checkboxGroup" :native-value=elem.native>[[elem.label]]</b-checkbox>
                 </div>
             </b-dropdown-item custom>
         </b-dropdown>
@@ -410,16 +416,17 @@ var FrCompAddFilter = {
     data: function () {
         return {
             checkboxGroup: [],
+            title: "ﾌｨﾙﾀｰ追加"
         }
     },
     components: {
         'drop-down-top': DropDownTop,
     },
     computed: {
-        title: function () {
+        title_btn: function () {
             res = ""
             if (this.activenb == 0) {
-                res = 'ﾌｨﾙﾀｰ追加　'
+                res = this.title + "　"
             }
             return res
         }
@@ -536,6 +543,7 @@ Vue.component('fr-filter-container', {
 <script type="text/x-template" id="filtered-table">
     <div>
         <fr-filter-container @input="onFilterChange"></fr-filter-container>
+        <br>
         <b-table
             :data="isEmpty ? [] : data"
             :striped="isStriped"
@@ -613,8 +621,8 @@ Vue.component('fr-filtered-table', {
             data: [],
             isEmpty: false,
             isBordered: false,
-            isStriped: false,
-            isNarrowed: false,
+            isStriped: true,
+            isNarrowed: true,
             isLoading: false,
             hasMobileCards: true,
 

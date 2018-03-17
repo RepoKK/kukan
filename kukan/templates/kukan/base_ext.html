@@ -7,26 +7,21 @@
 
                     <div class="navbar-item is-hidden-desktop">
                         <form action="/kukan/kanji/multi/" method="get">
-                        <b-field grouped >
-                            <b-field>
-                                <b-input type="search" placeholder="検索..." style="width:140px" name="search"></b-input>
-                            </b-field>
-                            <b-field>
-                                <p class="control">
+                            <b-field grouped>
+                                <input class="input" type="search" placeholder="検索..." style="width:140px" name="search"></input>
+                                <b-field>
                                     <input type="submit" name="type" class="button is-light" :value="searchItem" />
-                                </p>
-                                <p class="control">
-                                    <b-dropdown v-model="searchItem" position="is-bottom-left" @submit.prevent>
-                                        <button class="button is-light" slot="trigger" @click.prevent>
-                                            <b-icon icon="menu-down"></b-icon>
-                                        </button>
 
-                                        <b-dropdown-item value="漢字">漢字</b-dropdown-item>
-                                        <b-dropdown-item value="四字" disabled>四字熟語</b-dropdown-item>
-                                        <b-dropdown-item value="例文">例文</b-dropdown-item>
-                                    </b-dropdown>
-                                </p>
-                            </b-field>
+                                        <b-dropdown v-model="searchItem" position="is-bottom-left" @submit.prevent>
+                                            <button class="button is-light" slot="trigger" @click.prevent>
+                                                <b-icon icon="menu-down"></b-icon>
+                                            </button>
+
+                                            <b-dropdown-item value="漢字">漢字</b-dropdown-item>
+                                            <b-dropdown-item value="四字" disabled>四字熟語</b-dropdown-item>
+                                            <b-dropdown-item value="例文">例文</b-dropdown-item>
+                                        </b-dropdown>
+                                </b-field>
                         </b-field>
                         </form>
                     </div>
