@@ -59,7 +59,6 @@ class Kanji(models.Model):
     anki_Traditional_Form = models.CharField(max_length=10)
     anki_Traditional_Radical = models.CharField(max_length=10)
     anki_Reading_Table = models.CharField(max_length=10000)
-    anki_kjBushu = models.CharField(max_length=10)
     anki_kjBushuMei = models.CharField(max_length=100)
     anki_kjIjiDoukun = models.CharField(max_length=5000)
 
@@ -91,7 +90,7 @@ class Kanji(models.Model):
             if fld.concrete:
                 list_fld.append({'title': fld.verbose_name if fld.verbose_name != '' else fld.name,
                                  'field': fld.name,
-                                 'visible': fld.name not in ['anki_Examples', 'anki_Reading_Table', 'anki_kjIjiDoukun']})
+                                 'visible': fld.name not in ['anki_Examples', 'anki_Reading_Table', 'anki_kjIjiDoukun', 'meaning']})
         return list_fld
 
     class Meta:
@@ -104,13 +103,13 @@ class Kanji(models.Model):
         list_fld = []
         for fld in Kanji._meta.get_fields():
             if fld.concrete:
-                if fld.verbose_name[0:4]!='anki':
+                if fld.verbose_name[0:4]!='anki' and fld.name!='meaning':
                     list_fld.append([fld.name, fld.verbose_name, getattr(self, fld.name)])
         return list_fld
 
     def basic_info2(self):
         list_fld = []
-        for fld in ['bushu', 'strokes', 'classification', 'kanken']:
+        for fld in ['bushu', 'strokes', 'classification', 'kanken', 'anki_Kanji_Radical']:
                     list_fld.append([ self._meta.get_field(fld).verbose_name, getattr(self, fld)])
         return list_fld
 
