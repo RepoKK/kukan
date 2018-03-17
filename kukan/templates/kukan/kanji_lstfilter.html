@@ -60,8 +60,10 @@ const vModelComputed = {
 
 <script type="text/x-template" id="trigger-button">
     <div class="buttons has-addons">
-        <span class="button is-selected is-small" v-bind:class="{'is-success':state}">[[cur_title]]</span>
-        <span class="button is-small" v-bind:class="{'is-success':state}" @click.stop="rm_fil">X</span>
+        <span class="button is-selected" v-bind:class="{'is-primary':state}">[[cur_title]]</span>
+        <span class="button" v-bind:class="{'is-primary':state}" @click.stop="rm_fil">
+            <b-icon icon="close" size="is-small"></b-icon>
+        </span>
     </div>
 </script>
 <script>
@@ -91,14 +93,14 @@ var Trigger = {
 
 <script type="text/x-template" id="drop-down-top">
     <b-dropdown-item custom>
-        <nav class="level">
+        <nav class="level is-mobile">
             <!-- Left side -->
             <div class="level-left">
                 <p class="level-item"><strong>[[title]]</strong></p>
             </div>
             <!-- Right side -->
             <div class="level-right">
-                <a class="button is-success is-small" @click="handleApply">適用</a>
+                <a class="button is-primary" @click="handleApply">適用</a>
             </div>
         </nav>
     </b-dropdown-item>
@@ -126,14 +128,13 @@ var DropDownTop = {
 <script type="text/x-template" id="drop-down-min-max">
     <b-dropdown-item custom><b-field>
         <b-input :placeholder="placeholder"
-                    size="is-small"
                     type="number"
                     :min="min"
                     :max="max"
                     v-model="localValue">
         </b-input>
         <p class="control">
-            <a class="button is-small is-static">
+            <a class="button is-static">
                 [[label]]
             </a>
         </p>
@@ -392,7 +393,9 @@ var FrCompType = {
 <script type="text/x-template" id="fr-add-filter">
     <div>
         <b-dropdown>
-            <span slot="trigger" class="button is-selected is-small is-success is-outlined">[[title]]</span>
+            <span slot="trigger" class="button is-selected is-primary is-outlined">
+                [[title]]<b-icon icon="plus-circle-outline" size="is-small"></b-icon>
+            </span>
             <drop-down-top :title="title" @apply="handleApply"></drop-down-top>
             <b-dropdown-item custom>
                 <div v-for="(elem, index) in elements" class="field">
@@ -414,7 +417,11 @@ var FrCompAddFilter = {
     },
     computed: {
         title: function () {
-            return 'フィルター追加 +'
+            res = ""
+            if (this.activenb == 0) {
+                res = 'ﾌｨﾙﾀｰ追加　'
+            }
+            return res
         }
     },
     methods: {
@@ -424,7 +431,7 @@ var FrCompAddFilter = {
             this.checkboxGroup = []
         }
     },
-    props: ['elements'],
+    props: ['elements', 'activenb'],
     template: '#fr-add-filter'
 }
 </script>
@@ -440,13 +447,14 @@ var FrCompAddFilter = {
                             @rm_fil="rm_fil"
                             v-model='filter_list[filter_idx].value'>
                 </component>
-                [[filter_list[filter_idx].value]]
+<!--[[filter_list[filter_idx].value]]-->
             </div>
             <div class="column is-narrow" v-if="inactive_filters.length>0">
-                <fr-filter-add :elements="inactive_filters" @add_fil="add_fil"></fr-filter-add>
+                <fr-filter-add :elements="inactive_filters" :activenb="active_filters.length"
+                        @add_fil="add_fil"></fr-filter-add>
             </div>
         </div>
-        [[url_filter]]
+<!--[[url_filter]]-->
     </div>
 </script>
 <script>
@@ -681,7 +689,7 @@ Vue.component('fr-filtered-table', {
             } else if (number >= 6 && number < 8) {
                 return 'is-warning'
             } else if (number >= 8) {
-                return 'is-success'
+                return 'is-primary'
             }
         }
     },

@@ -6,28 +6,27 @@
                 <div class="navbar-brand">
 
                     <div class="navbar-item is-hidden-desktop">
-                        <!--<div class="field">-->
-                            <!--<p class="control">-->
-                                <!--<input class="input" name="search" type="text" placeholder="検索" style="width:140px">-->
-                            <!--</p>-->
-                        <!--</div>-->
                         <form action="/kukan/kanji/multi/" method="get">
-                        <b-field>
-                            <b-input type="search" placeholder="検索..." style="width:140px" name="search"></b-input>
-                            <p class="control">
-                                <input type="submit" name="type" class="button is-primary" :value="searchItem" />
-                            </p>
-                            <p class="control">
-                                <b-dropdown v-model="searchItem" position="is-bottom-left" @submit.prevent>
-                                    <button class="button is-primary" slot="trigger" @click.prevent>
-                                        <b-icon icon="menu-down"></b-icon>
-                                    </button>
+                        <b-field grouped >
+                            <b-field>
+                                <b-input type="search" placeholder="検索..." style="width:140px" name="search"></b-input>
+                            </b-field>
+                            <b-field>
+                                <p class="control">
+                                    <input type="submit" name="type" class="button is-light" :value="searchItem" />
+                                </p>
+                                <p class="control">
+                                    <b-dropdown v-model="searchItem" position="is-bottom-left" @submit.prevent>
+                                        <button class="button is-light" slot="trigger" @click.prevent>
+                                            <b-icon icon="menu-down"></b-icon>
+                                        </button>
 
-                                    <b-dropdown-item value="漢字">漢字</b-dropdown-item>
-                                    <b-dropdown-item value="四字" disabled>四字熟語</b-dropdown-item>
-                                    <b-dropdown-item value="例文">例文</b-dropdown-item>
-                                </b-dropdown>
-                            </p>
+                                        <b-dropdown-item value="漢字">漢字</b-dropdown-item>
+                                        <b-dropdown-item value="四字" disabled>四字熟語</b-dropdown-item>
+                                        <b-dropdown-item value="例文">例文</b-dropdown-item>
+                                    </b-dropdown>
+                                </p>
+                            </b-field>
                         </b-field>
                         </form>
                     </div>
@@ -61,13 +60,13 @@
                                 例文作成
                                 </a>
                                 <a class="navbar-item" href="http://www.bunka.go.jp/kokugo_nihongo/sisaku/joho/joho/kijun/naikaku/pdf/joyokanjihyo_20101130.pdf">
-                                    常用漢字表（平成22年11月30日内閣告示）
+                                    常用漢字表
                                 </a>
                             </div>
                         </div>
                     </div>
                     <div class="navbar-end">
-                        <div class="navbar-item">
+                        <div class="navbar-item is-hidden-touch">
                             <form action="/kukan/kanji/multi/" method="get">
                                 <div class="field is-grouped">
                                     <p class="control">
