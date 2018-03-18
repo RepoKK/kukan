@@ -205,12 +205,46 @@ var MixinFrBase = {
     },
     methods: {
         handleApply: function (filter_val) {
-            console.log("fr-filter-min-max: APPLY -FINAL !!")
+            console.log("MixinFrBase: APPLY -FINAL !!" + this.filter)
             this.filter=this.tempFilter
             this.$emit('input', this.filter)
         },
     },
 }
+</script>
+
+
+<script type="text/x-template" id="fr-filter-string-template">
+    <fr-filter v-on:apply="handleApply" @rm_fil="$emit('rm_fil')" :title="title" :current_filter="filter">
+        <b-dropdown-item custom><b-field>
+            <b-input :placeholder="placeholder"
+                        v-model="localValue">
+            </b-input>
+        </b-field></b-dropdown-item>
+    </fr-filter>
+</script>
+<script>
+Vue.component('fr-filter-string', {
+    mixins: [MixinFrBase],
+    template: '#fr-filter-string-template',
+    props: ['placeholder'],
+    data: function () {
+        return {
+            localValue: ""
+        }
+    },
+    computed: {
+        tempFilter: {
+            get: function () {
+                return this.localValue
+            },
+            set: function (newVal) {
+                this.localValue = newVal
+            }
+        }
+    },
+})
+
 </script>
 
 <script type="text/x-template" id="fr-filter-min-max-template">
@@ -296,10 +330,6 @@ Vue.component('fr-filter-checkbox', {
         }
     },
 
-    //active-change(active) {
-    //    console.log("DD active = " + active)
-    //},
-
     computed: {
         tempFilter: {
             get: function () {
@@ -355,6 +385,11 @@ var MixinFrComp = {
 var FrCompKakausu = {
     mixins: [MixinFrComp],
     template: '<fr-filter-min-max :title="title" v-model="compValue" @rm_fil="rm_fil"></fr-filter-min-max>'
+}
+
+var FrCompKanjis = {
+    mixins: [MixinFrComp],
+    template: '<fr-filter-string :title="title" v-model="compValue" @rm_fil="rm_fil" placeholder="漢字を入力下さい"></fr-filter-string>'
 }
 
 var FrCompKanken = {
@@ -471,7 +506,8 @@ Vue.component('fr-filter-container', {
             filter_list: [ {'name':'fr-comp-kakusu', 'label':'画数',   'value':'10~20'},
                            {'name':'fr-comp-kakusu', 'label':'文例数', 'value':'0~0'},
                            {'name':'fr-comp-type',   'label':'種類',   'value':'常用漢字'},
-                           {'name':'fr-comp-kanken', 'label':'漢検',   'value':'２級'} ],
+                           {'name':'fr-comp-kanken', 'label':'漢検',   'value':'２級'},
+                           {'name':'fr-comp-kanjis', 'label':'漢字',   'value':'部首'} ],
             active_filters: [1,3],
         }
     },
@@ -479,6 +515,7 @@ Vue.component('fr-filter-container', {
         'fr-comp-kakusu': FrCompKakausu,
         'fr-comp-kanken': FrCompKanken,
         'fr-comp-type': FrCompType,
+        'fr-comp-kanjis': FrCompKanjis,
 
         'fr-filter-add': FrCompAddFilter
     },

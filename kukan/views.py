@@ -108,8 +108,9 @@ def get_kanji_list(request):
     page = request.GET.get('page', None)
     sort = request.GET.get('sort_by', None)
     f_ex_num = request.GET.get('文例数', None)
-    f_ex_kakusu = request.GET.get('画数', None)
-    f_ex_kanken = request.GET.get('漢検', None)
+    f_kakusu = request.GET.get('画数', None)
+    f_kanken = request.GET.get('漢検', None)
+    f_kanjis = request.GET.get('漢字', None)
 
 
     val_ex = Count('exmap', filter=~Q(exmap__example__sentence=''))
@@ -120,13 +121,16 @@ def get_kanji_list(request):
         f_ex_num = f_ex_num.split('~')
         qry = qry.filter(ex_num__gte=f_ex_num[0]).filter(ex_num__lte=f_ex_num[1])
 
-    if f_ex_kakusu is not None:
-        f_ex_kakusu = f_ex_kakusu.split('~')
-        qry = qry.filter(strokes__gte=f_ex_kakusu[0]).filter(strokes__lte=f_ex_kakusu[1])
+    if f_kakusu is not None:
+        f_kakusu = f_kakusu.split('~')
+        qry = qry.filter(strokes__gte=f_kakusu[0]).filter(strokes__lte=f_kakusu[1])
 
-    if f_ex_kanken is not None:
-        f_ex_kanken = f_ex_kanken.split(', ')
-        qry = qry.filter(kanken__kyu__in=f_ex_kanken)
+    if f_kanken is not None:
+        f_kanken = f_kanken.split(', ')
+        qry = qry.filter(kanken__kyu__in=f_kanken)
+
+    if f_kanjis is not None:
+        qry = qry.filter(kanji__in=list(f_kanjis))
 
     p = Paginator(qry.order_by(sort), 20)
     # p = Paginator(Kanji.objects.all().order_by(sort), 20)
