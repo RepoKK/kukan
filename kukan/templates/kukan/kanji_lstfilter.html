@@ -68,14 +68,18 @@ const vModelComputed = {
 </script>
 <script>
 var Trigger = {
-    props: ['title', 'current', 'state'],
+    props: ['title', 'current', 'state', 'keep_title'],
     computed: {
         cur_title: function () {
             res = ""
             if (this.current=='') {
                 res = this.title
             } else {
-                res = this.current
+                if (this.keep_title) {
+                    res = this.title+': '+this.current
+                } else {
+                    res = this.current
+                }
             }
             return res
         }
@@ -159,7 +163,7 @@ var Kakusu = {
 <script type="text/x-template" id="fr-filter-template">
     <div>
         <b-dropdown>
-            <fr-trigger slot="trigger" :title="title" :current="current_filter"
+            <fr-trigger slot="trigger" :title="title" :current="current_filter" :keep_title="keep_title"
                         :state="is_active" @rm_fil="$emit('rm_fil')"></fr-trigger>
             <drop-down-top :title="title" v-on:apply="handleApply"></drop-down-top>
             <slot></slot>
@@ -179,7 +183,12 @@ Vue.component('fr-filter', {
     computed: {
         is_active: function () {return (this.current_filter!='')}
       },
-    props: ['title', 'current_filter'],
+
+    props: {
+        title:String,
+        current_filter:String,
+        keep_title:{type:Boolean, default:false}
+        },
     methods: {
         handleApply: function (filter_val) {
             console.log("fr-filter: apply !! - " + this.current_filter)
@@ -215,7 +224,8 @@ var MixinFrBase = {
 
 
 <script type="text/x-template" id="fr-filter-string-template">
-    <fr-filter v-on:apply="handleApply" @rm_fil="$emit('rm_fil')" :title="title" :current_filter="filter">
+    <fr-filter v-on:apply="handleApply" @rm_fil="$emit('rm_fil')"
+               :title="title" :current_filter="filter" :keep_title="true">
         <b-dropdown-item custom><b-field>
             <b-input :placeholder="placeholder"
                         v-model="localValue">
@@ -248,7 +258,8 @@ Vue.component('fr-filter-string', {
 </script>
 
 <script type="text/x-template" id="fr-filter-min-max-template">
-    <fr-filter v-on:apply="handleApply" @rm_fil="$emit('rm_fil')" :title="title" :current_filter="buttonTitle">
+    <fr-filter v-on:apply="handleApply" @rm_fil="$emit('rm_fil')"
+               :title="title" :current_filter="filter" :keep_title="true">
                     <fr-kakusu label="画以上" :placeholder="title" v-model="strokes.min"></fr-kakusu>
                     <fr-kakusu label="画以下" :placeholder="title" v-model="strokes.max"></fr-kakusu>
     </fr-filter>
@@ -281,13 +292,6 @@ Vue.component('fr-filter-min-max', {
     },
 
     computed: {
-        buttonTitle: function () {
-            res=''
-            if (this.filter!='') {
-                res=this.title + ': ' + this.filter
-            }
-            return res
-        },
         tempFilter: {
             get: function () {
                 res = ''
@@ -298,8 +302,10 @@ Vue.component('fr-filter-min-max', {
             },
             set: function (newVal) {
                 val = newVal.split('~')
-                this.strokes.min = convPosInt(val[0], 10)
-                this.strokes.max = convPosInt(val[1], 10)
+                if (val.length == 2) {
+                    this.strokes.min = convPosInt(val[0], 10)
+                    this.strokes.max = convPosInt(val[1], 10)
+                }
             }
         }
     },
@@ -503,12 +509,8 @@ var FrCompAddFilter = {
 Vue.component('fr-filter-container', {
     data: function () {
         return {
-            filter_list: [ {'name':'fr-comp-kakusu', 'label':'画数',   'value':'10~20'},
-                           {'name':'fr-comp-kakusu', 'label':'文例数', 'value':'0~0'},
-                           {'name':'fr-comp-type',   'label':'種類',   'value':'常用漢字'},
-                           {'name':'fr-comp-kanken', 'label':'漢検',   'value':'２級'},
-                           {'name':'fr-comp-kanjis', 'label':'漢字',   'value':'部首'} ],
-            active_filters: [1,3],
+            filter_list: {{filter_list|safe}},
+            active_filters: {{active_filters|safe}}
         }
     },
     components: {
@@ -573,6 +575,9 @@ Vue.component('fr-filter-container', {
             console.log('FINAL- change filter ' + this.url_filter)
         }
     },
+    created() {
+        this.$emit('input', this.url_filter)
+    },
     template: '#filter-container'
 })
 </script>
@@ -592,6 +597,7 @@ Vue.component('fr-filter-container', {
             backend-pagination
             :total="total"
             :per-page="perPage"
+            :current-page="page"
             @page-change="onPageChange"
 
             detailed
@@ -666,12 +672,12 @@ Vue.component('fr-filtered-table', {
             columnsTemplate: [],
 
             total: 0,
-            sortField: 'kanji',
-            sortOrder: 'asc',
+            sortField: '{{sort_by}}',
+            sortOrder: '{{sort_order}}',
             defaultSortOrder: 'desc',
-            page: 1,
+            page: {{page}},
             perPage: 20,
-            filter:'文例数=0~0&漢検=２級 '
+            filter:''
         }
     },
     methods: {
@@ -687,9 +693,13 @@ Vue.component('fr-filtered-table', {
             ].join('&')
 
             this.isLoading = true
+
+            var currentPageCrit = location.pathname;
+            var state = {"params": location.search};
+            history.replaceState(state, null, `?${params}`);
+
             axios.get(`/kukan/ajax/get_kanji_list?${params}`)
                 .then(({ data }) => {
-                    // api.themoviedb.org manage max 1000 pages
                     this.data = []
                     this.total = data.total_results
                     data.results.forEach((item) => {
@@ -748,8 +758,12 @@ Vue.component('fr-filtered-table', {
             : value
                     }
     },
-    mounted() {
-        this.loadAsyncData()
+    created() {
+    // Attach onpopstate event handler
+    window.onpopstate = function(event) {
+        //alert("location: " + document.location + ", state: " + JSON.stringify(event.state));
+
+        };
     },
     template: '#filtered-table'
 })

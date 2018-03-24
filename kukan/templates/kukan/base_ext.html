@@ -6,11 +6,11 @@
                 <div class="navbar-brand">
 
                     <div class="navbar-item is-hidden-desktop">
-                        <form action="/kukan/kanji/multi/" method="get">
+                        <form action="/kukan/kanji/list/" method="get">
                             <b-field grouped>
-                                <input class="input" type="search" placeholder="検索..." style="width:140px" name="search"></input>
+                                <input class="input" type="search" placeholder="検索..." style="width:140px" name="漢字"></input>
                                 <b-field>
-                                    <input type="submit" name="type" class="button is-light" :value="searchItem" />
+                                    <input type="submit" class="button is-light" :value="searchItem" />
 
                                         <b-dropdown v-model="searchItem" position="is-bottom-left" @submit.prevent>
                                             <button class="button is-light" slot="trigger" @click.prevent>
@@ -62,10 +62,10 @@
                     </div>
                     <div class="navbar-end">
                         <div class="navbar-item is-hidden-touch">
-                            <form action="/kukan/kanji/multi/" method="get">
+                            <form action="/kukan/kanji/list/" method="get">
                                 <div class="field is-grouped">
                                     <p class="control">
-                                        <input class="input" name="search" type="text" placeholder="検索">
+                                        <input class="input" name="漢字" type="text" placeholder="検索">
                                     </p>
                                     <input type="submit" class="button is-light" value="漢字" />
                                     <input type="submit" name="type" class="button is-light" value="四字" />

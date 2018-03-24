@@ -16,7 +16,7 @@ import re
 import kukan.jautils as jau
 import json
 from django.db.models import Count
-
+import jsonpickle
 import html2text
 
 from lxml import html
@@ -82,6 +82,23 @@ class ContactView(generic.FormView):
         return self.success_url
 
 
+class KanjiList_old(generic.ListView):
+    model = Kanji
+
+    def get_queryset(self):
+        #TODO - interesting
+        #val_ex = Count('exmap', filter=~Q(exmap__example__yomi=''))
+        # #some_interesting_query = Kanji.objects.annotate(ex_num = val_ex).filter(ex_num__gt=0).filter(kanken_kyu='２級')
+
+        search = self.request.GET.get('search')
+        if search == '' or search is None:
+            search='漢字'
+        q_objects = Q()
+        for item in search:
+            q_objects |= Q(pk=item)
+        return Kanji.objects.filter(q_objects)
+
+
 class KanjiList(generic.ListView):
     model = Kanji
 
@@ -99,9 +116,62 @@ class KanjiList(generic.ListView):
         return Kanji.objects.filter(q_objects)
 
 
+class FFilter():
+    type=''
+    label=''
+    value=''
+
+    def __init__(self, label, type):
+        self.type=type
+        self.label=label
+        self.value=''
+
+    def toJSON(self):
+        return "{'name':'" + self.type + "', 'label':'" + self.label + "', 'value':'" + self.value + "'}"
+
+
 class KanjiListFilter(generic.ListView):
     model = Kanji
     template_name = 'kukan/kanji_lstfilter.html'
+    filters = [FFilter('文例数', 'fr-comp-kakusu'),
+               FFilter('画数', 'fr-comp-kakusu'),
+               FFilter('漢検', 'fr-comp-kanken'),
+               FFilter('漢字', 'fr-comp-kanjis'),
+               FFilter('種類', 'fr-comp-type'),]
+
+    def get_context_data(self, **kwargs):
+        filter_list=""
+        for flt in self.filters:
+            flt.value=self.request.GET.get(flt.label, '')
+            filter_list+=flt.toJSON() + ",\n"
+        filter_list = "[" + filter_list + "]"
+
+        flt_order=[]
+        for flt in self.filters:
+            flt_order.append(flt.label)
+
+        active_filters=[]
+        for f_req in self.request.GET:
+            try:
+                idx = flt_order.index(f_req)
+                if idx > -1:
+                    active_filters.append(idx)
+            except ValueError:
+                pass
+
+        context = super().get_context_data(**kwargs)
+        context['filter_list'] = filter_list
+        context['active_filters'] = active_filters
+        context['page'] = self.request.GET.get('page', 1)
+        sortOrder=self.request.GET.get('sort_by', 'kanji')
+        if sortOrder[0]=='-':
+            context['sort_by'] = sortOrder[1:]
+            context['sort_order'] = 'desc'
+        else:
+            context['sort_by'] = sortOrder
+            context['sort_order'] = 'asc'
+
+        return context
 
 
 def get_kanji_list(request):
