@@ -24,5 +24,4 @@ urlpatterns = [
     path('example/update/<int:pk>/', ExampleUpdate.as_view(), name='example_update'),
     path('example/delete/<int:pk>/', ExampleDelete.as_view(), name='example_delete'),
     path('export/', ExportView.as_view(), name='export'),
-    path('export_csv/', views.export_anki_kanji, name='export_anki_csv'),
 ]

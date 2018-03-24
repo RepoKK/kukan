@@ -40,20 +40,20 @@ class StatsPage(TemplateView):
         data = {}
         data['cat'] = '総合読み'
         data['total'] = Reading.objects.all().count()
-        data['joyo'] = Reading.objects.exclude(joyo__yomi_joyo = '表外').count()
-        data['non_joyo'] = Reading.objects.filter(joyo__yomi_joyo = '表外').count()
+        data['joyo'] = Reading.objects.exclude(joyo__yomi_joyo='表外').count()
+        data['non_joyo'] = Reading.objects.filter(joyo__yomi_joyo='表外').count()
         data_list.append(data.copy())
         data['cat'] = '音読み'
-        yomi_filt=Reading.objects.filter(yomi_type__yomi_type='音')
+        yomi_filt = Reading.objects.filter(yomi_type__yomi_type='音')
         data['total'] = yomi_filt.count()
-        data['joyo'] = yomi_filt.exclude(joyo__yomi_joyo = '表外').count()
-        data['non_joyo'] = yomi_filt.filter(joyo__yomi_joyo = '表外').count()
+        data['joyo'] = yomi_filt.exclude(joyo__yomi_joyo='表外').count()
+        data['non_joyo'] = yomi_filt.filter(joyo__yomi_joyo='表外').count()
         data_list.append(data.copy())
         yomi_filt = Reading.objects.filter(yomi_type__yomi_type='訓')
         data['cat'] = '訓読み'
         data['total'] = yomi_filt.count()
-        data['joyo'] = yomi_filt.exclude(joyo__yomi_joyo = '表外').count()
-        data['non_joyo'] = yomi_filt.filter(joyo__yomi_joyo = '表外').count()
+        data['joyo'] = yomi_filt.exclude(joyo__yomi_joyo='表外').count()
+        data['non_joyo'] = yomi_filt.filter(joyo__yomi_joyo='表外').count()
         data_list.append(data.copy())
         data['cat'] = '例文'
         data['total'] = Example.objects.all().count()
@@ -86,13 +86,13 @@ class KanjiList_old(generic.ListView):
     model = Kanji
 
     def get_queryset(self):
-        #TODO - interesting
-        #val_ex = Count('exmap', filter=~Q(exmap__example__yomi=''))
+        # TODO - interesting
+        # val_ex = Count('exmap', filter=~Q(exmap__example__yomi=''))
         # #some_interesting_query = Kanji.objects.annotate(ex_num = val_ex).filter(ex_num__gt=0).filter(kanken_kyu='２級')
 
         search = self.request.GET.get('search')
         if search == '' or search is None:
-            search='漢字'
+            search = '漢字'
         q_objects = Q()
         for item in search:
             q_objects |= Q(pk=item)
@@ -103,13 +103,13 @@ class KanjiList(generic.ListView):
     model = Kanji
 
     def get_queryset(self):
-        #TODO - interesting
-        #val_ex = Count('exmap', filter=~Q(exmap__example__yomi=''))
+        # TODO - interesting
+        # val_ex = Count('exmap', filter=~Q(exmap__example__yomi=''))
         # #some_interesting_query = Kanji.objects.annotate(ex_num = val_ex).filter(ex_num__gt=0).filter(kanken_kyu='２級')
 
         search = self.request.GET.get('search')
         if search == '' or search is None:
-            search='漢字'
+            search = '漢字'
         q_objects = Q()
         for item in search:
             q_objects |= Q(pk=item)
@@ -117,14 +117,14 @@ class KanjiList(generic.ListView):
 
 
 class FFilter():
-    type=''
-    label=''
-    value=''
+    type = ''
+    label = ''
+    value = ''
 
     def __init__(self, label, type):
-        self.type=type
-        self.label=label
-        self.value=''
+        self.type = type
+        self.label = label
+        self.value = ''
 
     def toJSON(self):
         return "{'name':'" + self.type + "', 'label':'" + self.label + "', 'value':'" + self.value + "'}"
@@ -143,17 +143,17 @@ class KanjiListFilter(generic.ListView):
     ]
 
     def get_context_data(self, **kwargs):
-        filter_list=""
+        filter_list = ""
         for flt in self.filters:
-            flt.value=self.request.GET.get(flt.label, '')
-            filter_list+=flt.toJSON() + ",\n"
+            flt.value = self.request.GET.get(flt.label, '')
+            filter_list += flt.toJSON() + ",\n"
         filter_list = "[" + filter_list + "]"
 
-        flt_order=[]
+        flt_order = []
         for flt in self.filters:
             flt_order.append(flt.label)
 
-        active_filters=[]
+        active_filters = []
         for f_req in self.request.GET:
             try:
                 idx = flt_order.index(f_req)
@@ -166,8 +166,8 @@ class KanjiListFilter(generic.ListView):
         context['filter_list'] = filter_list
         context['active_filters'] = active_filters
         context['page'] = self.request.GET.get('page', 1)
-        sortOrder=self.request.GET.get('sort_by', 'kanji')
-        if sortOrder[0]=='-':
+        sortOrder = self.request.GET.get('sort_by', 'kanji')
+        if sortOrder[0] == '-':
             context['sort_by'] = sortOrder[1:]
             context['sort_order'] = 'desc'
         else:
@@ -185,7 +185,6 @@ def get_kanji_list(request):
     f_kanken = request.GET.get('漢検', None)
     f_kanjis = request.GET.get('漢字', None)
     f_yomi = request.GET.get('読み', None)
-
 
     val_ex = Count('exmap', filter=~Q(exmap__example__sentence=''))
     # qry = Kanji.objects.filter(kanken__kyu='２級').annotate(ex_num=val_ex).filter(ex_num__gt=0)
@@ -207,15 +206,15 @@ def get_kanji_list(request):
         qry = qry.filter(kanji__in=list(f_kanjis))
 
     if f_yomi is not None:
-        readings=Reading.objects.filter(reading_simple=f_yomi.translate(jau.kat2hir))\
+        readings = Reading.objects.filter(reading_simple=f_yomi.translate(jau.kat2hir)) \
             .exclude(joyo__yomi_joyo='表外')
         qry = qry.filter(reading__in=readings)
 
     p = Paginator(qry.order_by(sort), 20)
     # p = Paginator(Kanji.objects.all().order_by(sort), 20)
     res = [obj.as_dict() for obj in p.page(page).object_list]
-    col_tmplt = [{ 'title': '漢字2', 'field': 'kanji', 'visible': 'true' },
-                { 'title': 'First Name', 'field': 'first_name', 'visible': 'true' }]
+    col_tmplt = [{'title': '漢字2', 'field': 'kanji', 'visible': 'true'},
+                 {'title': 'First Name', 'field': 'first_name', 'visible': 'true'}]
     col_tmplt = Kanji.fld_lst()
     data = {'page': page, 'total_results': p.count, 'results': res, 'columnsTemplate': col_tmplt}
     return JsonResponse(data)
@@ -223,16 +222,16 @@ def get_kanji_list(request):
 
 class KanjiDetail(generic.DetailView):
     model = Kanji
-    #template_name = 'kukan/detail.html'
+    # template_name = 'kukan/detail.html'
 
 
 class ExampleList(generic.ListView):
     model = Example
 
     def get_queryset(self):
-        #TODO
-        #return Example.objects.exclude(exmap__example__yomi='').filter(exmap__kanji__kanken_kyu='２級')
-        #return Example.objects.filter(exmap__reading=None).distinct()
+        # TODO
+        # return Example.objects.exclude(exmap__example__yomi='').filter(exmap__kanji__kanken_kyu='２級')
+        # return Example.objects.filter(exmap__reading=None).distinct()
         search = self.request.GET.get('search')
         return Example.objects.filter(word__contains=search)
 
@@ -246,20 +245,20 @@ class ExampleList2(generic.ListView):
     model = Example
 
     def get_queryset(self):
-        #TODO
-        return Example.objects.exclude(exmap__example__yomi='')\
+        # TODO
+        return Example.objects.exclude(exmap__example__yomi='') \
             .exclude(exmap__example__yomi='jukuji').filter(exmap__kanji__kanken__kyu='２級').distinct()
 
 
 class ExampleDetail(generic.DetailView):
     model = Example
 
+
 class ReadingDetail(generic.DetailView):
     model = Reading
 
 
 def import_file(request):
-
     exit
     root_dir = r'E:\CloudStorage\Google Drive\Kanji\資料\\'
     importFileName = root_dir + r'AnkiExport\漢字.txt'
@@ -271,22 +270,22 @@ def import_file(request):
     yomi = YomiType.objects.all()
     joyo = YomiJoyo.objects.all()
     for kj in Kanji.objects.all():
-         deck_kj = deck[kj.kanji]
-         for reading in deck_kj._readingList:
-             if reading.isOn:
-                 yt = yomi[0]
-             else:
-                 yt = yomi[1]
+        deck_kj = deck[kj.kanji]
+        for reading in deck_kj._readingList:
+            if reading.isOn:
+                yt = yomi[0]
+            else:
+                yt = yomi[1]
 
-             if reading.isHyoGai:
-                 jy = joyo[2]
-             else:
-                 jy = joyo[0]
-             kj.reading_set.get_or_create(
+            if reading.isHyoGai:
+                jy = joyo[2]
+            else:
+                jy = joyo[0]
+            kj.reading_set.get_or_create(
                 reading=reading.reading,
                 yomi_type=yt,
                 joyo=jy
-             )
+            )
     return HttpResponse("y9o")
 
 
@@ -330,7 +329,7 @@ def get_yomi(request):
     word = request.GET.get('word_native', None)
     if word is None or word == '':
         word = request.GET.get('word', None)
-    ex_id= request.GET.get('ex_id', None)
+    ex_id = request.GET.get('ex_id', None)
     linked_ex = []
     example = None
     if ex_id != '':
@@ -353,7 +352,7 @@ def get_yomi(request):
 
         reading_data[kj]['readings'] = \
             [{'key': x.id, 'read': x.get_full()} for x in Reading.objects.filter(kanji=kj)]
-        reading_data[kj]['readings'] = [{'key':0, 'read': ExMap.ateji_option_disp}] + reading_data[kj]['readings']
+        reading_data[kj]['readings'] = [{'key': 0, 'read': ExMap.ateji_option_disp}] + reading_data[kj]['readings']
         if len(linked_ex) and (linked_ex[0].reading or linked_ex[0].is_ateji):
             if linked_ex[0].is_ateji:
                 reading_data[kj]['selected'] = ExMap.ateji_option_disp
@@ -364,7 +363,7 @@ def get_yomi(request):
             reading_data[kj]['joyo'] = linked_ex[0].in_joyo_list
 
         elif len(ini_reading_selected) > idx \
-                and ini_reading_selected[idx] > -1\
+                and ini_reading_selected[idx] > -1 \
                 and (ini_reading_selected[idx] == 0
                      or Reading.objects.get(id=ini_reading_selected[idx]).kanji.kanji == kj):
             if ini_reading_selected[idx] == 0:
@@ -402,16 +401,17 @@ def set_yomi(request):
         # For the case there's only one element - will not be included in a list, so add it here
         if not type(ids) is list:
             ids = [ids]
-        data = {'candidate':ids}
+        data = {'candidate': ids}
     return JsonResponse(data)
 
 
 def get_similar_word(request):
     word = request.GET.get('word', None)
-    sim_word=[x.word + ('（'+ x.yomi +'）' if x.yomi!='' else '')
-                        for x in Example.objects.filter(word__contains=word)]
-    data={'info_similar_word':sim_word}
+    sim_word = [x.word + ('（' + x.yomi + '）' if x.yomi != '' else '')
+                for x in Example.objects.filter(word__contains=word)]
+    data = {'info_similar_word': sim_word}
     return JsonResponse(data)
+
 
 def get_goo(request):
     word = request.GET.get('word', None)
@@ -424,21 +424,21 @@ def get_goo(request):
     tree = html.fromstring(page.content)
     text = ""
     candidates = []
-    yomi=""
+    yomi = ""
     try:
         block = tree.xpath('//*[@id="NR-main-in"]/section/div/div[2]/div')
         text = html.tostring(block[0], encoding='unicode')
         yomi = tree.xpath('//*[@id="NR-main-in"]/section/div/div[1]/h1/text()')[0]
-        yomi = yomi[0:yomi.index('【')].replace('‐','')
+        yomi = yomi[0:yomi.index('【')].replace('‐', '')
         yomi = yomi.translate(jau.hir2kat)
         yomi = yomi.replace('・', '')
-        yomi = re.sub('〔.*〕','', yomi)
+        yomi = re.sub('〔.*〕', '', yomi)
         definition = block[0].getchildren()[0].text
     except IndexError:
         block = tree.xpath('//dt[@class="title search-ttl-a"]')
         for block in tree.xpath('//dt[@class="title search-ttl-a"]'):
             if block.getparent().getparent().get('href')[0:3] == '/jn':
-                candidates.append({'word':block.text,'link':block.getparent().getparent().get('href')})
+                candidates.append({'word': block.text, 'link': block.getparent().getparent().get('href')})
 
     if text != '':
         h = html2text.HTML2Text()
@@ -464,9 +464,11 @@ class ExportView(generic.FormView):
     def render_to_response(self, context, **response_kwargs):
         # Look for a 'format=json' GET argument
         if self.request.method == 'POST':
-            choice=self.request.POST.get('choice', None)
-            if choice[0:9]=='anki_kaki':
+            choice = self.request.POST.get('choice', None)
+            if choice[0:9] == 'anki_kaki':
                 return self.export_anki_kakitori(choice)
+            elif choice == 'anki_kanji':
+                return self.export_anki_kanji()
         else:
             return super().render_to_response(context)
 
@@ -476,8 +478,8 @@ class ExportView(generic.FormView):
         writer = csv.writer(response, delimiter='\t', quotechar='"')
 
         q_set = Example.objects.exclude(sentence='')
-        if choice=='anki_kaki_ayu':
-            q_set=q_set.exclude(kanken__difficulty__lt=8)
+        if choice == 'anki_kaki_ayu':
+            q_set = q_set.exclude(kanken__difficulty__lt=8)
 
         for example in q_set:
             word = example.word_native if example.word_native != "" else example.word
@@ -491,27 +493,26 @@ class ExportView(generic.FormView):
                              example.kanken])
         return response
 
+    def export_anki_kanji(request):
+        # Create the HttpResponse object with the appropriate CSV header.
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = 'attachment; filename="djangoAnki.csv"'
 
-def export_anki_kanji(request):
-    # Create the HttpResponse object with the appropriate CSV header.
-    response = HttpResponse(content_type='text/csv')
-    response['Content-Disposition'] = 'attachment; filename="djangoAnki.csv"'
-
-    writer = csv.writer(response, delimiter='\t', quotechar='"')
-    for kj in Kanji.objects.filter():
-        anki_read_table = render_to_string('kukan/AnkiReadTable.html', {'kanji': kj})
-        anki_read_table = re.sub('^( *)', '', anki_read_table, flags=re.MULTILINE)
-        anki_read_table = anki_read_table.replace('\n', '')
-        writer.writerow([kj.kanji,
-                     kj.anki_English,
-                     kj.anki_Examples,
-                     kj.anki_Kanji_Radical,
-                     kj.anki_Traditional_Form,
-                     kj.anki_Traditional_Radical,
-                     anki_read_table,
-                     kj.bushu.bushu,
-                     kj.anki_kjBushuMei,
-                     kj.kanken.kyu,
-                     kj.classification,
-                     kj.anki_kjIjiDoukun])
-    return response
+        writer = csv.writer(response, delimiter='\t', quotechar='"')
+        for kj in Kanji.objects.filter():
+            anki_read_table = render_to_string('kukan/AnkiReadTable.html', {'kanji': kj})
+            anki_read_table = re.sub('^( *)', '', anki_read_table, flags=re.MULTILINE)
+            anki_read_table = anki_read_table.replace('\n', '')
+            writer.writerow([kj.kanji,
+                             kj.anki_English,
+                             kj.anki_Examples,
+                             kj.anki_Kanji_Radical,
+                             kj.anki_Traditional_Form,
+                             kj.anki_Traditional_Radical,
+                             anki_read_table,
+                             kj.bushu.bushu,
+                             kj.anki_kjBushuMei,
+                             kj.kanken.kyu,
+                             kj.classification,
+                             kj.anki_kjIjiDoukun])
+        return response

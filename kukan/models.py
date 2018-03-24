@@ -127,7 +127,8 @@ class Kanji(models.Model):
 
     def get_jukiji(self):
         list_juku = []
-        for jk_ex in self.example_set.annotate(num_readings=Count('exmap__reading')).filter(num_readings=0).order_by('exmap__id'):
+        maps=ExMap.objects.filter(kanji=self.kanji, in_joyo_list=True, is_ateji=True)
+        for jk_ex in self.example_set.filter(exmap__in=maps):
             jk = jk_ex.word
             word = re.sub(r'（.*', '', jk)
             #TODO: just to be able to do the comparaison with old data
