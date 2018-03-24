@@ -8,6 +8,7 @@ import json
 from django.db.models import Count
 import markdown
 from django.db.models import Max
+import kukan.jautils as jau
 
 
 class Classification(models.Model):
@@ -181,6 +182,7 @@ class Kanji(models.Model):
 class Reading(models.Model):
     kanji = models.ForeignKey(Kanji, on_delete=models.CASCADE, verbose_name='漢字')
     reading = models.CharField('読み', max_length=20)
+    reading_simple = models.CharField('読み', max_length=20)
     yomi_type = models.ForeignKey(YomiType, on_delete=models.CASCADE, verbose_name='音訓')
     joyo = models.ForeignKey(YomiJoyo, on_delete=models.CASCADE, verbose_name='常用漢字表')
     joyo_order = models.IntegerField('常用漢字表・順番', blank=True)
@@ -192,6 +194,10 @@ class Reading(models.Model):
 
     def __str__(self):
         return self.kanji.kanji + ' - ' + self.reading
+
+    def save(self, *args, **kwargs):
+        self.reading_simple=self.get_simple().translate(jau.kat2hir)
+        super().save(*args, **kwargs)
 
     def get_simple(self):
         res = re.sub("（", "", self.reading)

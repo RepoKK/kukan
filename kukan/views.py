@@ -133,11 +133,14 @@ class FFilter():
 class KanjiListFilter(generic.ListView):
     model = Kanji
     template_name = 'kukan/kanji_lstfilter.html'
-    filters = [FFilter('文例数', 'fr-comp-kakusu'),
-               FFilter('画数', 'fr-comp-kakusu'),
-               FFilter('漢検', 'fr-comp-kanken'),
-               FFilter('漢字', 'fr-comp-kanjis'),
-               FFilter('種類', 'fr-comp-type'),]
+    filters = [
+        FFilter('漢字', 'fr-comp-kanjis'),
+        FFilter('読み', 'fr-comp-yomi'),
+        FFilter('画数', 'fr-comp-kakusu'),
+        FFilter('種類', 'fr-comp-type'),
+        FFilter('漢検', 'fr-comp-kanken'),
+        FFilter('例文数', 'fr-comp-kakusu'),
+    ]
 
     def get_context_data(self, **kwargs):
         filter_list=""
@@ -181,6 +184,7 @@ def get_kanji_list(request):
     f_kakusu = request.GET.get('画数', None)
     f_kanken = request.GET.get('漢検', None)
     f_kanjis = request.GET.get('漢字', None)
+    f_yomi = request.GET.get('読み', None)
 
 
     val_ex = Count('exmap', filter=~Q(exmap__example__sentence=''))
@@ -201,6 +205,11 @@ def get_kanji_list(request):
 
     if f_kanjis is not None:
         qry = qry.filter(kanji__in=list(f_kanjis))
+
+    if f_yomi is not None:
+        readings=Reading.objects.filter(reading_simple=f_yomi.translate(jau.kat2hir))\
+            .exclude(joyo__yomi_joyo='表外')
+        qry = qry.filter(reading__in=readings)
 
     p = Paginator(qry.order_by(sort), 20)
     # p = Paginator(Kanji.objects.all().order_by(sort), 20)
@@ -455,16 +464,22 @@ class ExportView(generic.FormView):
     def render_to_response(self, context, **response_kwargs):
         # Look for a 'format=json' GET argument
         if self.request.method == 'POST':
-            return self.export_anki_kakitori()
+            choice=self.request.POST.get('choice', None)
+            if choice[0:9]=='anki_kaki':
+                return self.export_anki_kakitori(choice)
         else:
             return super().render_to_response(context)
 
-    def export_anki_kakitori(self):
+    def export_anki_kakitori(self, choice):
         response = HttpResponse(content_type='text/csv')
         response['Content-Disposition'] = 'attachment; filename="djAnkiKakitori.csv"'
         writer = csv.writer(response, delimiter='\t', quotechar='"')
 
-        for example in Example.objects.exclude(sentence='').exclude(kanken__difficulty__lt=8):
+        q_set = Example.objects.exclude(sentence='')
+        if choice=='anki_kaki_ayu':
+            q_set=q_set.exclude(kanken__difficulty__lt=8)
+
+        for example in q_set:
             word = example.word_native if example.word_native != "" else example.word
             yomi = example.yomi_native if example.yomi_native != "" else example.yomi
             sentence = example.sentence.replace(word,

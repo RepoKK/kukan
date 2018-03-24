@@ -398,6 +398,11 @@ var FrCompKanjis = {
     template: '<fr-filter-string :title="title" v-model="compValue" @rm_fil="rm_fil" placeholder="漢字を入力下さい"></fr-filter-string>'
 }
 
+var FrCompYomi = {
+    mixins: [MixinFrComp],
+    template: '<fr-filter-string :title="title" v-model="compValue" @rm_fil="rm_fil" placeholder="読みを入力下さい"></fr-filter-string>'
+}
+
 var FrCompKanken = {
     data: function () {
         return {
@@ -518,6 +523,7 @@ Vue.component('fr-filter-container', {
         'fr-comp-kanken': FrCompKanken,
         'fr-comp-type': FrCompType,
         'fr-comp-kanjis': FrCompKanjis,
+        'fr-comp-yomi': FrCompYomi,
 
         'fr-filter-add': FrCompAddFilter
     },
