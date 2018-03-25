@@ -80,6 +80,8 @@ class Kanji(models.Model):
                 else:
                     res[fld.name] = getattr(self, fld.name)
         res['ex_num'] = Example.objects.filter(kanjis=self.kanji).exclude(sentence='').count()
+
+        res['link'] = self.pk
         return res
 
 
@@ -90,9 +92,10 @@ class Kanji(models.Model):
             if fld.concrete and fld.name[0:4]!='anki':
                 list_fld.append({'title': fld.verbose_name if fld.verbose_name != '' else fld.name,
                                  'field': fld.name,
+                                 'link': '/kukan/kanji/' if fld.name == 'kanji' else '',
                                  'visible': fld.name not in ['anki_Examples', 'anki_Reading_Table',
                                                              'anki_kjIjiDoukun', 'meaning', 'external_ref']})
-        list_fld.append({'title': '例文数', 'field': 'ex_num', 'visible': True})
+        list_fld.append({'title': '例文数', 'field': 'ex_num', 'link':'', 'visible': True})
         return list_fld
 
     class Meta:
@@ -262,7 +265,7 @@ class Example(models.Model):
     yomi_native = models.CharField('読み方', max_length=30, blank=True)
     sentence = models.CharField('文章', max_length=300, blank=True)
     definition = models.CharField('定義', max_length=10000, blank=True)
-    is_joyo = models.BooleanField('常用漢字表の例')
+    is_joyo = models.BooleanField('常表例')
     kanken = models.ForeignKey(Kanken, on_delete=models.CASCADE, verbose_name='漢検')
 
     class Meta:
@@ -279,6 +282,32 @@ class Example(models.Model):
         self.kanken=Kanken.objects.get(id=Kanji.objects.filter(kanji__in=self.word).
                                        aggregate(Max('kanken'))['kanken__max'])
         super().save(*args, **kwargs)
+
+    def as_dict(self):
+        res = {}
+        res['word'] = self.word
+        res['yomi'] = self.yomi
+        res['sentence'] = self.sentence
+        res['is_joyo'] = self.is_joyo
+        res['kanken'] = self.kanken.kyu
+        res['updated_time'] = self.updated_time
+
+        res['link'] = self.pk
+        return res
+
+
+    @classmethod
+    def fld_lst(cls):
+        list_fld = []
+        for fld in ['word', 'yomi', 'sentence', 'is_joyo', 'kanken', 'updated_time']:
+            fld = Example._meta.get_field(fld)
+            if fld.concrete:
+                list_fld.append({'title': fld.verbose_name if fld.verbose_name != '' else fld.name,
+                                 'field': fld.name,
+                                 'link': '/kukan/example/' if fld.name == 'word' else '',
+                                 'type': 'bool' if fld.name == 'is_joyo' else '',
+                                 'visible': True})
+        return list_fld
 
     def get_absolute_url(self):
         return reverse('kukan:example_detail', kwargs={'pk': self.pk})

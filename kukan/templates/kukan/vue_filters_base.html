@@ -1,0 +1,348 @@
+<script>
+Vue.use(Buefy.default)
+
+Vue.mixin({ delimiters: ['[[',']]'] });
+
+const vModelComputed = {
+  get() {
+    return this.value;
+  },
+  set(newValue) {
+    this.$emit('input', newValue);
+  }
+};
+</script>
+
+
+
+
+<script type="text/x-template" id="trigger-button">
+    <div class="buttons has-addons">
+        <span class="button is-selected" v-bind:class="{'is-primary':state}">[[cur_title]]</span>
+        <span class="button" v-bind:class="{'is-primary':state}" @click.stop="rm_fil">
+            <b-icon icon="close" size="is-small"></b-icon>
+        </span>
+    </div>
+</script>
+<script>
+var Trigger = {
+    props: ['title', 'current', 'state', 'keep_title'],
+    computed: {
+        cur_title: function () {
+            res = ""
+            if (this.current=='') {
+                res = this.title
+            } else {
+                if (this.keep_title) {
+                    res = this.title+': '+this.current
+                } else {
+                    res = this.current
+                }
+            }
+            return res
+        }
+      },
+    methods: {
+        rm_fil: function () {
+            console.log("remove_filter: remove filter")
+            this.$emit('rm_fil')
+        }
+    },
+    template: '#trigger-button'
+}
+</script>
+
+
+<script type="text/x-template" id="drop-down-top">
+    <b-dropdown-item custom>
+        <nav class="level is-mobile">
+            <!-- Left side -->
+            <div class="level-left">
+                <p class="level-item"><strong>[[title]]</strong></p>
+            </div>
+            <!-- Right side -->
+            <div class="level-right">
+                <a class="button is-primary" @click="handleApply">適用</a>
+            </div>
+        </nav>
+    </b-dropdown-item>
+</script>
+<script>
+var DropDownTop = {
+        data() {
+            return {
+                _isDropdown: true // Used internally by DropdownItem
+            }
+        },
+    props: ['title'],
+    methods: {
+        handleApply: function () {
+            console.log("APPLY !!"  + this)
+            this.$parent.selectItem(this)
+            this.$emit('apply')
+        }
+    },
+    template: '#drop-down-top'
+}
+</script>
+
+
+<script type="text/x-template" id="drop-down-min-max">
+    <b-dropdown-item custom><b-field>
+        <b-input :placeholder="placeholder"
+                    type="number"
+                    :min="min"
+                    :max="max"
+                    v-model="localValue">
+        </b-input>
+        <p class="control">
+            <a class="button is-static">
+                [[label]]
+            </a>
+        </p>
+    </b-field></b-dropdown-item>
+</script>
+<script>
+var Kakusu = {
+    data: function () {
+        return {
+            _isDropdown: true, // Used internally by DropdownItem
+        }
+    },
+    props: ['value', 'label', 'placeholder', 'min', 'max'],
+    computed: {
+        localValue: vModelComputed
+      },
+    template: '#drop-down-min-max',
+}
+</script>
+
+
+<script type="text/x-template" id="fr-filter-template">
+    <div>
+        <b-dropdown>
+            <fr-trigger slot="trigger" :title="title" :current="current_filter" :keep_title="keep_title"
+                        :state="is_active" @rm_fil="$emit('rm_fil')"></fr-trigger>
+            <drop-down-top :title="title" v-on:apply="handleApply"></drop-down-top>
+            <slot></slot>
+        </b-dropdown>
+    </div>
+</script>
+<script>
+Vue.component('fr-filter', {
+    data: function () {
+        return {
+        }
+    },
+    components: {
+        'fr-trigger': Trigger,
+        'drop-down-top': DropDownTop,
+    },
+    computed: {
+        is_active: function () {return (this.current_filter!='')}
+      },
+
+    props: {
+        title:String,
+        current_filter:String,
+        keep_title:{type:Boolean, default:false}
+        },
+    methods: {
+        handleApply: function (filter_val) {
+            console.log("fr-filter: apply !! - " + this.current_filter)
+            this.$emit('apply')
+        },
+    },
+    template: '#fr-filter-template'
+})
+</script>
+
+<script>
+var MixinFrBase = {
+    data: function () {
+        return {
+            filter: ""
+        }
+    },
+    props: ['title', 'value'],
+    created() {
+        this.tempFilter = this.value
+        this.filter = this.tempFilter
+        console.log("MixinFrBase - created:" + this.tempFilter + '/' + this.filter + '//' + this.value)
+    },
+    methods: {
+        handleApply: function (filter_val) {
+            console.log("MixinFrBase: APPLY -FINAL !!" + this.filter)
+            this.filter=this.tempFilter
+            this.$emit('input', this.filter)
+        },
+    },
+}
+</script>
+
+
+<script type="text/x-template" id="fr-filter-string-template">
+    <fr-filter v-on:apply="handleApply" @rm_fil="$emit('rm_fil')"
+               :title="title" :current_filter="filter" :keep_title="true">
+        <b-dropdown-item custom><b-field>
+            <b-input :placeholder="placeholder"
+                        v-model="localValue">
+            </b-input>
+        </b-field></b-dropdown-item>
+    </fr-filter>
+</script>
+<script>
+Vue.component('fr-filter-string', {
+    mixins: [MixinFrBase],
+    template: '#fr-filter-string-template',
+    props: ['placeholder'],
+    data: function () {
+        return {
+            localValue: ""
+        }
+    },
+    computed: {
+        tempFilter: {
+            get: function () {
+                return this.localValue
+            },
+            set: function (newVal) {
+                this.localValue = newVal
+            }
+        }
+    },
+})
+
+</script>
+
+<script type="text/x-template" id="fr-filter-min-max-template">
+    <fr-filter v-on:apply="handleApply" @rm_fil="$emit('rm_fil')"
+               :title="title" :current_filter="filter" :keep_title="true">
+                    <fr-kakusu label="画以上" :placeholder="title" v-model="strokes.min"></fr-kakusu>
+                    <fr-kakusu label="画以下" :placeholder="title" v-model="strokes.max"></fr-kakusu>
+    </fr-filter>
+</script>
+<script>
+function convPosInt(str) {
+    strInt = parseInt(str, 10)
+    console.log("convPosInt" + str + '/' + strInt + '/' + (str === strInt) + '/' + (strInt >= 0))
+    res = ''
+    if (str == strInt && strInt >= 0) {
+        res = strInt
+    }
+    return res
+}
+
+Vue.component('fr-filter-min-max', {
+    mixins: [MixinFrBase],
+    template: '#fr-filter-min-max-template',
+    components: {
+        'fr-kakusu': Kakusu,
+    },
+
+    data: function () {
+        return {
+            strokes: {
+                min: null,
+                max: null,
+            }
+        }
+    },
+
+    computed: {
+        tempFilter: {
+            get: function () {
+                res = ''
+                if (this.strokes.min != null || this.strokes.max != null) {
+                    res = this.strokes.min  + '~' + this.strokes.max
+                }
+                return res
+            },
+            set: function (newVal) {
+                val = newVal.split('~')
+                if (val.length == 2) {
+                    this.strokes.min = convPosInt(val[0], 10)
+                    this.strokes.max = convPosInt(val[1], 10)
+                }
+            }
+        }
+    },
+})
+
+</script>
+
+
+<script type="text/x-template" id="fr-filter-checkbox-template">
+
+    <fr-filter v-on:apply="handleApply" @rm_fil="$emit('rm_fil')" :title="title" :current_filter="filter">
+        <b-dropdown-item custom>
+            <div v-for="(elem, index) in elements" class="field">
+                <b-checkbox v-model="checkboxGroup" :native-value=index>[[elem.label]]</b-checkbox>
+            </div>
+        </b-dropdown-item custom>
+    </fr-filter>
+</script>
+<script>
+Vue.component('fr-filter-checkbox', {
+    mixins: [MixinFrBase],
+    template: '#fr-filter-checkbox-template',
+    props: ['elements'],
+
+    data: function () {
+        return {
+            checkboxGroup: ""
+        }
+    },
+
+    computed: {
+        tempFilter: {
+            get: function () {
+                res = ""
+                if (this.checkboxGroup.length>0) {
+                    lst_label = []
+                    for (var i = 0, len = this.checkboxGroup.length; i < len; i++) {
+                        lst_label.push(this.elements[this.checkboxGroup[i]].label)
+                        res = lst_label.join(", ")
+                    }
+                }
+                console.log("tempFilter GET = " + res)
+                return res
+            },
+            set: function (newVal) {
+                var res = []
+                val = this.value.split(', ')
+                for (var i = 0, len = this.elements.length; i < len; i++) {
+                    if (val.indexOf(this.elements[i].label) > -1 ) {
+                        res.push(i)
+                    }
+                }
+                console.log("INIT fr-filter-checkbox = " + res + "--" + this.value)
+                this.checkboxGroup = res
+            }
+        },
+    },
+})
+
+</script>
+
+<script>
+var MixinFrComp = {
+    data: function () {
+        return {
+            compValue: this.value
+        }
+    },
+    props: ['title', 'idx', 'value'],
+    methods: {
+        rm_fil: function () {
+            console.log('removed filter - from mixin ' + this.idx + '/')
+            this.$emit('rm_fil', this.idx)
+        }
+    },
+    watch: {
+        'compValue': function(val, oldVal){
+            this.$emit('input', this.compValue)
+        }
+    }
+}
+</script>

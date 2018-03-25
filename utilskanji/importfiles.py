@@ -14,7 +14,9 @@ import csv
 import re
 import kukan.jautils as jau
 from utilskanji import CKanjiDeck
-
+from lxml import html
+import requests
+import html2text
 
 
 def TODO_export_anki_csv(request):
@@ -262,3 +264,129 @@ def import_kanji():
     deck = CKanjiDeck.CKanjiDeck()
     deck.CreateDeckFromAnkiFile(importFileName)
     deck.ProcessJitenon()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+def get_goo_definition(word, link=''):
+    if link == '':
+        link = 'https://dictionary.goo.ne.jp/srch/jn/' + word + '/m1u/'
+    else:
+        link = 'https://dictionary.goo.ne.jp' + link
+    page = requests.get(link)
+    tree = html.fromstring(page.content)
+    text = ""
+    candidates = []
+    yomi=""
+    try:
+        block = tree.xpath('//*[@id="NR-main-in"]/section/div/div[2]/div')
+        text = html.tostring(block[0], encoding='unicode')
+        yomi = tree.xpath('//*[@id="NR-main-in"]/section/div/div[1]/h1/text()')[0]
+        yomi = yomi[0:yomi.index('【')].replace('‐','')
+        yomi = yomi.translate(jau.hir2kat)
+        yomi = yomi.replace('・', '')
+        yomi = re.sub('〔.*〕','', yomi)
+        definition = block[0].getchildren()[0].text
+    except IndexError:
+        block = tree.xpath('//dt[@class="title search-ttl-a"]')
+        for block in tree.xpath('//dt[@class="title search-ttl-a"]'):
+            if block.getparent().getparent().get('href')[0:3] == '/jn':
+                candidates.append({'word':block.text,'link':block.getparent().getparent().get('href')})
+
+    if text != '':
+        h = html2text.HTML2Text()
+        h.ignore_links = True
+        text = text.replace('<ol', '<ul')
+        text = h.handle(text)
+        text = re.sub(r'  \* \*\*(\d*)\*\*',
+                      lambda match: match.group(1).translate(jau.digit_ful2half) + '. ',
+                      text)
+        text = re.sub(r'__「(.*)の全ての意味を見る\n\n', '', text)
+
+    data = {'definition': text, 'reading': yomi, 'candidates': candidates if len(candidates) > 0 else ''}
+    return data
+
+def set_yomi(word, yomi):
+    yomi = yomi.translate(jau.hir2kat)
+
+    data = {}
+    lst_reading = []
+    lst_id = []
+    for kj in word:
+        lst_reading.append([x.reading.translate(jau.hir2kat) for x in Reading.objects.filter(kanji=kj)])
+        lst_id.append([x.id for x in Reading.objects.filter(kanji=kj)])
+
+    candidate = reduce(lambda a, b: [x + y for x in a for y in b], lst_reading)
+    candidate_id = reduce(lambda a, b: [([x] if isinstance(x, int) else x) + [y] for x in a for y in b], lst_id)
+    data = {'candidate': None}
+    if yomi in candidate:
+        idx = candidate.index(yomi)
+        ids = candidate_id[idx]
+        # For the case there's only one element - will not be included in a list, so add it here
+        if not type(ids) is list:
+            ids = [ids]
+        data = {'candidate':ids}
+
+    return data
+
+def save_ex(example, reading_selected):
+    map_list = []
+    idx = 0
+    for kj in example.get_word_native():
+        try:
+            kanji = Kanji.objects.get(kanji=kj)
+            # check if the reading is a Joyo one - in which case it can't be changed
+            try:
+                map = example.exmap_set.get(kanji=kanji,
+                                            example=example,
+                                            map_order=idx,
+                                            in_joyo_list=True)
+            except ExMap.DoesNotExist:
+                if reading_selected[idx] == '0':
+                    map, create = example.exmap_set.get_or_create(kanji=kanji,
+                                                                  example=example,
+                                                                  map_order=idx,
+                                                                  is_ateji=True,
+                                                                  in_joyo_list=False)
+                else:
+                    reading = Reading.objects.get(kanji=kj, id=reading_selected[idx])
+                    map, create = example.exmap_set.get_or_create(kanji=kanji,
+                                                                  reading=reading,
+                                                                  example=example,
+                                                                  map_order=idx,
+                                                                  is_ateji=False,
+                                                                  in_joyo_list=False)
+            map_list.append(map.id)
+            idx += 1
+        except Kanji.DoesNotExist:
+            # Not a Kanji (kana, or kanji not in the list)
+            pass
+    # Delete the maps not relevant anymore
+    extra_maps = ExMap.objects.filter(example=example).exclude(id__in=map_list)
+    extra_maps.delete()
+
+def fill_example(example):
+    print('process: ' + example.word)
+    d1 = get_goo_definition(example.word)
+    d2 = set_yomi(example.word, d1['reading'])['candidate']
+    if example.yomi == '' and d1['reading']!='':
+        example.yomi = d1['reading']
+        print('   yomi: ' + d1['reading'])
+        example.save()
+        if d2 is not None:
+            save_ex(example, d2)
+    if example.definition == '' and d1['definition'] != '':
+        example.definition = d1['definition']
+        print('   yomi: ' + d1['definition'])
+        example.save()
+

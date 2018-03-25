@@ -1,0 +1,57 @@
+{% include 'kukan/vue_filters_base.html' %}
+
+<script>
+var FrCompKakausu = {
+    mixins: [MixinFrComp],
+    template: '<fr-filter-min-max :title="title" v-model="compValue" @rm_fil="rm_fil"></fr-filter-min-max>'
+}
+
+var FrCompStringSimple = {
+    mixins: [MixinFrComp],
+    template: '<fr-filter-string :title="title" v-model="compValue" @rm_fil="rm_fil" :placeholder="placeholder"></fr-filter-string>',
+    computed: {
+        placeholder: function () {return (this.title + "を入力下さい")}
+    }
+}
+
+
+var FrCompKanken = {
+    data: function () {
+        return {
+            elements: [
+                {'native':'1kyu', 'label': '１級'},
+                {'native':'jun1kyu', 'label': '準１級'},
+                {'native':'2kyu', 'label': '２級'},
+                {'native':'jun2kyu', 'label': '準２級'},
+                {'native':'3kyu', 'label': '３級'},
+                {'native':'4kyu', 'label': '４級'},
+                {'native':'5kyu', 'label': '５級'},
+                {'native':'6kyu', 'label': '６級'},
+                {'native':'7kyu', 'label': '７級'},
+                {'native':'8kyu', 'label': '８級'},
+                {'native':'9kyu', 'label': '９級'},
+                {'native':'10kyu', 'label': '１０級'},
+
+            ],
+        }
+    },
+    mixins: [MixinFrComp],
+    template: '<fr-filter-checkbox :title="title" v-model="compValue" @rm_fil="rm_fil" :elements="elements"></fr-filter-checkbox>'
+}
+
+var FrCompType = {
+    data: function () {
+        return {
+            elements: [
+                {'native':'joyo', 'label': '常用漢字'},
+                {'native':'jinmei', 'label': '人名漢字'},
+                {'native':'other', 'label': '常用・人名以外'},
+            ],
+        }
+    },
+    mixins: [MixinFrComp],
+    template: '<fr-filter-checkbox :title="title" v-model="compValue" @rm_fil="rm_fil" :elements="elements"></fr-filter-checkbox>'
+}
+</script>
+
+{% include 'kukan/vue_filters_cont.html' %}

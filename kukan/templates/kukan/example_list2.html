@@ -1,0 +1,52 @@
+{% extends 'kukan/base_ext.html' %}
+{% block content %}
+<section class="section">
+    <div class="container">
+        <h1 class="title">{{ search }}</h1>
+        <h1 class="subtitle">の含んだ例文</h1>
+
+        <table class="table is-striped is-fullwidth">
+            <thead>
+                <th>
+                    例文の単語
+                </th>
+                <th>
+                    Reading
+                </th>
+                <th>
+                    読み方
+                </th>
+                <th class="is-hidden-tablet">
+                    例文
+                </th>
+                <th class="is-hidden-mobile">
+                    例文
+                </th>
+            </thead>
+            <tbody>
+                {% for ex in example_list %}
+                <tr>
+                    <td>
+                        <a href="{% url 'kukan:example_detail' ex.id %}">{{ ex.word }}</a>
+                    </td>
+                    <td>
+                        {{ ex.reading.yomi }}
+                    </td>
+                    <td>
+                        {{ ex.yomi }}
+                    </td>
+                    <td class="is-hidden-tablet">
+                        {% if ex.sentence %}
+                            <i class="fas fa-check"></i>
+                        {% endif %}
+                    </td>
+                    <td class="is-hidden-mobile">
+                        {{ ex.sentence }}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+{% endblock %}

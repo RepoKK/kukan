@@ -24,6 +24,7 @@ import requests
 
 from utilskanji import CKanjiDeck
 
+from .filters import *
 
 class StatsPage(TemplateView):
     template_name = "kukan/stats.html"
@@ -82,65 +83,32 @@ class ContactView(generic.FormView):
         return self.success_url
 
 
-class KanjiList_old(generic.ListView):
-    model = Kanji
+class AjaxList(generic.TemplateView):
 
-    def get_queryset(self):
-        # TODO - interesting
-        # val_ex = Count('exmap', filter=~Q(exmap__example__yomi=''))
-        # #some_interesting_query = Kanji.objects.annotate(ex_num = val_ex).filter(ex_num__gt=0).filter(kanken_kyu='２級')
+    def dispatch(self, request, *args, **kwargs):
+        if request.method.lower() == 'get' and request.GET.get('ajax', None)=='1':
+            handler = self.get_list
+        else:
+            handler = super().dispatch
+        return handler(request, *args, **kwargs)
 
-        search = self.request.GET.get('search')
-        if search == '' or search is None:
-            search = '漢字'
-        q_objects = Q()
-        for item in search:
-            q_objects |= Q(pk=item)
-        return Kanji.objects.filter(q_objects)
+    def get_list(self, request, *args, **kwargs):
+        page = request.GET.get('page', None)
+        sort = request.GET.get('sort_by', None)
 
+        qry = self.get_filtered_list(request)
 
-class KanjiList(generic.ListView):
-    model = Kanji
+        p = Paginator(qry.order_by(sort), 20)
+        res = [obj.as_dict() for obj in p.page(page).object_list]
+        col_tmplt = self.model.fld_lst()
+        data = {'page': page, 'total_results': p.count, 'results': res, 'columnsTemplate': col_tmplt}
+        return JsonResponse(data)
 
-    def get_queryset(self):
-        # TODO - interesting
-        # val_ex = Count('exmap', filter=~Q(exmap__example__yomi=''))
-        # #some_interesting_query = Kanji.objects.annotate(ex_num = val_ex).filter(ex_num__gt=0).filter(kanken_kyu='２級')
-
-        search = self.request.GET.get('search')
-        if search == '' or search is None:
-            search = '漢字'
-        q_objects = Q()
-        for item in search:
-            q_objects |= Q(pk=item)
-        return Kanji.objects.filter(q_objects)
-
-
-class FFilter():
-    type = ''
-    label = ''
-    value = ''
-
-    def __init__(self, label, type):
-        self.type = type
-        self.label = label
-        self.value = ''
-
-    def toJSON(self):
-        return "{'name':'" + self.type + "', 'label':'" + self.label + "', 'value':'" + self.value + "'}"
-
-
-class KanjiListFilter(generic.ListView):
-    model = Kanji
-    template_name = 'kukan/kanji_lstfilter.html'
-    filters = [
-        FFilter('漢字', 'fr-comp-kanjis'),
-        FFilter('読み', 'fr-comp-yomi'),
-        FFilter('画数', 'fr-comp-kakusu'),
-        FFilter('種類', 'fr-comp-type'),
-        FFilter('漢検', 'fr-comp-kanken'),
-        FFilter('例文数', 'fr-comp-kakusu'),
-    ]
+    def get_filtered_list(self, request):
+        qry = self.model.objects.all()
+        for flt in self.filters:
+            qry = flt.filter(request, qry)
+        return qry
 
     def get_context_data(self, **kwargs):
         filter_list = ""
@@ -166,7 +134,7 @@ class KanjiListFilter(generic.ListView):
         context['filter_list'] = filter_list
         context['active_filters'] = active_filters
         context['page'] = self.request.GET.get('page', 1)
-        sortOrder = self.request.GET.get('sort_by', 'kanji')
+        sortOrder = self.request.GET.get('sort_by', self.default_sort)
         if sortOrder[0] == '-':
             context['sort_by'] = sortOrder[1:]
             context['sort_order'] = 'desc'
@@ -177,77 +145,34 @@ class KanjiListFilter(generic.ListView):
         return context
 
 
-def get_kanji_list(request):
-    page = request.GET.get('page', None)
-    sort = request.GET.get('sort_by', None)
-    f_ex_num = request.GET.get('文例数', None)
-    f_kakusu = request.GET.get('画数', None)
-    f_kanken = request.GET.get('漢検', None)
-    f_kanjis = request.GET.get('漢字', None)
-    f_yomi = request.GET.get('読み', None)
+class KanjiListFilter(AjaxList):
+    model = Kanji
+    template_name = 'kukan/kanji_lstfilter.html'
+    default_sort = 'kanji'
+    filters = [FKanji(), FYomi(), FKakusu(), FKanjiType(), FKanken(), FExNum()]
 
-    val_ex = Count('exmap', filter=~Q(exmap__example__sentence=''))
-    # qry = Kanji.objects.filter(kanken__kyu='２級').annotate(ex_num=val_ex).filter(ex_num__gt=0)
-    qry = Kanji.objects.annotate(ex_num=val_ex)
+    def get_filtered_list(self, request):
+        val_ex = Count('exmap', filter=~Q(exmap__example__sentence=''))
+        qry = Kanji.objects.annotate(ex_num=val_ex)
 
-    if f_ex_num is not None:
-        f_ex_num = f_ex_num.split('~')
-        qry = qry.filter(ex_num__gte=f_ex_num[0]).filter(ex_num__lte=f_ex_num[1])
+        for flt in self.filters:
+            qry = flt.filter(request, qry)
 
-    if f_kakusu is not None:
-        f_kakusu = f_kakusu.split('~')
-        qry = qry.filter(strokes__gte=f_kakusu[0]).filter(strokes__lte=f_kakusu[1])
+        return qry
 
-    if f_kanken is not None:
-        f_kanken = f_kanken.split(', ')
-        qry = qry.filter(kanken__kyu__in=f_kanken)
 
-    if f_kanjis is not None:
-        qry = qry.filter(kanji__in=list(f_kanjis))
+class ExampleList(AjaxList):
+    model = Example
+    template_name = 'kukan/example_list.html'
+    default_sort = 'kanken'
+    filters = [FWord(), FKanken()]
 
-    if f_yomi is not None:
-        readings = Reading.objects.filter(reading_simple=f_yomi.translate(jau.kat2hir)) \
-            .exclude(joyo__yomi_joyo='表外')
-        qry = qry.filter(reading__in=readings)
-
-    p = Paginator(qry.order_by(sort), 20)
-    # p = Paginator(Kanji.objects.all().order_by(sort), 20)
-    res = [obj.as_dict() for obj in p.page(page).object_list]
-    col_tmplt = [{'title': '漢字2', 'field': 'kanji', 'visible': 'true'},
-                 {'title': 'First Name', 'field': 'first_name', 'visible': 'true'}]
-    col_tmplt = Kanji.fld_lst()
-    data = {'page': page, 'total_results': p.count, 'results': res, 'columnsTemplate': col_tmplt}
-    return JsonResponse(data)
 
 
 class KanjiDetail(generic.DetailView):
     model = Kanji
     # template_name = 'kukan/detail.html'
 
-
-class ExampleList(generic.ListView):
-    model = Example
-
-    def get_queryset(self):
-        # TODO
-        # return Example.objects.exclude(exmap__example__yomi='').filter(exmap__kanji__kanken_kyu='２級')
-        # return Example.objects.filter(exmap__reading=None).distinct()
-        search = self.request.GET.get('search')
-        return Example.objects.filter(word__contains=search)
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['search'] = self.request.GET.get('search')
-        return context
-
-
-class ExampleList2(generic.ListView):
-    model = Example
-
-    def get_queryset(self):
-        # TODO
-        return Example.objects.exclude(exmap__example__yomi='') \
-            .exclude(exmap__example__yomi='jukuji').filter(exmap__kanji__kanken__kyu='２級').distinct()
 
 
 class ExampleDetail(generic.DetailView):
@@ -257,36 +182,6 @@ class ExampleDetail(generic.DetailView):
 class ReadingDetail(generic.DetailView):
     model = Reading
 
-
-def import_file(request):
-    exit
-    root_dir = r'E:\CloudStorage\Google Drive\Kanji\資料\\'
-    importFileName = root_dir + r'AnkiExport\漢字.txt'
-    outputFileName = root_dir + r'AnkiImport\DeckKanji.txt'
-
-    deck = CKanjiDeck.CKanjiDeck()
-    deck.CreateDeckFromAnkiFile(importFileName)
-    deck.ProcessJitenon()
-    yomi = YomiType.objects.all()
-    joyo = YomiJoyo.objects.all()
-    for kj in Kanji.objects.all():
-        deck_kj = deck[kj.kanji]
-        for reading in deck_kj._readingList:
-            if reading.isOn:
-                yt = yomi[0]
-            else:
-                yt = yomi[1]
-
-            if reading.isHyoGai:
-                jy = joyo[2]
-            else:
-                jy = joyo[0]
-            kj.reading_set.get_or_create(
-                reading=reading.reading,
-                yomi_type=yt,
-                joyo=jy
-            )
-    return HttpResponse("y9o")
 
 
 class ExampleCreate(CreateView):
@@ -450,6 +345,7 @@ def get_goo(request):
         text = re.sub(r'  \* \*\*(\d*)\*\*',
                       lambda match: match.group(1).translate(jau.digit_ful2half) + '. ',
                       text)
+        text = re.sub(r'__「(.*)の全ての意味を見る\n\n', '', text)
 
     data = {'definition': text, 'reading': yomi, 'candidates': candidates if len(candidates) > 0 else ''}
 
