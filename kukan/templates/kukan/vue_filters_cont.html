@@ -82,6 +82,7 @@ Vue.component('fr-filter-container', {
         'fr-comp-string-simple': FrCompStringSimple,
         'fr-comp-yomi': FrCompStringSimple,
         'fr-comp-word': FrCompStringSimple,
+        'fr-comp-has-sentence': FrCompHas,
 
         'fr-filter-add': FrCompAddFilter
     },
@@ -304,7 +305,7 @@ Vue.component('fr-filtered-table', {
             this.loadAsyncData()
         },
         fldformat: function(value, col, fldlink) {
-            if (!value) return ''
+            if (value==null) return ''
             var res = value
             if (col.type == "bool") {
                 res = ''

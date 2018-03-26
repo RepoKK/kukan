@@ -1,4 +1,5 @@
 from .models import Kanji, YomiType, YomiJoyo, Reading, Example, ExMap
+import kukan.jautils as jau
 
 class FFilter():
     type = ''
@@ -84,4 +85,16 @@ class FWord(FFilter):
 
     def add_to_query(self, flt, qry):
         qry = qry.filter(word__contains=flt)
+        return qry
+
+
+class FSentence(FFilter):
+    def __init__(self):
+        super().__init__('例文', 'fr-comp-has-sentence')
+
+    def add_to_query(self, flt, qry):
+        if flt=='例文在り':
+            qry = qry.exclude(sentence='')
+        elif flt=='例文無し':
+            qry = qry.filter(sentence='')
         return qry

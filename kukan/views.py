@@ -165,7 +165,7 @@ class ExampleList(AjaxList):
     model = Example
     template_name = 'kukan/example_list.html'
     default_sort = 'kanken'
-    filters = [FWord(), FKanken()]
+    filters = [FWord(), FKanken(), FSentence()]
 
 
 
