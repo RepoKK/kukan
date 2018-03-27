@@ -276,7 +276,7 @@ Vue.component('fr-filter-min-max', {
 
     <fr-filter v-on:apply="handleApply" @rm_fil="$emit('rm_fil')" :title="title" :current_filter="filter">
         <b-dropdown-item custom>
-            <div class="columns">
+            <div class="columns is-mobile">
                 <div class="column">
                     <div v-for="(elem, index) in col0" class="field">
                         <b-checkbox v-model="checkboxGroup" :native-value=elem.index>[[elem.label]]</b-checkbox>
