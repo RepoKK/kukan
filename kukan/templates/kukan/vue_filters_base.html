@@ -276,8 +276,17 @@ Vue.component('fr-filter-min-max', {
 
     <fr-filter v-on:apply="handleApply" @rm_fil="$emit('rm_fil')" :title="title" :current_filter="filter">
         <b-dropdown-item custom>
-            <div v-for="(elem, index) in elements" class="field">
-                <b-checkbox v-model="checkboxGroup" :native-value=index>[[elem.label]]</b-checkbox>
+            <div class="columns">
+                <div class="column">
+                    <div v-for="(elem, index) in col0" class="field">
+                        <b-checkbox v-model="checkboxGroup" :native-value=elem.index>[[elem.label]]</b-checkbox>
+                    </div>
+                </div>
+                <div class="column" v-if="col1.length>0">
+                    <div v-for="(elem, index) in col1" class="field">
+                        <b-checkbox v-model="checkboxGroup" :native-value=elem.index>[[elem.label]]</b-checkbox>
+                    </div>
+                </div>
             </div>
         </b-dropdown-item custom>
     </fr-filter>
@@ -295,6 +304,19 @@ Vue.component('fr-filter-checkbox', {
     },
 
     computed: {
+        col0: function() {
+            return this.indexedElem.filter(function(u) {
+                return u.col == 0 || u.col == null
+            })
+        },
+        col1: function() {
+            return this.indexedElem.filter(function(u) {
+                return u.col == 1
+            })
+        },
+        indexedElem: function() {
+            return this.elements.map((obj,idx) => {obj.index = idx; return obj;})
+        },
         tempFilter: {
             get: function () {
                 res = ""

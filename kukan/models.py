@@ -93,9 +93,10 @@ class Kanji(models.Model):
                 list_fld.append({'title': fld.verbose_name if fld.verbose_name != '' else fld.name,
                                  'field': fld.name,
                                  'link': '/kukan/kanji/' if fld.name == 'kanji' else '',
+                                 'type': '',
                                  'visible': fld.name not in ['anki_Examples', 'anki_Reading_Table',
                                                              'anki_kjIjiDoukun', 'meaning', 'external_ref']})
-        list_fld.append({'title': '例文数', 'field': 'ex_num', 'link':'', 'visible': True})
+        list_fld.append({'title': '例文数', 'field': 'ex_num', 'link':'', 'type': '', 'visible': True})
         return list_fld
 
     class Meta:
@@ -114,7 +115,7 @@ class Kanji(models.Model):
 
     def basic_info2(self):
         list_fld = []
-        for fld in ['bushu', 'strokes', 'classification', 'kanken', 'anki_Kanji_Radical']:
+        for fld in ['bushu', 'strokes', 'classification', 'kanken']:
                     list_fld.append([ self._meta.get_field(fld).verbose_name, getattr(self, fld)])
         return list_fld
 
