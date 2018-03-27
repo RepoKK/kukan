@@ -13,7 +13,7 @@
         </div>
         <div class="column">
             <br class="is-hidden-mobile">
-            <table class="table is-fullwidth">
+            <table class="table is-fullwidth is-narrow">
                 <tbody>
                     {% for name, value in kanji.basic_info2 %}
                         <tr><th>{{name}}</th><td>{{value}}</td></tr>
@@ -57,11 +57,4 @@
             </div>
         </div>
     </div>
-
-<br>
-<table class="table">
-{{kanji.anki_Examples|safe}}
-</table>
-<br>
-
 {% endblock %}
