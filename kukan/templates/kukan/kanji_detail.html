@@ -57,4 +57,18 @@
             </div>
         </div>
     </div>
+
+<template>
+    <b-table :data="data" :columns="columns" striped narrowed></b-table>
+</template>
 {% endblock %}
+
+
+{% block vue_data %}
+        data() {
+            return {
+                data: {{data|safe}},
+                columns: {{columns|safe}},
+            }
+        }
+{% endblock vue_data %}

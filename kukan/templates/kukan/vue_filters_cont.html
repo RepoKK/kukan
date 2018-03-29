@@ -179,7 +179,7 @@ Vue.component('fr-filter-container', {
                 <b-table-column v-for="(column, index) in columnsTemplate"
                     :key="index"
                     :field="column.field"
-                    :label="column.title"
+                    :label="column.label"
                     :visible="column.visible"
                     sortable >
                         <b-icon icon="check" v-if="column.type == 'bool' && props.row[column.field]==true"></b-icon>

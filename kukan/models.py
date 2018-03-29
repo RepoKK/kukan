@@ -90,7 +90,7 @@ class Kanji(models.Model):
         list_fld = []
         for fld in Kanji._meta.get_fields():
             if fld.concrete and fld.name[0:4]!='anki':
-                list_fld.append({'title': fld.verbose_name if fld.verbose_name != '' else fld.name,
+                list_fld.append({'label': fld.verbose_name if fld.verbose_name != '' else fld.name,
                                  'field': fld.name,
                                  'link': '/kukan/kanji/' if fld.name == 'kanji' else '',
                                  'type': '',
@@ -291,7 +291,7 @@ class Example(models.Model):
         res['sentence'] = self.sentence
         res['is_joyo'] = self.is_joyo
         res['kanken'] = self.kanken.kyu
-        res['updated_time'] = self.updated_time
+        res['updated_time'] = self.updated_time.strftime('%Y.%m.%d %H:%M:%S')
 
         res['link'] = self.pk
         return res
@@ -303,7 +303,7 @@ class Example(models.Model):
         for fld in ['word', 'yomi', 'sentence', 'is_joyo', 'kanken', 'updated_time']:
             fld = Example._meta.get_field(fld)
             if fld.concrete:
-                list_fld.append({'title': fld.verbose_name if fld.verbose_name != '' else fld.name,
+                list_fld.append({'label': fld.verbose_name if fld.verbose_name != '' else fld.name,
                                  'field': fld.name,
                                  'link': '/kukan/example/' if fld.name == 'word' else '',
                                  'type': 'bool' if fld.name == 'is_joyo' else '',

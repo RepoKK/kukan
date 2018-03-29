@@ -171,9 +171,13 @@ class ExampleList(AjaxList):
 
 class KanjiDetail(generic.DetailView):
     model = Kanji
-    # template_name = 'kukan/detail.html'
 
-
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        qry=Example.objects.filter(word__contains=context['kanji']).exclude(sentence='')
+        context['data'] = json.dumps([obj.as_dict() for obj in qry])
+        context['columns'] = json.dumps(Example.fld_lst())
+        return context
 
 class ExampleDetail(generic.DetailView):
     model = Example
