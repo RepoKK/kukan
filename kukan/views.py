@@ -314,7 +314,7 @@ def get_similar_word(request):
 
 def get_goo(request):
     word = request.GET.get('word_native', None)
-    if word == None:
+    if word == '':
         word = request.GET.get('word', None)
     link = request.GET.get('link', None)
     if link == '':

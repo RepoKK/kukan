@@ -96,7 +96,7 @@ class Kanji(models.Model):
                                  'type': '',
                                  'visible': fld.name not in ['anki_Examples', 'anki_Reading_Table',
                                                              'anki_kjIjiDoukun', 'meaning', 'external_ref']})
-        list_fld.append({'title': '例文数', 'field': 'ex_num', 'link':'', 'type': '', 'visible': True})
+        list_fld.append({'label': '例文数', 'field': 'ex_num', 'link':'', 'type': '', 'visible': True})
         return list_fld
 
     class Meta:
