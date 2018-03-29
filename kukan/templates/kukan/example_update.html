@@ -330,6 +330,7 @@
             this.showCandidateDefinition=false
             const params = [
                 `word=${this.word}`,
+                `word_native=${this.word_native}`,
                 `link=${link}`
             ].join('&')
             axios.get(`/kukan/ajax/get_goo?${params}`)

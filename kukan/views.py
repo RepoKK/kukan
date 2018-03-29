@@ -313,7 +313,9 @@ def get_similar_word(request):
 
 
 def get_goo(request):
-    word = request.GET.get('word', None)
+    word = request.GET.get('word_native', None)
+    if word == None:
+        word = request.GET.get('word', None)
     link = request.GET.get('link', None)
     if link == '':
         link = 'https://dictionary.goo.ne.jp/srch/jn/' + word + '/m1u/'
