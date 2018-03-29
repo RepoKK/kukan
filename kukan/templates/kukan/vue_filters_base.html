@@ -44,7 +44,6 @@ var Trigger = {
       },
     methods: {
         rm_fil: function () {
-            console.log("remove_filter: remove filter")
             this.$emit('rm_fil')
         }
     },
@@ -77,7 +76,6 @@ var DropDownTop = {
     props: ['title'],
     methods: {
         handleApply: function () {
-            console.log("APPLY !!"  + this)
             this.$parent.selectItem(this)
             this.$emit('apply')
         }
@@ -120,7 +118,7 @@ var Kakusu = {
 
 <script type="text/x-template" id="fr-filter-template">
     <div>
-        <b-dropdown>
+        <b-dropdown ref="dropDn" @keyup.enter.native="enterApply">
             <fr-trigger slot="trigger" :title="title" :current="current_filter" :keep_title="keep_title"
                         :state="is_active" @rm_fil="$emit('rm_fil')"></fr-trigger>
             <drop-down-top :title="title" v-on:apply="handleApply"></drop-down-top>
@@ -149,8 +147,11 @@ Vue.component('fr-filter', {
         },
     methods: {
         handleApply: function (filter_val) {
-            console.log("fr-filter: apply !! - " + this.current_filter)
             this.$emit('apply')
+        },
+        enterApply: function () {
+            this.handleApply()
+            this.$refs.dropDn.toggle()
         },
     },
     template: '#fr-filter-template'
@@ -168,11 +169,9 @@ var MixinFrBase = {
     created() {
         this.tempFilter = this.value
         this.filter = this.tempFilter
-        console.log("MixinFrBase - created:" + this.tempFilter + '/' + this.filter + '//' + this.value)
     },
     methods: {
         handleApply: function (filter_val) {
-            console.log("MixinFrBase: APPLY -FINAL !!" + this.filter)
             this.filter=this.tempFilter
             this.$emit('input', this.filter)
         },
@@ -225,7 +224,6 @@ Vue.component('fr-filter-string', {
 <script>
 function convPosInt(str) {
     strInt = parseInt(str, 10)
-    console.log("convPosInt" + str + '/' + strInt + '/' + (str === strInt) + '/' + (strInt >= 0))
     res = ''
     if (str == strInt && strInt >= 0) {
         res = strInt
@@ -279,12 +277,12 @@ Vue.component('fr-filter-min-max', {
             <div class="columns is-mobile">
                 <div class="column">
                     <div v-for="(elem, index) in col0" class="field">
-                        <b-checkbox v-model="checkboxGroup" :native-value=elem.index>[[elem.label]]</b-checkbox>
+                        <component :is="comptype" v-model="checkboxGroup" :native-value=elem.index>[[elem.label]]</component>
                     </div>
                 </div>
                 <div class="column" v-if="col1.length>0">
                     <div v-for="(elem, index) in col1" class="field">
-                        <b-checkbox v-model="checkboxGroup" :native-value=elem.index>[[elem.label]]</b-checkbox>
+                        <component :is="comptype" v-model="checkboxGroup" :native-value=elem.index>[[elem.label]]</component>
                     </div>
                 </div>
             </div>
@@ -295,7 +293,7 @@ Vue.component('fr-filter-min-max', {
 Vue.component('fr-filter-checkbox', {
     mixins: [MixinFrBase],
     template: '#fr-filter-checkbox-template',
-    props: ['elements'],
+    props: ['elements', 'comptype'],
 
     data: function () {
         return {
@@ -320,14 +318,15 @@ Vue.component('fr-filter-checkbox', {
         tempFilter: {
             get: function () {
                 res = ""
-                if (this.checkboxGroup.length>0) {
+                if (this.comptype == 'b-checkbox' && this.checkboxGroup.length>0) {
                     lst_label = []
                     for (var i = 0, len = this.checkboxGroup.length; i < len; i++) {
                         lst_label.push(this.elements[this.checkboxGroup[i]].label)
                         res = lst_label.join(", ")
                     }
+                } else if (this.comptype == 'b-radio'){
+                    res = this.elements[this.checkboxGroup].label
                 }
-                console.log("tempFilter GET = " + res)
                 return res
             },
             set: function (newVal) {
@@ -338,7 +337,9 @@ Vue.component('fr-filter-checkbox', {
                         res.push(i)
                     }
                 }
-                console.log("INIT fr-filter-checkbox = " + res + "--" + this.value)
+                if (this.comptype == 'b-radio') {
+                    res = res[0]
+                }
                 this.checkboxGroup = res
             }
         },
@@ -357,7 +358,6 @@ var MixinFrComp = {
     props: ['title', 'idx', 'value'],
     methods: {
         rm_fil: function () {
-            console.log('removed filter - from mixin ' + this.idx + '/')
             this.$emit('rm_fil', this.idx)
         }
     },

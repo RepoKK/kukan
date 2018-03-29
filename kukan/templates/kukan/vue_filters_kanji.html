@@ -36,7 +36,7 @@ var FrCompKanken = {
         }
     },
     mixins: [MixinFrComp],
-    template: '<fr-filter-checkbox :title="title" v-model="compValue" @rm_fil="rm_fil" :elements="elements"></fr-filter-checkbox>'
+    template: '<fr-filter-checkbox comptype="b-checkbox" :title="title" v-model="compValue" @rm_fil="rm_fil" :elements="elements"></fr-filter-checkbox>'
 }
 
 var FrCompType = {
@@ -50,7 +50,7 @@ var FrCompType = {
         }
     },
     mixins: [MixinFrComp],
-    template: '<fr-filter-checkbox :title="title" v-model="compValue" @rm_fil="rm_fil" :elements="elements"></fr-filter-checkbox>'
+    template: '<fr-filter-checkbox comptype="b-checkbox" :title="title" v-model="compValue" @rm_fil="rm_fil" :elements="elements"></fr-filter-checkbox>'
 }
 
 var FrCompHas = {
@@ -63,7 +63,7 @@ var FrCompHas = {
         }
     },
     mixins: [MixinFrComp],
-    template: '<fr-filter-checkbox :title="title" v-model="compValue" @rm_fil="rm_fil" :elements="elements"></fr-filter-checkbox>'
+    template: '<fr-filter-checkbox comptype="b-radio" :title="title" v-model="compValue" @rm_fil="rm_fil" :elements="elements"></fr-filter-checkbox>'
 }
 </script>
 

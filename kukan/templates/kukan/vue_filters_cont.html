@@ -36,7 +36,6 @@ var FrCompAddFilter = {
     },
     methods: {
         handleApply: function (filter_val) {
-            console.log("FrCompAddFilter: APPLY -FINAL !!" + this.checkboxGroup)
             this.$emit('add_fil', this.checkboxGroup)
             this.checkboxGroup = []
         }
@@ -90,15 +89,11 @@ Vue.component('fr-filter-container', {
         inactive_filters: function () {
             res = []
             af = this.active_filters
-            console.log('Active_filters fct:' + this.active_filters+ '<' + af.indexOf(2) + '>')
             for (var i = 0, len = this.filter_list.length; i < len; i++) {
-                console.log('Check IDX:' + i+ '<' + af.indexOf(i) + '>')
                 if (this.active_filters.indexOf(i) < 0) {
-                    console.log('Addition:' + i)
                     res.push({'native':i, 'label': this.filter_list[i].label},)
                 }
             }
-            console.log('inactive_filters / elements list:' + res)
             return res
         },
         url_filter: {
@@ -107,7 +102,6 @@ Vue.component('fr-filter-container', {
                 for (var i = 0, len = this.filter_list.length; i < len; i++) {
                     if (this.active_filters.indexOf(i) >= 0) {
                         if (this.filter_list[i].value) {
-                            console.log('Addition:' + i)
                             res.push(this.filter_list[i].label + '=' + this.filter_list[i].value)
                         }
                     }
@@ -123,10 +117,8 @@ Vue.component('fr-filter-container', {
             for (var i = 0; i < idx.length; i++) {
                 this.active_filters.push(idx[i])
             }
-            console.log('active_filters ' + this.active_filters)
         },
         rm_fil: function (idx) {
-            console.log('FINAL- Remove filter ' + idx)
             var index = this.active_filters.indexOf(idx);
             if (index > -1) {
                 this.filter_list[idx].value = ""
@@ -137,7 +129,6 @@ Vue.component('fr-filter-container', {
     watch: {
         'url_filter': function(val, oldVal){
             this.$emit('input', this.url_filter)
-            console.log('FINAL- change filter ' + this.url_filter)
         }
     },
     created() {
