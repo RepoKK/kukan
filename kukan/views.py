@@ -74,9 +74,9 @@ class ContactView(generic.FormView):
         if 'yoji' in self.request.POST:
             pass
         elif 'tango' in self.request.POST:
-            self.success_url = reverse('kukan:example_search') + '?search=' + search
+            self.success_url = reverse('kukan:example_list') + '?単語=' + search
         else:
-            self.success_url = reverse('kukan:kanji_multi') + '?search=' + search
+            self.success_url = reverse('kukan:kanji_lstfilter') + '?漢字=' + search
         return super().form_valid(form)
 
     def get_success_url(self):
