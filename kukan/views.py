@@ -149,7 +149,7 @@ class KanjiListFilter(AjaxList):
     model = Kanji
     template_name = 'kukan/kanji_lstfilter.html'
     default_sort = 'kanji'
-    filters = [FKanji(), FYomi(), FKakusu(), FKanjiType(), FKanken(), FExNum()]
+    filters = [FKanji(), FYomi(), FKakusu(), FKanjiType(), FJisClass(), FKanken(), FExNum()]
 
     def get_filtered_list(self, request):
         val_ex = Count('exmap', filter=~Q(exmap__example__sentence=''))

@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Kanji, Reading, Bushu, Classification, YomiType, YomiJoyo, Example, Kanken
+from .models import Kanji, Reading, Bushu, Classification, YomiType, YomiJoyo, Example, Kanken, KoukiBushu
 
 
 class KanjiInline(admin.TabularInline):
@@ -19,6 +19,7 @@ class KanjiAdmin(admin.ModelAdmin):
 
 admin.site.register(Kanji, KanjiAdmin)
 admin.site.register(Bushu)
+admin.site.register(KoukiBushu)
 admin.site.register(Classification)
 admin.site.register(Reading)
 admin.site.register(YomiType)

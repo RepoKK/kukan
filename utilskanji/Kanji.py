@@ -112,7 +112,7 @@ class CKanji:
 
     def _get_kanji_file_name(self):
         root_dir = r'E:\CloudStorage\Google Drive\Kanji\資料\\'
-        return root_dir + r'Kanji\Kanji_' + self._Kanji + '.html'
+        return root_dir + r'Kanji_all\Kanji_' + self._Kanji + '.html'
 
     def ProcessJitenon_ini(self):
         page = pickle.load(open(self._get_kanji_file_name(), "rb"));
@@ -155,6 +155,8 @@ class CKanji:
                 blkRow -= 1
             if self._Kanji == "点" and blkName=='意味':
                 blkRow += 1
+            if self._Kanji == '袒' and blkName=='訓読み':
+                blkRow -= 1
 
             startIdx = endIdx
             endIdx += blkRow
@@ -162,10 +164,24 @@ class CKanji:
                   + " [" + str(startIdx) + ";" + str(endIdx) + "].")
             subblock = tree.xpath('//*[@id="kanjiright"]/table/tr/td')
             for idx in range(startIdx, endIdx):
-                if blkName in ['部首', '画数', '音読み', '訓読み', '漢字検定', '学年', '異体字']:
-                    content = subblock[idx].getchildren()[0].text
-                elif blkName in ['Unicode', '種別']:
+                if blkName in ['部首', '画数', '音読み', '訓読み', '漢字検定', '学年']:
+                    if self._Kanji == '禺' and blkName == '訓読み':
+                        content = subblock[idx].text
+                    elif self._Kanji == '袤' and blkName == '訓読み' and idx == 3:
+                        content = subblock[idx].text
+                    else:
+                        content = subblock[idx].getchildren()[0].text
+                elif blkName in ['Unicode']:
                     content = subblock[idx].text
+                elif blkName in ['種別']:
+                    if len(subblock[idx].getchildren()) > 0:
+                        content = subblock[idx].getchildren()[0].text
+                elif blkName in ['異体字']:
+                    content = lxml.html.tostring(subblock[idx], encoding='unicode')
+                    if '新字体' in content:
+                        content = subblock[idx].getchildren()[0].getchildren()[0].attrib['href']
+                    else:
+                        content = None
                 elif blkName in ['意味']:
                     content = lxml.html.tostring(subblock[idx], encoding='unicode')
                     h = html2text.HTML2Text()

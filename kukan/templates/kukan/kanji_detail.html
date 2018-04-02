@@ -16,7 +16,7 @@
             <table class="table is-fullwidth is-narrow">
                 <tbody>
                     {% for name, value in kanji.basic_info2 %}
-                        <tr><th>{{name}}</th><td>{{value}}</td></tr>
+                        <tr><th>{{name}}</th><td>{{value|safe}}</td></tr>
                     {% endfor %}
                 </tbody>
             </table>
@@ -47,7 +47,7 @@
         <div class="column">
             <div>
                 <table class="table is-fullwidth">
-                    <thead><th>意味</th><th></th></thead>
+                    <thead><th>意味</th></thead>
                     <tbody>
                         {% for value in kanji.meaning_list %}
                             <td>{{value}}</td></tr>

@@ -1,5 +1,6 @@
 from .models import Kanji, YomiType, YomiJoyo, Reading, Example, ExMap
 import kukan.jautils as jau
+from django.db.models import Q
 
 class FFilter():
     type = ''
@@ -97,4 +98,16 @@ class FSentence(FFilter):
             qry = qry.exclude(sentence='')
         elif flt=='例文無し':
             qry = qry.filter(sentence='')
+        return qry
+
+class FJisClass(FFilter):
+    def __init__(self):
+        super().__init__('JIS水準', 'fr-comp-jis')
+
+    def add_to_query(self, flt, qry):
+        flt = flt.split(', ')
+        q = Q(jis__level__in=flt)
+        if 'JIS水準不明' in flt:
+            q = q | Q(jis__isnull=True)
+        qry = qry.filter(q)
         return qry

@@ -44,15 +44,36 @@ class Bushu(models.Model):
     def __str__(self):
         return self.bushu + '　(' + self.reading + ')'
 
+class KoukiBushu(models.Model):
+    bushu = models.CharField('BUSHU', max_length=1, primary_key=True)
+    variations = models.CharField('VARIATIONS', max_length=5)
+    reading = models.CharField('READING', max_length=50)
+    number = models.IntegerField()
+
+    def __str__(self):
+        return self.bushu + '　(' + self.reading + ')'
+
+
+class JisClass(models.Model):
+    level = models.CharField('JIS水準', max_length=10, primary_key=True)
+    def __str__(self):
+        return self.level
 
 class Kanji(models.Model):
     kanji = models.CharField('漢字', max_length=1, primary_key=True)
-    bushu = models.ForeignKey(Bushu, on_delete=models.CASCADE, verbose_name='部首')
+    bushu = models.ForeignKey(Bushu, on_delete=models.CASCADE, verbose_name='部首',
+                              blank=True, null=True)
+    kouki_bushu = models.ForeignKey(KoukiBushu, on_delete=models.CASCADE, verbose_name='部首',
+                              blank=True, null=True)
     kanken = models.ForeignKey(Kanken, on_delete=models.CASCADE, verbose_name='漢検')
     strokes = models.IntegerField('画数')
-    classification = models.ForeignKey(Classification, on_delete=models.CASCADE, verbose_name='種別')
+    classification = models.ForeignKey(Classification, on_delete=models.CASCADE, verbose_name='種別',
+                                       blank=True, null=True)
     meaning = models.CharField('意味', max_length=1000, blank=True)
     external_ref = models.CharField('外部辞典', max_length=1000, blank=True)
+    jis = models.ForeignKey(JisClass, on_delete=models.CASCADE, verbose_name='JIS水準',
+                              blank=True, null=True)
+    new_kanji = models.ForeignKey('self', related_name='kyuji', on_delete=models.CASCADE, null=True, blank=True)
 
     anki_English = models.CharField(max_length=1000)
     anki_Examples = models.CharField(max_length=1000)
@@ -71,12 +92,25 @@ class Kanji(models.Model):
         res = {}
         for fld in Kanji._meta.get_fields():
             if fld.concrete:
-                if fld.name == 'bushu':
-                    res['bushu'] = self.bushu.bushu
+                if fld.name == 'bushu' or fld.name == 'kouki_bushu':
+                    if self.bushu is not None:
+                        res['bushu'] = self.bushu.bushu
+                    if self.kouki_bushu is not None:
+                        res['bushu'] = self.kouki_bushu.bushu
                 elif fld.name == 'kanken':
                     res['kanken'] = self.kanken.kyu
                 elif fld.name == 'classification':
-                    res['classification'] = self.classification.classification
+                    if self.classification is not None:
+                        res['classification'] = self.classification.classification
+                    else:
+                        res['classification'] = ""
+                elif fld.name == 'jis' and self.jis is not None:
+                    res['jis'] = self.jis.level
+                elif fld.name == 'new_kanji':
+                    if self.new_kanji is not None:
+                        res['new_kanji'] = self.new_kanji.kanji
+                    else:
+                        res['new_kanji'] = ''
                 else:
                     res[fld.name] = getattr(self, fld.name)
         res['ex_num'] = Example.objects.filter(kanjis=self.kanji).exclude(sentence='').count()
@@ -89,7 +123,7 @@ class Kanji(models.Model):
     def fld_lst(cls):
         list_fld = []
         for fld in Kanji._meta.get_fields():
-            if fld.concrete and fld.name[0:4]!='anki':
+            if fld.concrete and fld.name[0:4]!='anki' and fld.name!='kouki_bushu' and fld.name!='new_kanji' and fld.name!='jis':
                 list_fld.append({'label': fld.verbose_name if fld.verbose_name != '' else fld.name,
                                  'field': fld.name,
                                  'link': '/kukan/kanji/' if fld.name == 'kanji' else '',
@@ -115,8 +149,18 @@ class Kanji(models.Model):
 
     def basic_info2(self):
         list_fld = []
-        for fld in ['bushu', 'strokes', 'classification', 'kanken']:
+        for fld in ['bushu', 'kouki_bushu','strokes', 'classification', 'kanken', 'jis']:
                     list_fld.append([ self._meta.get_field(fld).verbose_name, getattr(self, fld)])
+        list_fld.append(['外部辞典', '<a href="' + self.external_ref + '">漢字辞典オンライン</a>'])
+        if self.new_kanji is not None:
+            list_fld.append(['新字体',
+                             '<a href="' + reverse('kukan:kanji_detail', kwargs={'pk': self.new_kanji}) + '">' + self.new_kanji.kanji + '</a>'])
+        old_kanji = Kanji.objects.filter(new_kanji=self)
+        if old_kanji.count()>0:
+            lst = []
+            for kj in old_kanji:
+                lst.append('<a href="' + reverse('kukan:kanji_detail', kwargs={'pk': kj}) + '">' + kj.kanji + '</a>')
+            list_fld.append(['旧字体',"、 ".join(lst)])
         return list_fld
 
     def meaning_list(self):
@@ -291,8 +335,8 @@ class Example(models.Model):
         res['sentence'] = self.sentence
         res['is_joyo'] = self.is_joyo
         res['kanken'] = self.kanken.kyu
-        res['updated_time'] = self.updated_time.strftime('%Y.%m.%d %H:%M:%S')
-
+        class_date = timezone.localtime(self.updated_time)
+        res['updated_time'] = class_date.strftime("%Y.%m.%d %H:%M")
         res['link'] = self.pk
         return res
 

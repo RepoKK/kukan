@@ -53,6 +53,22 @@ var FrCompType = {
     template: '<fr-filter-checkbox comptype="b-checkbox" :title="title" v-model="compValue" @rm_fil="rm_fil" :elements="elements"></fr-filter-checkbox>'
 }
 
+var FrJisClass = {
+    data: function () {
+        return {
+            elements: [
+                {'native':'dai1', 'label': 'JIS第１水準'},
+                {'native':'dai2', 'label': 'JIS第２水準'},
+                {'native':'dai2', 'label': 'JIS第３水準'},
+                {'native':'dai2', 'label': 'JIS第４水準'},
+                {'native':'other', 'label': 'JIS水準不明'},
+            ],
+        }
+    },
+    mixins: [MixinFrComp],
+    template: '<fr-filter-checkbox comptype="b-checkbox" :title="title" v-model="compValue" @rm_fil="rm_fil" :elements="elements"></fr-filter-checkbox>'
+}
+
 var FrCompHas = {
     data: function () {
         return {
