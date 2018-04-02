@@ -8,7 +8,11 @@
 
         <link rel="stylesheet" href="{% static 'js/node_modules/buefy/lib/buefy.css' %}">
         <link rel="stylesheet" href="{% static 'js/node_modules/mdi/css/materialdesignicons.min.css' %}">
-        <script src="{% static 'js/node_modules/vue/dist/vue.js' %}"></script>
+        {% if debug %}
+            <script src="{% static 'js/node_modules/vue/dist/vue.js' %}"></script>
+        {% else %}
+            <script src="{% static 'js/node_modules/vue/dist/vue.min.js' %}"></script>
+        {% endif %}
         <script src="{% static 'js/node_modules/buefy/lib/index.js' %}"></script>
         <script src="{% static 'js/node_modules/axios/dist/axios.min.js' %}"></script>
 

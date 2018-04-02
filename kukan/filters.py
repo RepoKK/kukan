@@ -93,7 +93,7 @@ class FSentence(FFilter):
         super().__init__('例文', 'fr-comp-has-sentence')
 
     def add_to_query(self, flt, qry):
-        if flt=='例文在り':
+        if flt=='例文有り':
             qry = qry.exclude(sentence='')
         elif flt=='例文無し':
             qry = qry.filter(sentence='')
