@@ -1,43 +1,12 @@
 {% extends 'kukan/base_ext.html' %}
+
 {% block content %}
-        <div class="columns is-multiline">
-            {% for kj in kanji_list %}
-            <div class="column is-narrow">
-                <a class="is-size-1" href="{% url 'kukan:kanji_detail' kj.kanji %}">{{ kj.kanji }}</a>
-                <div>
-                    <table class="table is-striped">
-                        <thead>
-                            <th>
-                                読み
-                            </th>
-                            <th>
-                                例
-                            </th>
-                        </thead>
-                        {% for reading in kj.reading_set.all %}
-                        <tr>
-                            <td>
-                                {{reading.get_full|safe}}
-                            </td>
-                            <td>
-                                {{reading.get_list_ex2|safe}}
-                            </td>
-                        </tr>
-                        {% endfor %}
-                        {% for exmap in kj.exmap_set.all %}
-                        {% if not exmap.reading %}
-                        <tr>
-                            <td>
-                                <a href="{% url 'kukan:example_detail' exmap.example.pk %}">{{exmap.example}}</a>
-                            </td>
-                            <td>
-                            </td>
-                        </tr>
-                        {% endif %}
-                        {% endfor %}
-                    </table>
-                </div>
-            </div>
-            {% endfor %}
-        </div>
+    <fr-filtered-table></fr-filtered-table>
+{% endblock %}
+
+{% block vue_data %}
+{% endblock vue_data%}
+
+{% block vue_component %}
+{% include 'kukan/vue_filters_kanji.html' %}
 {% endblock %}

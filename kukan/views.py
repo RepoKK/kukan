@@ -16,7 +16,6 @@ import re
 import kukan.jautils as jau
 import json
 from django.db.models import Count
-import jsonpickle
 import html2text
 
 from lxml import html
@@ -25,9 +24,25 @@ import requests
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.decorators import login_required
 
-from utilskanji import CKanjiDeck
-
 from .filters import *
+
+
+class Index(LoginRequiredMixin, generic.FormView):
+    template_name = 'kukan/index.html'
+    form_class = SearchForm
+
+    def form_valid(self, form):
+        search = form.cleaned_data['search']
+        if 'yoji' in self.request.POST:
+            pass
+        elif 'tango' in self.request.POST:
+            self.success_url = reverse('kukan:example_list') + '?単語=' + search
+        else:
+            self.success_url = reverse('kukan:kanji_list') + '?漢字=' + search
+        return super().form_valid(form)
+
+    def get_success_url(self):
+        return self.success_url
 
 
 class StatsPage(LoginRequiredMixin, TemplateView):
@@ -67,24 +82,6 @@ class StatsPage(LoginRequiredMixin, TemplateView):
         data_list.append(data.copy())
         context['stats_table_data'] = json.dumps(data_list)
         return context
-
-
-class ContactView(LoginRequiredMixin, generic.FormView):
-    template_name = 'kukan/index.html'
-    form_class = SearchForm
-
-    def form_valid(self, form):
-        search = form.cleaned_data['search']
-        if 'yoji' in self.request.POST:
-            pass
-        elif 'tango' in self.request.POST:
-            self.success_url = reverse('kukan:example_list') + '?単語=' + search
-        else:
-            self.success_url = reverse('kukan:kanji_lstfilter') + '?漢字=' + search
-        return super().form_valid(form)
-
-    def get_success_url(self):
-        return self.success_url
 
 
 class AjaxList(LoginRequiredMixin, generic.TemplateView):
@@ -151,7 +148,7 @@ class AjaxList(LoginRequiredMixin, generic.TemplateView):
 
 class KanjiListFilter(AjaxList):
     model = Kanji
-    template_name = 'kukan/kanji_lstfilter.html'
+    template_name = 'kukan/kanji_list.html'
     default_sort = 'kanji'
     filters = [FKanji(), FYomi(), FKakusu(), FKanjiType(), FJisClass(), FKanken(), FExNum()]
 
@@ -172,7 +169,6 @@ class ExampleList(AjaxList):
     filters = [FWord(), FKanken(), FSentence()]
 
 
-
 class KanjiDetail(LoginRequiredMixin, generic.DetailView):
     model = Kanji
 
@@ -183,13 +179,9 @@ class KanjiDetail(LoginRequiredMixin, generic.DetailView):
         context['columns'] = json.dumps(Example.fld_lst())
         return context
 
+
 class ExampleDetail(LoginRequiredMixin, generic.DetailView):
     model = Example
-
-
-class ReadingDetail(LoginRequiredMixin, generic.DetailView):
-    model = Reading
-
 
 
 class ExampleCreate(LoginRequiredMixin, CreateView):
@@ -205,27 +197,12 @@ class ExampleCreate(LoginRequiredMixin, CreateView):
         return super().form_valid(form)
 
 
-class ExampleUpdate2(LoginRequiredMixin, UpdateView):
-    model = Example
-    fields = ['word', 'yomi', 'sentence', 'definition']
-
-    def form_valid(self, form):
-        # This method is called when valid form data has been POSTed.
-        # It should return an HttpResponse.
-        fld = form.fields
-        return super().form_valid(form)
-
-
 class ExampleUpdate(LoginRequiredMixin, UpdateView):
     template_name = 'kukan/example_update.html'
     model = Example
     form_class = ExampleForm
     context_object_name = 'example'
 
-
-class ExampleDelete(LoginRequiredMixin, DeleteView):
-    model = Example
-    success_url = reverse_lazy('example-list')
 
 @login_required
 def get_yomi(request):
@@ -282,6 +259,7 @@ def get_yomi(request):
     data = {'reading_selected': reading_selected, 'reading_data': reading_data}
     return JsonResponse(data)
 
+
 @login_required
 def set_yomi(request):
     word = request.GET.get('word', None)
@@ -307,6 +285,7 @@ def set_yomi(request):
         data = {'candidate': ids}
     return JsonResponse(data)
 
+
 @login_required
 def get_similar_word(request):
     word = request.GET.get('word', None)
@@ -314,6 +293,7 @@ def get_similar_word(request):
                 for x in Example.objects.filter(word__contains=word)]
     data = {'info_similar_word': sim_word}
     return JsonResponse(data)
+
 
 @login_required
 def get_goo(request):
