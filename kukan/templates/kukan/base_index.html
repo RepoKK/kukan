@@ -9,3 +9,14 @@
     {% block javascript %}{% endblock %}
 {% endblock script%}
 </html>
+
+{% block mixin_ext %}
+        var mixin_ext = {
+            data: function () {
+                return {
+                    searchItem: "漢字",
+                    searchVal:"",
+                }
+            },
+        }
+{% endblock %}

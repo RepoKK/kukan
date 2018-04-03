@@ -268,11 +268,10 @@
                 `word_native=${this.word_native}`,
                 `reading_selected=${this.reading_selected}`,
             ].join('&')
-            axios.get(`/kukan/ajax/get_yomi?${params}`)
+            axios.get(`/ajax/get_yomi?${params}`)
                 .then(({ data }) => {
                     this.reading_data = data.reading_data
                     this.reading_selected = data.reading_selected
-                    console.log(this.reading_data);
                 })
                 .catch((error) => {
                     console.log('loadReadings failed:' + error);
@@ -284,7 +283,7 @@
                     `ex_id=${example_id}`,
                     `word=${this.word}`,
                 ].join('&')
-                axios.get(`/kukan/ajax/get_similar_word?${params}`)
+                axios.get(`/ajax/get_similar_word?${params}`)
                     .then(({ data }) => {
                         this.info_similar_word = data.info_similar_word
                     })
@@ -308,7 +307,7 @@
                 `word=${this.word}`,
                 `yomi=${this.yomi}`
             ].join('&')
-            axios.get(`/kukan/ajax/set_yomi?${params}`)
+            axios.get(`/ajax/set_yomi?${params}`)
                 .then(({ data }) => {
                     if (data.candidate) {
                         this.reading_selected = data.candidate
@@ -333,7 +332,7 @@
                 `word_native=${this.word_native}`,
                 `link=${link}`
             ].join('&')
-            axios.get(`/kukan/ajax/get_goo?${params}`)
+            axios.get(`/ajax/get_goo?${params}`)
                 .then(({ data }) => {
                     if (data.definition) {
                         this.definition = data.definition

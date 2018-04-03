@@ -128,6 +128,10 @@ CERT_URL = '/.well-known/'
 
 X_FRAME_OPTIONS='DENY'
 
+# Redirect to home URL after login (Default redirects to /accounts/profile/)
+LOGIN_URL = '/login'
+LOGIN_REDIRECT_URL = '/'
+
 try:
     from kukansite.settings_prod import *
 except ImportError as e:

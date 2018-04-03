@@ -34,12 +34,13 @@
                 <div id="navbarExampleTransparentExample" class="navbar-menu">
                     <div class="navbar-start">
                         <div class="navbar-item has-dropdown is-hoverable">
-                            <a class="navbar-link" href="/kukan">
+                            <a class="navbar-link" href="/">
                                 <!-- TODO -->
                                 <!--<img src="https://bulma.io/i　mages/bulma-logo.png" alt="漢字辞典" width="100" height="28">-->
                                 <b-icon icon="home"></b-icon>
                             </a>
                             <div class="navbar-dropdown is-boxed">
+                                <a class="navbar-item" href="{% url 'logout'%}?next={{request.path}}">{{user}}をLogout</a>
                                 <a class="navbar-item" href="{% url 'kukan:stats' %}">
                                 統計
                                 </a>
@@ -66,15 +67,15 @@
                                     <p class="control">
                                         <input class="input" type="text" placeholder="検索" v-model="searchVal">
                                     </p>
-                                    <form action="/kukan/kanji/list/" method="get">
+                                    <form action="/kanji/list/" method="get">
                                         <input name="漢字" type="hidden" v-model="searchVal">
                                         <input type="submit" class="button is-light" value="漢字" />
                                     </form>
-                                    <form action="/kukan/yoji/list/" method="get">
+                                    <form action="/yoji/list/" method="get">
                                         <input name="四字" type="hidden" v-model="searchVal">
                                         <input type="submit" class="button is-light" value="四字" />
                                     </form>
-                                    <form action="/kukan/example/list/" method="get">
+                                    <form action="/example/list/" method="get">
                                         <input name="単語" type="hidden" v-model="searchVal">
                                         <input type="submit" class="button is-light" value="例文" />
                                     </form>
@@ -130,8 +131,8 @@
             },
             computed: {
                 formLink: function () {
-                    if (this.searchItem == "漢字") {return "/kukan/kanji/list/"}
-                    if (this.searchItem == "例文") {return "/kukan/example/list/"}
+                    if (this.searchItem == "漢字") {return "/kanji/list/"}
+                    if (this.searchItem == "例文") {return "/example/list/"}
                 },
                 critName: function () {
                     if (this.searchItem == "漢字") {return "漢字"}

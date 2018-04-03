@@ -126,7 +126,8 @@ class Kanji(models.Model):
             if fld.concrete and fld.name[0:4]!='anki' and fld.name!='kouki_bushu' and fld.name!='new_kanji' and fld.name!='jis':
                 list_fld.append({'label': fld.verbose_name if fld.verbose_name != '' else fld.name,
                                  'field': fld.name,
-                                 'link': '/kukan/kanji/' if fld.name == 'kanji' else '',
+                                 # TODO: really bad way to set link
+                                 'link': '/kanji/' if fld.name == 'kanji' else '',
                                  'type': '',
                                  'visible': fld.name not in ['anki_Examples', 'anki_Reading_Table',
                                                              'anki_kjIjiDoukun', 'meaning', 'external_ref']})
@@ -136,8 +137,6 @@ class Kanji(models.Model):
     class Meta:
         ordering = ['kanji']
 
-    def get_absolute_url(self):
-        return reverse('kukan:kanji', kwargs={'pk': self.pk})
 
     def basic_info(self):
         list_fld = []
@@ -349,7 +348,7 @@ class Example(models.Model):
             if fld.concrete:
                 list_fld.append({'label': fld.verbose_name if fld.verbose_name != '' else fld.name,
                                  'field': fld.name,
-                                 'link': '/kukan/example/' if fld.name == 'word' else '',
+                                 'link': '/example/' if fld.name == 'word' else '',
                                  'type': 'bool' if fld.name == 'is_joyo' else '',
                                  'visible': True})
         return list_fld

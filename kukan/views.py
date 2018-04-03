@@ -22,11 +22,15 @@ import html2text
 from lxml import html
 import requests
 
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.auth.decorators import login_required
+
 from utilskanji import CKanjiDeck
 
 from .filters import *
 
-class StatsPage(TemplateView):
+
+class StatsPage(LoginRequiredMixin, TemplateView):
     template_name = "kukan/stats.html"
 
     def get_context_data(self, **kwargs):
@@ -65,7 +69,7 @@ class StatsPage(TemplateView):
         return context
 
 
-class ContactView(generic.FormView):
+class ContactView(LoginRequiredMixin, generic.FormView):
     template_name = 'kukan/index.html'
     form_class = SearchForm
 
@@ -83,7 +87,7 @@ class ContactView(generic.FormView):
         return self.success_url
 
 
-class AjaxList(generic.TemplateView):
+class AjaxList(LoginRequiredMixin, generic.TemplateView):
 
     def dispatch(self, request, *args, **kwargs):
         if request.method.lower() == 'get' and request.GET.get('ajax', None)=='1':
@@ -169,7 +173,7 @@ class ExampleList(AjaxList):
 
 
 
-class KanjiDetail(generic.DetailView):
+class KanjiDetail(LoginRequiredMixin, generic.DetailView):
     model = Kanji
 
     def get_context_data(self, **kwargs):
@@ -179,16 +183,16 @@ class KanjiDetail(generic.DetailView):
         context['columns'] = json.dumps(Example.fld_lst())
         return context
 
-class ExampleDetail(generic.DetailView):
+class ExampleDetail(LoginRequiredMixin, generic.DetailView):
     model = Example
 
 
-class ReadingDetail(generic.DetailView):
+class ReadingDetail(LoginRequiredMixin, generic.DetailView):
     model = Reading
 
 
 
-class ExampleCreate(CreateView):
+class ExampleCreate(LoginRequiredMixin, CreateView):
     template_name = 'kukan/example_update.html'
     model = Example
     form_class = ExampleForm
@@ -201,7 +205,7 @@ class ExampleCreate(CreateView):
         return super().form_valid(form)
 
 
-class ExampleUpdate2(UpdateView):
+class ExampleUpdate2(LoginRequiredMixin, UpdateView):
     model = Example
     fields = ['word', 'yomi', 'sentence', 'definition']
 
@@ -212,18 +216,18 @@ class ExampleUpdate2(UpdateView):
         return super().form_valid(form)
 
 
-class ExampleUpdate(UpdateView):
+class ExampleUpdate(LoginRequiredMixin, UpdateView):
     template_name = 'kukan/example_update.html'
     model = Example
     form_class = ExampleForm
     context_object_name = 'example'
 
 
-class ExampleDelete(DeleteView):
+class ExampleDelete(LoginRequiredMixin, DeleteView):
     model = Example
     success_url = reverse_lazy('example-list')
 
-
+@login_required
 def get_yomi(request):
     word = request.GET.get('word_native', None)
     if word is None or word == '':
@@ -278,7 +282,7 @@ def get_yomi(request):
     data = {'reading_selected': reading_selected, 'reading_data': reading_data}
     return JsonResponse(data)
 
-
+@login_required
 def set_yomi(request):
     word = request.GET.get('word', None)
     yomi = request.GET.get('yomi', None)
@@ -303,7 +307,7 @@ def set_yomi(request):
         data = {'candidate': ids}
     return JsonResponse(data)
 
-
+@login_required
 def get_similar_word(request):
     word = request.GET.get('word', None)
     sim_word = [x.word + ('（' + x.yomi + '）' if x.yomi != '' else '')
@@ -311,7 +315,7 @@ def get_similar_word(request):
     data = {'info_similar_word': sim_word}
     return JsonResponse(data)
 
-
+@login_required
 def get_goo(request):
     word = request.GET.get('word_native', None)
     if word == '':
@@ -358,7 +362,7 @@ def get_goo(request):
     return JsonResponse(data)
 
 
-class ExportView(generic.FormView):
+class ExportView(LoginRequiredMixin, generic.FormView):
     template_name = 'kukan/export.html'
     form_class = ExportForm
     success_url = reverse_lazy('kukan:export')

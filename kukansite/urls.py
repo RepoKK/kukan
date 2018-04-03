@@ -17,9 +17,13 @@ from django.contrib import admin
 from django.urls import include, path
 from django.conf.urls.static import static
 from kukansite import settings
+from django.contrib.auth import views as auth_views
+from django.conf.urls import url
 
 urlpatterns = [
-    path('kukan/', include('kukan.urls')),
+    path('', include('kukan.urls')),
+    url(r'^login/$', auth_views.login, name='login'),
+    url(r'^logout/$', auth_views.logout, {'next_page': 'login'}, name='logout'),
     path('admin/', admin.site.urls),
 ]
 urlpatterns += static(settings.CERT_URL, document_root=settings.CERT_ROOT)
