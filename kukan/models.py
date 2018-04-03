@@ -38,11 +38,13 @@ class Kanken(models.Model):
     class Meta:
         ordering = ['difficulty']
 
+
 class Bushu(models.Model):
     bushu = models.CharField('BUSHU', max_length=1, primary_key=True)
     reading = models.CharField('READING', max_length=3)
     def __str__(self):
         return self.bushu + '　(' + self.reading + ')'
+
 
 class KoukiBushu(models.Model):
     bushu = models.CharField('BUSHU', max_length=1, primary_key=True)
@@ -58,6 +60,7 @@ class JisClass(models.Model):
     level = models.CharField('JIS水準', max_length=10, primary_key=True)
     def __str__(self):
         return self.level
+
 
 class Kanji(models.Model):
     kanji = models.CharField('漢字', max_length=1, primary_key=True)
@@ -138,14 +141,6 @@ class Kanji(models.Model):
         ordering = ['kanji']
 
 
-    def basic_info(self):
-        list_fld = []
-        for fld in Kanji._meta.get_fields():
-            if fld.concrete:
-                if fld.verbose_name[0:4]!='anki' and fld.name!='meaning':
-                    list_fld.append([fld.name, fld.verbose_name, getattr(self, fld.name)])
-        return list_fld
-
     def basic_info2(self):
         list_fld = []
         for fld in ['bushu', 'kouki_bushu','strokes', 'classification', 'kanken', 'jis']:
@@ -162,15 +157,13 @@ class Kanji(models.Model):
             list_fld.append(['旧字体',"、 ".join(lst)])
         return list_fld
 
+
     def meaning_list(self):
         res = ""
         if self.meaning != "":
             res = json.loads(self.meaning)
         return res
 
-
-    def get_anki_read(self):
-        self.reading
 
     def get_jukiji(self):
         list_juku = []
@@ -192,39 +185,6 @@ class Kanji(models.Model):
             res += '<br>'.join(list_juku)
             res += "</td></tr>"
         return res
-
-
-    def get_anki(self):
-        root_dir = r'E:\CloudStorage\Google Drive\Kanji\資料\\'
-        exportFileName = root_dir + r'AnkiImport\DjangoKanji.txt'
-        with open(exportFileName, 'w', encoding='utf-8', newline='') as fDeck:
-            csvOut = csv.writer(fDeck, delimiter='\t', quotechar='"')
-            for kj in Kanji.objects.filter():
-                csvOut.writerow([kj.kanji,
-                                 kj.anki_Onyomi,
-                                 kj.anki_Kunyomi,
-                                 kj.anki_Nanori,
-                                 kj.anki_English,
-                                 kj.anki_Examples,
-                                 kj.anki_JLPT_Level,
-                                 kj.anki_Jouyou_Grade,
-                                 kj.anki_Frequency,
-                                 kj.anki_Components,
-                                 kj.anki_Number_of_Strokes,
-                                 kj.anki_Kanji_Radical,
-                                 kj.anki_Radical_Number,
-                                 kj.anki_Radical_Strokes,
-                                 kj.anki_Radical_Reading,
-                                 kj.anki_Traditional_Form,
-                                 kj.anki_Classification,
-                                 kj.anki_Keyword,
-                                 kj.anki_Traditional_Radical,
-                                 kj.anki_Reading_Table,
-                                 kj.bushu.bushu,
-                                 kj.bushu.reading,
-                                 kj.kanken.kyu,
-                                 kj.classification,
-                                 kj.anki_kjIjiDoukun])
 
 
 class Reading(models.Model):
