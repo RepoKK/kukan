@@ -35,44 +35,72 @@
             }
         </style>
     </head>
-
     <body>
-    {% block banner %}{% endblock %}
-        <section class="section" style="padding-top: 1rem;padding-bottom: 1rem">
-            <div id="vue_app" class="container" v-bind:class="containerSize">
-                <div v-cloak>
-                    {% block body %}{% endblock %}
-                </div>
+        <div id="vue_app">
+            <div v-cloak>
+            {% block body %}{% endblock %}
             </div>
-        </section>
+        </div>
     </body>
+</html>
 
-    <script>
-        Vue.use(Buefy.default)
-    </script>
-        {% block ext_script %}{% endblock %}
+<script>
+    Vue.use(Buefy.default)
+</script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
 
-        {% block vue_component %}{% endblock %}
+        // Get all "navbar-burger" elements
+        var $navbarBurgers = Array.prototype.slice.call(document.querySelectorAll('.navbar-burger'), 0);
 
-    <script>
-        var mixin = {
+        // Check if there are any navbar burgers
+        if ($navbarBurgers.length > 0) {
+
+            // Add a click event on each of them
+            $navbarBurgers.forEach(function($el) {
+                $el.addEventListener('click', function() {
+
+                    // Get the target from the "data-target" attribute
+                    var target = $el.dataset.target;
+                    var $target = document.getElementById(target);
+
+                    // Toggle the class on both the "navbar-burger" and the "navbar-menu"
+                    $el.classList.toggle('is-active');
+                    $target.classList.toggle('is-active');
+
+                });
+            });
+        }
+
+    });
+</script>
+{% block script %}{% endblock %}
+{% include 'kukan/vue_navbar.html' %}
+<script>
+    var mixin = {
+        data: function () {
+            return {
+                containerSize: "is-desktop",
+            }
+        },
+    }
+
+    {% block mixin_ext %}
+        var mixin_ext = {
             data: function () {
                 return {
-                    containerSize: "is-desktop",
+                    dummy: "-"
                 }
-            }
+            },
         }
+    {% endblock %}
 
-        {% block mixin_ext %}
+    const app_data = {
+        mixins:[mixin, mixin_ext],
+        delimiters: ['[[', ']]'],
+        {% block vue_data %}
         {% endblock %}
-
-        const app_data = {
-            mixins:[mixin, mixin_ext],
-            delimiters: ['[[', ']]'],
-            {% block vue_data %}
-            {% endblock %}
-        }
-        const app = new Vue(app_data)
-        app.$mount('#vue_app')
-    </script>
-</html>
+    }
+    const app = new Vue(app_data)
+    app.$mount('#vue_app')
+</script>

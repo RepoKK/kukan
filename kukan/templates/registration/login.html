@@ -1,12 +1,18 @@
-{% extends 'kukan/base_index.html' %}
+{% extends 'kukan/base.html' %}
 
 {% block title %}Login{% endblock %}
 
-{% block content %}
-  <h2>Login</h2>
-  <form method="post">
-    {% csrf_token %}
-    {{ form.as_p }}
-    <button class="button is-primary" type="submit">Login</button>
-  </form>
+{% block body %}
+<body>
+    <section class="hero">
+        <div class="hero-body">
+            <h2>Login</h2>
+            <form method="post">
+                {% csrf_token %}
+                {{ form.as_p }}
+                <button class="button is-primary" type="submit">Login</button>
+            </form>
+        </div>
+    </section>
+</body>
 {% endblock %}

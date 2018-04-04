@@ -237,7 +237,7 @@
 </form>
 {% endblock %}
 
-{% block script %}
+{% block extra_script %}
 <script>
     const example_id = '{{example.id|default_if_none:'None'}}'
 </script>
@@ -246,6 +246,7 @@
 {% block vue_data %}
     data() {
         return {
+            showNavBar: false,
             showCandidateDefinition:false,
             word: '{{ form.word.value|default_if_none:'' }}',
             word_native: '{{ form.word_native.value|default_if_none:'' }}',

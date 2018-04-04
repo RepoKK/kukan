@@ -1,16 +1,18 @@
-{% extends 'kukan/base_ext.html' %}
-{% block content %}
+{% extends 'kukan/base.html' %}
+{% block body %}
+<body>
 <form action="." method="post">
     {% csrf_token %}
     <section class="hero is-fullheight">
         <div class="hero-body">
+            <fr-navbar :has_search="false" :fix_navbar="false"></fr-navbar>
             <div class="container">
                 <div class="columns is-centered">
                     <div class="column is-two-thirds">
                         <div class="field">
                             <div class="control">
                                 <h2 class="subtitle">
-
+                                    くまたちの
                                 </h2>
                                 <h1 class="title">
                                     漢字辞典
@@ -51,4 +53,5 @@
         </div>
     </section>
 </form>
+</body>
 {% endblock %}

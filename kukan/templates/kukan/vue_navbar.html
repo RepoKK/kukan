@@ -1,0 +1,148 @@
+<script type="text/x-template" id="fr-navbar">
+    <nav class="navbar is-fixed-top" :class="color">
+        <div class="navbar-brand">
+
+            <div class="navbar-item is-hidden-desktop" v-if="has_search">
+                <form :action="formLink" method="get">
+                    <b-field grouped>
+                        <input class="input" type="search" placeholder="検索..." style="width:140px" :name="critName"></input>
+                        <b-field>
+                            <input type="submit" class="button is-light" :value="searchItem" />
+
+                                <b-dropdown v-model="searchItem" position="is-bottom-left" @submit.prevent
+                                            :mobile-modal="false">
+                                    <button class="button is-light" slot="trigger" @click.prevent>
+                                        <b-icon icon="menu-down"></b-icon>
+                                    </button>
+
+                                    <b-dropdown-item value="漢字">漢字</b-dropdown-item>
+                                    <b-dropdown-item value="四字" disabled>四字熟語</b-dropdown-item>
+                                    <b-dropdown-item value="例文">例文</b-dropdown-item>
+                                </b-dropdown>
+                        </b-field>
+                </b-field>
+                </form>
+            </div>
+
+            <div class="navbar-burger burger" data-target="mainNavBar">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+        </div>
+        <div id="mainNavBar" class="navbar-menu">
+
+            <div class="navbar-start" v-if="has_search">
+                <div class="navbar-item is-hidden-touch">
+                        <div class="field is-grouped">
+                            <p class="control">
+                                <input class="input" type="text" placeholder="検索" v-model="searchVal">
+                            </p>
+                            <form action="/kanji/list/" method="get">
+                                <input name="漢字" type="hidden" v-model="searchVal">
+                                <input type="submit" class="button" :class="color" value="漢字" />
+                            </form>
+                            <form action="/yoji/list/" method="get">
+                                <input name="四字" type="hidden" v-model="searchVal">
+                                <input type="submit" class="button" :class="color" value="四字" />
+                            </form>
+                            <form action="/example/list/" method="get">
+                                <input name="単語" type="hidden" v-model="searchVal">
+                                <input type="submit" class="button" :class="color" value="例文" />
+                            </form>
+                        </div>
+                </div>
+            </div>
+
+            <div class="navbar-end">
+                <a class="navbar-item" href="{% url 'kukan:kanji_list' %}">
+                    漢字
+                </a>
+                <a class="navbar-item" href="">
+                    四字熟語
+                </a>
+                <div class="navbar-item has-dropdown is-hoverable">
+                    <a class="navbar-item">
+                        例文
+                    </a>
+                    <div class="navbar-dropdown is-boxed">
+                        <a class="navbar-item" href="{% url 'kukan:example_list' %}">
+                            例文一覧
+                        </a>
+                        <a class="navbar-item" href="{% url 'kukan:example-add' %}">
+                            例文作成
+                        </a>
+                    </div>
+                </div>
+                <div class="navbar-item has-dropdown is-hoverable">
+                    <a class="navbar-item"><b-icon icon="dots-horizontal"></b-icon></a>
+                    <div class="navbar-dropdown is-boxed is-right">
+                        <a class="navbar-item" href="{% url 'kukan:stats' %}">
+                        <b-icon icon="chart-bar" size="is-small"></b-icon>　統計
+                        </a>
+                        <a class="navbar-item" href="{% url 'kukan:export' %}">
+                        <b-icon icon="download"  size="is-small"></b-icon>　エクスポート
+                        </a>
+                        <hr class="navbar-divider">
+                        <a class="navbar-item" href="http://www.bunka.go.jp/kokugo_nihongo/sisaku/joho/joho/kijun/naikaku/pdf/joyokanjihyo_20101130.pdf">
+                            常用漢字表
+                        </a>
+                    </div>
+                </div>
+                <div class="navbar-item has-dropdown is-hoverable">
+                    <a class="navbar-item"><b-icon icon="account"></b-icon></a>
+                    <div class="navbar-dropdown is-boxed is-right">
+                        <a class="navbar-item" href="{% url 'logout'%}?next={{request.path}}">
+                            <b-icon icon="logout"  size="is-small"></b-icon>　{{user}}をログアウト
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+</script>
+
+<script>
+Vue.component('fr-navbar', {
+    data: function () {
+        return {
+            searchItem: "漢字",
+            searchVal:"",
+        }
+    },
+    computed: {
+        formLink: function () {
+            if (this.searchItem == "漢字") {return "/kanji/list/"}
+            if (this.searchItem == "例文") {return "/example/list/"}
+        },
+        critName: function () {
+            if (this.searchItem == "漢字") {return "漢字"}
+            if (this.searchItem == "例文") {return "単語"}
+        }
+      },
+
+    props: {
+        has_search:{type:Boolean, default:true},
+        fix_navbar:{type:Boolean, default:true},
+        color:{type:String, default:"is-transparent"}
+    },
+    methods: {
+        displayNavBar: function () {
+            if (this.fix_navbar==true) {
+                document.documentElement.classList.add('has-navbar-fixed-top');
+            } else {
+                document.documentElement.classList.remove('has-navbar-fixed-top');
+            }
+        }
+    },
+    watch: {
+        hookNavBar(value) {
+            this.displayNavBar()
+        },
+    },
+    mounted: function () {
+        this.displayNavBar()
+    },
+    template: '#fr-navbar'
+})
+</script>
