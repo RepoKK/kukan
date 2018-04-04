@@ -1,4 +1,5 @@
 {% extends 'kukan/base.html' %}
+{% load static %}
 {% block body %}
 <body>
 <form action="." method="post">
@@ -8,15 +9,22 @@
             <fr-navbar :has_search="false" :fix_navbar="false"></fr-navbar>
             <div class="container">
                 <div class="columns is-centered">
-                    <div class="column is-two-thirds">
-                        <div class="field">
-                            <div class="control">
-                                <h2 class="subtitle">
-                                    くまたちの
-                                </h2>
-                                <h1 class="title">
-                                    漢字辞典
-                                </h1>
+                    <div class="column is-half">
+                        <div class="columns is-mobile">
+                            <div class="column is-narrow">
+                                <img src="{% static 'images/favicon/ms-icon-310x310.png' %}" width="60" height="60">
+                            </div>
+                            <div class="column">
+                                <div class="field">
+                                    <div class="control">
+                                        <h2 class="subtitle">
+                                            くまたちの
+                                        </h2>
+                                        <h1 class="title">
+                                            漢字辞典
+                                        </h1>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
