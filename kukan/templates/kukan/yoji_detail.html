@@ -1,0 +1,39 @@
+{% extends 'kukan/base_ext.html' %}
+
+{% block title %}
+{{ yoji.yoji }}
+{% endblock %}
+
+{% block content %}
+    <div class="columns">
+        <div class="column">
+            <h1 class="title">{{ yoji.yoji }}</h1>{{ yoji.reading }}
+        </div>
+    </div>
+    <div class="columns">
+        <div class="column is-half">
+            <div class="content">
+                <h2>意味</h2></div>
+            <div class="content">{{ yoji.get_definition_html|safe  }}</div>
+        </div>
+        <div class="column">
+            <div class="content"><h2>情報</h2></div>
+            <ul>
+                <li><strong>漢検：</strong>{{yoji.kanken}}</li>
+                {% for kj in yoji.yoji|make_list %}
+                    <li><strong>{{ kj }}：</strong>
+                        <a href="{% url 'kukan:kanji_detail' kj %}">詳細</a>
+                        　四字熟語</li>
+                {% endfor %}
+            </ul>
+        </div>
+        <div class="column">
+            <div class="content"><h2>分類</h2></div>
+                <ul>
+                {% for bunrui in yoji.bunrui.all %}
+                    <li>{{bunrui}}</li>
+                {% endfor %}
+                </ul>
+        </div>
+    </div>
+{% endblock %}

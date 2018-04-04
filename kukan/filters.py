@@ -80,6 +80,7 @@ class FKanjiType(FFilter):
         qry = qry.filter(classification__classification__in=flt)
         return qry
 
+
 class FWord(FFilter):
     def __init__(self):
         super().__init__('単語', 'fr-comp-word')
@@ -100,6 +101,7 @@ class FSentence(FFilter):
             qry = qry.filter(sentence='')
         return qry
 
+
 class FJisClass(FFilter):
     def __init__(self):
         super().__init__('JIS水準', 'fr-comp-jis')
@@ -110,4 +112,22 @@ class FJisClass(FFilter):
         if 'JIS水準不明' in flt:
             q = q | Q(jis__isnull=True)
         qry = qry.filter(q)
+        return qry
+
+
+class FYoji(FFilter):
+    def __init__(self):
+        super().__init__('漢字', 'fr-comp-yoji')
+
+    def add_to_query(self, flt, qry):
+        qry = qry.filter(yoji__contains=flt)
+        return qry
+
+
+class FBunrui(FFilter):
+    def __init__(self):
+        super().__init__('分類', 'fr-comp-bunrui')
+
+    def add_to_query(self, flt, qry):
+        qry = qry.filter(bunrui__bunrui__contains=flt).distinct()
         return qry

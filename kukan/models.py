@@ -359,3 +359,53 @@ class ExMap(models.Model):
 
     def __str__(self):
         return self.kanji.kanji + ' - ' + self.example.word
+
+
+class Bunrui(models.Model):
+    bunrui = models.CharField('分類', max_length=50)
+
+    def __str__(self):
+        return self.bunrui
+
+
+class Yoji(models.Model):
+    yoji = models.CharField('四字熟語', max_length=4, primary_key=True)
+    reading = models.CharField('読み方', max_length=100)
+    meaning = models.CharField('意味', max_length=10000, blank=True)
+    # Ruigigo
+    kanken = models.ForeignKey(Kanken, on_delete=models.CASCADE, verbose_name='漢検')
+    bunrui = models.ManyToManyField(Bunrui)
+    # True if the jitenon site gives a kanken kyu
+    has_jitenon_kyu = models.BooleanField('級記郵務', default=False)
+
+    def __str__(self):
+        return self.yoji
+
+    def save(self, *args, **kwargs):
+        self.kanken = Kanken.objects.get(id=Kanji.objects.filter(kanji__in=self.yoji).
+                                       aggregate(Max('kanken'))['kanken__max'])
+        super().save(*args, **kwargs)
+
+    def as_dict(self):
+        res = {}
+        res['yoji'] = self.yoji
+        res['reading'] = self.reading
+        res['kanken'] = self.kanken.kyu
+        res['link'] = self.pk
+        return res
+
+    @classmethod
+    def fld_lst(cls):
+        list_fld = []
+        for fld in ['yoji', 'reading', 'kanken']:
+            fld = Yoji._meta.get_field(fld)
+            if fld.concrete:
+                list_fld.append({'label': fld.verbose_name if fld.verbose_name != '' else fld.name,
+                                 'field': fld.name,
+                                 'link': '/yoji/' if fld.name == 'yoji' else '',
+                                 'type': '',
+                                 'visible': True})
+        return list_fld
+
+    def get_definition_html(self):
+        return markdown.markdown(self.meaning)

@@ -16,7 +16,7 @@
                                     </button>
 
                                     <b-dropdown-item value="漢字">漢字</b-dropdown-item>
-                                    <b-dropdown-item value="四字" disabled>四字熟語</b-dropdown-item>
+                                    <b-dropdown-item value="四字">四字熟語</b-dropdown-item>
                                     <b-dropdown-item value="例文">例文</b-dropdown-item>
                                 </b-dropdown>
                         </b-field>
@@ -36,19 +36,19 @@
                 <div class="navbar-item is-hidden-touch">
                         <div class="field is-grouped">
                             <p class="control">
-                                <input class="input" type="text" placeholder="検索" v-model="searchVal">
+                                <input class="input" type="search" placeholder="検索" v-model="searchVal">
                             </p>
                             <form action="/kanji/list/" method="get">
                                 <input name="漢字" type="hidden" v-model="searchVal">
-                                <input type="submit" class="button" :class="color" value="漢字" />
+                                <input type="submit" class="button" :class="color" value="漢" />
                             </form>
                             <form action="/yoji/list/" method="get">
-                                <input name="四字" type="hidden" v-model="searchVal">
-                                <input type="submit" class="button" :class="color" value="四字" />
+                                <input name="漢字" type="hidden" v-model="searchVal">
+                                <input type="submit" class="button" :class="color" value="四" />
                             </form>
                             <form action="/example/list/" method="get">
                                 <input name="単語" type="hidden" v-model="searchVal">
-                                <input type="submit" class="button" :class="color" value="例文" />
+                                <input type="submit" class="button" :class="color" value="例" />
                             </form>
                         </div>
                 </div>
@@ -58,7 +58,7 @@
                 <a class="navbar-item" href="{% url 'kukan:kanji_list' %}">
                     漢字
                 </a>
-                <a class="navbar-item" href="">
+                <a class="navbar-item" href="{% url 'kukan:yoji_list' %}">
                     四字熟語
                 </a>
                 <div class="navbar-item has-dropdown is-hoverable">
@@ -113,10 +113,12 @@ Vue.component('fr-navbar', {
     computed: {
         formLink: function () {
             if (this.searchItem == "漢字") {return "/kanji/list/"}
+            if (this.searchItem == "四字") {return "/yoji/list/"}
             if (this.searchItem == "例文") {return "/example/list/"}
         },
         critName: function () {
             if (this.searchItem == "漢字") {return "漢字"}
+            if (this.searchItem == "四字") {return "漢字"}
             if (this.searchItem == "例文") {return "単語"}
         }
       },

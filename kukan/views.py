@@ -4,7 +4,7 @@ from django.views import generic
 from django.views.generic.edit import CreateView, UpdateView, DeleteView
 from django.views.generic.base import TemplateView
 from django.urls import reverse_lazy
-from .models import Kanji, YomiType, YomiJoyo, Reading, Example, ExMap
+from .models import Kanji, YomiType, YomiJoyo, Reading, Example, ExMap, Yoji
 from .forms import SearchForm, ExampleForm, ExportForm
 from django.template.loader import render_to_string
 from django.db.models import Q
@@ -34,8 +34,8 @@ class Index(LoginRequiredMixin, generic.FormView):
     def form_valid(self, form):
         search = form.cleaned_data['search']
         if 'yoji' in self.request.POST:
-            pass
-        elif 'tango' in self.request.POST:
+            self.success_url = reverse('kukan:yoji_list') + '?漢字=' + search
+        elif 'example' in self.request.POST:
             self.success_url = reverse('kukan:example_list') + '?単語=' + search
         else:
             self.success_url = reverse('kukan:kanji_list') + '?漢字=' + search
@@ -162,6 +162,13 @@ class KanjiListFilter(AjaxList):
         return qry
 
 
+class YojiList(AjaxList):
+    model = Yoji
+    template_name = 'kukan/yoji_list.html'
+    default_sort = 'kanken'
+    filters = [FYoji(), FBunrui(), FKanken()]
+
+
 class ExampleList(AjaxList):
     model = Example
     template_name = 'kukan/example_list.html'
@@ -178,6 +185,10 @@ class KanjiDetail(LoginRequiredMixin, generic.DetailView):
         context['data'] = json.dumps([obj.as_dict() for obj in qry])
         context['columns'] = json.dumps(Example.fld_lst())
         return context
+
+
+class YojiDetail(LoginRequiredMixin, generic.DetailView):
+    model = Yoji
 
 
 class ExampleDetail(LoginRequiredMixin, generic.DetailView):

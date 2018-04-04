@@ -11,6 +11,9 @@ urlpatterns = [
     path('kanji/list/', views.KanjiListFilter.as_view(), name='kanji_list'),
     path('kanji/<str:pk>/', views.KanjiDetail.as_view(), name='kanji_detail'),
 
+    path('yoji/list/', views.YojiList.as_view(), name='yoji_list'),
+    path('yoji/<str:pk>/', views.YojiDetail.as_view(), name='yoji_detail'),
+
     path('example/list/', views.ExampleList.as_view(), name='example_list'),
     path('example/<int:pk>/', views.ExampleDetail.as_view(), name='example_detail'),
     path('example/add/', ExampleCreate.as_view(), name='example-add'),
