@@ -4,7 +4,8 @@ from django.utils.translation import gettext_lazy as _
 import kukan.jautils as jau
 
 class SearchForm(Form):
-    search = CharField(widget=TextInput(attrs={'class': 'input is-medium', 'placeholder':'漢字・四字熟語・単語'}))
+    search = CharField(required=False,
+                       widget=TextInput(attrs={'class': 'input is-medium', 'placeholder':'漢字・四字熟語・単語'}))
 
 
 

@@ -9,7 +9,14 @@
             <h2>Login</h2>
             <form method="post">
                 {% csrf_token %}
-                {{ form.as_p }}
+                <div>
+                  <td>{{ form.username.label_tag }}</td>
+                  <td>{{ form.username }}</td>
+                </div>
+                <div>
+                  <td>{{ form.password.label_tag }}</td>
+                  <td>{{ form.password }}</td>
+                </div>
                 <button class="button is-primary" type="submit">Login</button>
             </form>
         </div>

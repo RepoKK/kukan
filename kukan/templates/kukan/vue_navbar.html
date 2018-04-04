@@ -3,7 +3,7 @@
     <nav class="navbar is-fixed-top" :class="color">
         <div class="navbar-brand">
             <a class="navbar-item" href="/" v-if="has_search">
-                <img src="{% static 'images/favicon/images/favicon/ms-icon-310x310.png' %}" width="32" height="32">
+                <img src="{% static '/images/favicon/ms-icon-310x310.png' %}" width="28" height="28">
             </a>
             <div class="navbar-item is-hidden-desktop" v-if="has_search">
                 <form :action="formLink" method="get">

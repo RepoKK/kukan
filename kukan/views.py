@@ -34,11 +34,17 @@ class Index(LoginRequiredMixin, generic.FormView):
     def form_valid(self, form):
         search = form.cleaned_data['search']
         if 'yoji' in self.request.POST:
-            self.success_url = reverse('kukan:yoji_list') + '?漢字=' + search
+            self.success_url = reverse('kukan:yoji_list')
+            if search != '':
+                self.success_url += '?漢字=' + search
         elif 'example' in self.request.POST:
-            self.success_url = reverse('kukan:example_list') + '?単語=' + search
+            self.success_url = reverse('kukan:example_list')
+            if search != '':
+                self.success_url += '?単語=' + search
         else:
-            self.success_url = reverse('kukan:kanji_list') + '?漢字=' + search
+            self.success_url = reverse('kukan:kanji_list')
+            if search != '':
+                self.success_url += '?漢字=' + search
         return super().form_valid(form)
 
     def get_success_url(self):
