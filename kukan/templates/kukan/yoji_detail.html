@@ -7,7 +7,12 @@
 {% block content %}
     <div class="columns">
         <div class="column">
-            <h1 class="title">{{ yoji.yoji }}</h1>{{ yoji.reading }}
+            <h1 class="title" style="margin-bottom: 4px">{{ yoji.yoji }}</h1>
+            <ul>
+            {% for reading in yoji.reading_as_list %}
+                <li>{{ reading }}</li>
+            {% endfor %}
+            </ul>
         </div>
     </div>
     <div class="columns">
@@ -19,11 +24,16 @@
         <div class="column">
             <div class="content"><h2>情報</h2></div>
             <ul>
-                <li><strong>漢検：</strong>{{yoji.kanken}}</li>
+                <li>
+                    <strong>Anki：</strong>
+                    <fr-addrem-anki :in_anki_init="{{yoji.in_anki|yesno:'true,false'}}" yoji="{{yoji.yoji}}"></fr-addrem-anki>
+                </li>
+                <li><strong>漢検：</strong></li>
                 {% for kj in yoji.yoji|make_list %}
                     <li><strong>{{ kj }}：</strong>
                         <a href="{% url 'kukan:kanji_detail' kj %}">詳細</a>
-                        　四字熟語</li>
+                        <a href="{% url 'kukan:yoji_list' %}?漢字={{kj}}">　四字熟語</a>
+                    </li>
                 {% endfor %}
             </ul>
         </div>
@@ -31,9 +41,86 @@
             <div class="content"><h2>分類</h2></div>
                 <ul>
                 {% for bunrui in yoji.bunrui.all %}
-                    <li>{{bunrui}}</li>
+                    <li><a href="{% url 'kukan:yoji_list' %}?分類={{bunrui}}">{{bunrui}}</a></li>
                 {% endfor %}
                 </ul>
         </div>
     </div>
 {% endblock %}
+
+{% block vue_component %}
+<script type="text/x-template" id="fr-addrem-anki">
+    <span>
+        <b-icon icon="check" v-if="in_anki"></b-icon>
+        <a class="button is-small is-outlined" :class="color" @click="toggleConfirm">
+            [[label]]
+        </a>
+    </span>
+</script>
+<script>
+Vue.component('fr-addrem-anki', {
+    data() {
+        return {
+            in_anki: this.in_anki_init,
+        }
+    },
+    computed: {
+        label: function () {return (this.in_anki ? '解除' : '追加')},
+        color: function () {return (this.in_anki ? 'is-danger' : 'is-success')},
+    },
+    props: {
+        in_anki_init:{type:Boolean, default:false},
+        yoji: {type:String},
+    },
+    methods: {
+        toggleConfirm: function () {
+            if (this.in_anki) {
+                this.$dialog.confirm({
+                    title: 'Ankiから外す',
+                    message: '本当にAnkiの四字熟語の問題から外しますか。',
+                    cancelText: '取消',
+                    confirmText: '削除',
+                    type: 'is-danger',
+                    hasIcon: true,
+                    onConfirm: () => this.toggle('remove')
+                })
+            } else {
+                this.$dialog.confirm({
+                    message: 'Ankiに追加しますか。',
+                    cancelText: '取消',
+                    confirmText: '追加',
+                    onConfirm: () => this.toggle('add')
+                })
+            }
+        },
+        toggle: function (operation) {
+            var bodyFormData = new FormData();
+            bodyFormData.set('csrfmiddlewaretoken', '{{ csrf_token }}');
+            bodyFormData.set('yoji', this.yoji);
+            bodyFormData.set('op', operation);
+            axios.post(`/ajax/yoji_anki/`, bodyFormData)
+                .then(({ data }) => {
+                    if (data.status == 'success') {
+                        this.in_anki = ('true' == data.in_anki)
+                    } else {
+                        this.$toast.open({
+                            message: `Ankiに追加・削除の失敗`,
+                            type: 'is-warning'
+                        })
+                    }
+                })
+               .catch((error) => {
+                    this.$toast.open({
+                        message: `Ankiに追加・削除の失敗`,
+                        type: 'is-danger'
+                    })
+               })
+        },
+    },
+    template: '#fr-addrem-anki'
+})
+</script>
+{% endblock %}
+
+{% block vue_data %}
+{% endblock vue_data%}

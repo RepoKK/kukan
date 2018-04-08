@@ -81,6 +81,19 @@ var FrCompHas = {
     mixins: [MixinFrComp],
     template: '<fr-filter-checkbox comptype="b-radio" :title="title" v-model="compValue" @rm_fil="rm_fil" :elements="elements"></fr-filter-checkbox>'
 }
+
+var FrCompInAnki = {
+    data: function () {
+        return {
+            elements: [
+                {'native':'ari', 'label': 'Anki'},
+                {'native':'nashi', 'label': '非Anki'},
+            ],
+        }
+    },
+    mixins: [MixinFrComp],
+    template: '<fr-filter-checkbox comptype="b-radio" :title="title" v-model="compValue" @rm_fil="rm_fil" :elements="elements"></fr-filter-checkbox>'
+}
 </script>
 
 {% include 'kukan/vue_filters_cont.html' %}

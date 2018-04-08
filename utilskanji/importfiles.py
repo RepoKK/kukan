@@ -3,7 +3,7 @@ from django.urls import reverse
 from django.views import generic
 from django.views.generic.edit import CreateView, UpdateView, DeleteView
 from django.urls import reverse_lazy
-from kukan.models import Kanji, YomiType, YomiJoyo, Reading, Example, ExMap
+from kukan.models import Kanji, YomiType, YomiJoyo, Reading, Example, ExMap, Yoji
 from kukan.forms import SearchForm, ExampleForm, ExportForm
 from django.template.loader import render_to_string
 from django.db.models import Q
@@ -265,17 +265,21 @@ def import_kanji():
     deck.CreateDeckFromAnkiFile(importFileName)
     deck.ProcessJitenon()
 
+def import_yoji_anki():
+    root_dir = r'E:\CloudStorage\Google Drive\Kanji\資料\\'
+    importFileName = root_dir + r'AnkiExport\四字熟語.txt'
+    outputFileName = root_dir + r'AnkiExport\四字熟語_leftover.txt'
 
-
-
-
-
-
-
-
-
-
-
+    with open(importFileName, 'r', encoding='utf-8') as fDeck, open(outputFileName, 'w', encoding='utf-8') as fleft:
+        csvIn = csv.reader(fDeck, delimiter='\t', quotechar='"')
+        for row in csvIn:
+            try:
+                yj = Yoji.objects.get(yoji=row[0])
+                yj.in_anki = True
+                yj.anki_cloze = row[1][3] + row[1][12] + row[1][21] + row[1][30]
+                yj.save()
+            except Yoji.DoesNotExist:
+                fleft.write(row[0] + '\n')
 
 
 def get_goo_definition(word, link=''):

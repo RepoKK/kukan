@@ -6,7 +6,7 @@ import csv
 import pickle
 import html2text
 
-listFile = r'E:\CloudStorage\Google Drive\Kanji\資料\Sources\ref_yoji_all R.csv'
+listFile = r'E:\CloudStorage\Google Drive\Kanji\資料\Sources\ref_yoji_all.csv'
 
 def get_list(kanji_type, tree):
     yojiMap = {}

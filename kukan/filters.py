@@ -131,3 +131,14 @@ class FBunrui(FFilter):
     def add_to_query(self, flt, qry):
         qry = qry.filter(bunrui__bunrui__contains=flt).distinct()
         return qry
+
+class FInAnki(FFilter):
+    def __init__(self):
+        super().__init__('Anki', 'fr-comp-in-anki')
+
+    def add_to_query(self, flt, qry):
+        if flt=='Anki':
+            qry = qry.filter(in_anki=True)
+        elif flt=='非Anki':
+            qry = qry.filter(in_anki=False)
+        return qry

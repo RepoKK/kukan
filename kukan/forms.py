@@ -162,5 +162,6 @@ class ExportForm(Form):
     type = ChoiceField(choices=[('anki_kanji', 'Anki deck: 漢字'),
                                 ('anki_kaki_ayu','Anki deck: 書き取り（あゆみ）'),
                                 ('anki_kaki_fred', 'Anki deck: 書き取り（フレッド）'),
+                                ('anki_yoji', 'Anki deck: 四字熟語'),
                                 ],
                        widget=Select(attrs={'class': 'select'}))

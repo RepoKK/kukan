@@ -377,6 +377,8 @@ class Yoji(models.Model):
     bunrui = models.ManyToManyField(Bunrui)
     # True if the jitenon site gives a kanken kyu
     has_jitenon_kyu = models.BooleanField('級記郵務', default=False)
+    in_anki = models.BooleanField('Anki', default=False)
+    anki_cloze = models.CharField('Cloze sequence', max_length=4, blank=True)
 
     def __str__(self):
         return self.yoji
@@ -391,21 +393,25 @@ class Yoji(models.Model):
         res['yoji'] = self.yoji
         res['reading'] = self.reading
         res['kanken'] = self.kanken.kyu
+        res['in_anki'] = self.in_anki
         res['link'] = self.pk
         return res
 
     @classmethod
     def fld_lst(cls):
         list_fld = []
-        for fld in ['yoji', 'reading', 'kanken']:
+        for fld in ['yoji', 'reading', 'kanken', 'in_anki']:
             fld = Yoji._meta.get_field(fld)
             if fld.concrete:
                 list_fld.append({'label': fld.verbose_name if fld.verbose_name != '' else fld.name,
                                  'field': fld.name,
                                  'link': '/yoji/' if fld.name == 'yoji' else '',
-                                 'type': '',
+                                 'type': 'bool' if fld.name == 'in_anki' else '',
                                  'visible': True})
         return list_fld
 
     def get_definition_html(self):
-        return markdown.markdown(self.meaning)
+        return markdown.markdown(self.meaning, output_format="html5")
+
+    def reading_as_list(self):
+        return re.sub(r'（', '-（', self.reading).split('-')

@@ -23,6 +23,7 @@ import requests
 
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.decorators import login_required
+from django.views.decorators.csrf import csrf_exempt
 
 from .filters import *
 
@@ -172,7 +173,7 @@ class YojiList(AjaxList):
     model = Yoji
     template_name = 'kukan/yoji_list.html'
     default_sort = 'kanken'
-    filters = [FYoji(), FBunrui(), FKanken()]
+    filters = [FYoji(), FBunrui(), FKanken(), FInAnki()]
 
 
 class ExampleList(AjaxList):
@@ -219,6 +220,25 @@ class ExampleUpdate(LoginRequiredMixin, UpdateView):
     model = Example
     form_class = ExampleForm
     context_object_name = 'example'
+
+@login_required
+def yoji_anki(request):
+    operation = request.POST.get('op', None)
+    req_yoji = request.POST.get('yoji', None)
+    status = 'failed'
+    in_anki = ''
+    if operation in ['add', 'remove']:
+        try:
+            yoji = Yoji.objects.get(yoji=req_yoji)
+            yoji.in_anki = True if operation == 'add' else False
+            yoji.save()
+            status = 'success'
+            in_anki = 'true' if yoji.in_anki else 'false'
+        except Yoji.DoesNotExist:
+            status = 'failed'
+
+    data = {'status': status, 'in_anki': in_anki}
+    return JsonResponse(data)
 
 
 @login_required
@@ -370,6 +390,8 @@ class ExportView(LoginRequiredMixin, generic.FormView):
             choice = self.request.POST.get('choice', None)
             if choice[0:9] == 'anki_kaki':
                 return self.export_anki_kakitori(choice)
+            elif choice == 'anki_yoji':
+                return self.export_anki_yoji()
             elif choice == 'anki_kanji':
                 return self.export_anki_kanji()
         else:
@@ -377,10 +399,10 @@ class ExportView(LoginRequiredMixin, generic.FormView):
 
     def export_anki_kakitori(self, choice):
         response = HttpResponse(content_type='text/csv')
-        response['Content-Disposition'] = 'attachment; filename="djAnkiKakitori.csv"'
+        response['Content-Disposition'] = 'attachment; filename="djAnkiKakitori_'+ choice[10:] +'.csv"'
         writer = csv.writer(response, delimiter='\t', quotechar='"')
 
-        q_set = Example.objects.exclude(sentence='')
+        q_set = Example.objects.exclude(sentence='').exclude(kanken__difficulty__gt=10)
         if choice == 'anki_kaki_ayu':
             q_set = q_set.exclude(kanken__difficulty__lt=8)
 
@@ -399,10 +421,10 @@ class ExportView(LoginRequiredMixin, generic.FormView):
     def export_anki_kanji(request):
         # Create the HttpResponse object with the appropriate CSV header.
         response = HttpResponse(content_type='text/csv')
-        response['Content-Disposition'] = 'attachment; filename="djangoAnki.csv"'
+        response['Content-Disposition'] = 'attachment; filename="djAnkiKanji.csv"'
 
         writer = csv.writer(response, delimiter='\t', quotechar='"')
-        for kj in Kanji.objects.filter():
+        for kj in Kanji.objects.exclude(kanken__difficulty__gt=10):
             anki_read_table = render_to_string('kukan/AnkiReadTable.html', {'kanji': kj})
             anki_read_table = re.sub('^( *)', '', anki_read_table, flags=re.MULTILINE)
             anki_read_table = anki_read_table.replace('\n', '')
@@ -418,4 +440,22 @@ class ExportView(LoginRequiredMixin, generic.FormView):
                              kj.kanken.kyu,
                              kj.classification,
                              kj.anki_kjIjiDoukun])
+        return response
+
+
+    def export_anki_yoji(request):
+        # Create the HttpResponse object with the appropriate CSV header.
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = 'attachment; filename="djAnkiYoji.csv"'
+
+        writer = csv.writer(response, delimiter='\t', quotechar='"')
+        for yoji in Yoji.objects.filter(in_anki=True):
+            cloze = ''
+            for yj, idx in zip(yoji.yoji, yoji.anki_cloze):
+                cloze += "{{c" + str(idx) + "::" + yj + "}}"
+            writer.writerow([yoji.yoji,
+                             cloze,
+                             yoji.reading,
+                             yoji.get_definition_html()[3:-4],
+                             ])
         return response

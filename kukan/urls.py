@@ -13,6 +13,7 @@ urlpatterns = [
 
     path('yoji/list/', views.YojiList.as_view(), name='yoji_list'),
     path('yoji/<str:pk>/', views.YojiDetail.as_view(), name='yoji_detail'),
+    path('ajax/yoji_anki/', views.yoji_anki, name='yoji_anki'),
 
     path('example/list/', views.ExampleList.as_view(), name='example_list'),
     path('example/<int:pk>/', views.ExampleDetail.as_view(), name='example_detail'),
