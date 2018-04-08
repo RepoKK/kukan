@@ -1,6 +1,5 @@
 <script type="text/x-template" id="fr-addrem-anki">
     <span>
-        [[ in_anki_init ]]
         <b-icon icon="check" v-if="in_anki"></b-icon>
         <a class="button is-small is-outlined" :class="color" @click="toggleConfirm" v-if="edit_allowed">
             [[label]]
