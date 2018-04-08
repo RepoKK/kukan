@@ -9,7 +9,7 @@ from django.db.models import Count
 import markdown
 from django.db.models import Max
 import kukan.jautils as jau
-
+import random
 
 class Classification(models.Model):
     classification = models.CharField('種別', max_length=6)
@@ -386,6 +386,11 @@ class Yoji(models.Model):
     def save(self, *args, **kwargs):
         self.kanken = Kanken.objects.get(id=Kanji.objects.filter(kanji__in=self.yoji).
                                        aggregate(Max('kanken'))['kanken__max'])
+        # Only create the cloze pattern once
+        if self.anki_cloze == '':
+            idxList = ["11","22"]
+            random.shuffle(idxList)
+            self.anki_cloze = idxList[0]+idxList[1]
         super().save(*args, **kwargs)
 
     def as_dict(self):
