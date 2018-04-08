@@ -1,0 +1,72 @@
+<script type="text/x-template" id="fr-addrem-anki">
+    <span>
+        <b-icon icon="check" v-if="in_anki"></b-icon>
+        <a class="button is-small is-outlined" :class="color" @click="toggleConfirm" v-if="edit_allowed">
+            [[label]]
+        </a>
+    </span>
+</script>
+<script>
+Vue.component('fr-addrem-anki', {
+    data() {
+        return {
+            in_anki: this.in_anki_init,
+        }
+    },
+    computed: {
+        label: function () {return (this.in_anki ? '解除' : '追加')},
+        color: function () {return (this.in_anki ? 'is-danger' : 'is-success')},
+    },
+    props: {
+        in_anki_init:{type:Boolean, default:false},
+        edit_allowed:{type:Boolean, default:false},
+        yoji: {type:String},
+    },
+    methods: {
+        toggleConfirm: function () {
+            if (this.in_anki) {
+                this.$dialog.confirm({
+                    title: 'Ankiから外す',
+                    message: '本当にAnkiの四字熟語の問題から外しますか。',
+                    cancelText: '取消',
+                    confirmText: '削除',
+                    type: 'is-danger',
+                    hasIcon: true,
+                    onConfirm: () => this.toggle('remove')
+                })
+            } else {
+                this.$dialog.confirm({
+                    message: 'Ankiに追加しますか。',
+                    cancelText: '取消',
+                    confirmText: '追加',
+                    onConfirm: () => this.toggle('add')
+                })
+            }
+        },
+        toggle: function (operation) {
+            var bodyFormData = new FormData();
+            bodyFormData.set('csrfmiddlewaretoken', '{{ csrf_token }}');
+            bodyFormData.set('yoji', this.yoji);
+            bodyFormData.set('op', operation);
+            axios.post(`/ajax/yoji_anki/`, bodyFormData)
+                .then(({ data }) => {
+                    if (data.status == 'success') {
+                        this.in_anki = ('true' == data.in_anki)
+                    } else {
+                        this.$toast.open({
+                            message: `Ankiに追加・削除の失敗`,
+                            type: 'is-warning'
+                        })
+                    }
+                })
+               .catch((error) => {
+                    this.$toast.open({
+                        message: `Ankiに追加・削除の失敗`,
+                        type: 'is-danger'
+                    })
+               })
+        },
+    },
+    template: '#fr-addrem-anki'
+})
+</script>

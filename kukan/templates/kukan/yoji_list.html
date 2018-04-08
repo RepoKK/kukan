@@ -1,7 +1,14 @@
 {% extends 'kukan/base_ext.html' %}
 
 {% block content %}
-    <fr-filtered-table :mobile-cards="false"></fr-filtered-table>
+    <fr-filtered-table :mobile-cards="true">
+        <template slot="Anki" slot-scope="{column, props}">
+            <fr-addrem-anki :in_anki_init="props.row[column.field]"
+                            :yoji="props.row['yoji']"
+                            :edit_allowed="editEnabled">
+            </fr-addrem-anki>
+        </template>
+    </fr-filtered-table>
     <b-switch v-model="editEnabled">一覧編集可能</b-switch>
 {% endblock %}
 
@@ -15,4 +22,5 @@
 
 {% block vue_component %}
 {% include 'kukan/vue_filters_kanji.html' %}
+{% include 'kukan/vue_addrem_anki.html' %}
 {% endblock %}
