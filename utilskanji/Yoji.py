@@ -143,6 +143,16 @@ def process_yojifiles():
                 yj.save()
 
 
+def fill_ext_ref():
+    with open(listFile, 'r', encoding='utf-8') as fDeck:
+        csvIn = csv.reader(fDeck, delimiter=',', quotechar='"')
+        for row in csvIn:
+            # Only process yoji with kanji included in the DB
+            if Kanji.objects.filter(kanji__in=row[1]).count() == len(set(row[1])):
+                yoji = Yoji.objects.get(yoji=row[1])
+                yoji.external_ref=row[3]
+                yoji.save()
+
 # get_full_list_of_yoji()
 # get_yojifiles()
 # process_yojifiles()

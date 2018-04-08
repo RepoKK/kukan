@@ -377,6 +377,7 @@ class Yoji(models.Model):
     bunrui = models.ManyToManyField(Bunrui)
     # True if the jitenon site gives a kanken kyu
     has_jitenon_kyu = models.BooleanField('級記郵務', default=False)
+    external_ref = models.CharField('外部辞典', max_length=1000, blank=True)
     in_anki = models.BooleanField('Anki', default=False)
     anki_cloze = models.CharField('Cloze sequence', max_length=4, blank=True)
 

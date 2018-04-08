@@ -28,7 +28,11 @@
                     <strong>Anki：</strong>
                     <fr-addrem-anki :in_anki_init="{{yoji.in_anki|yesno:'true,false'}}" yoji="{{yoji.yoji}}"></fr-addrem-anki>
                 </li>
-                <li><strong>漢検：</strong></li>
+                <li><strong>漢検：</strong>{{yoji.kanken}}</li>
+                <li><strong>外部辞典：</strong>
+                    <ul><li><a href="{{yoji.external_ref}}">四字熟語辞典ｵﾝﾗｲﾝ</a></li></ul>
+                </li>
+                <br>
                 {% for kj in yoji.yoji|make_list %}
                     <li><strong>{{ kj }}：</strong>
                         <a href="{% url 'kukan:kanji_detail' kj %}">詳細</a>
