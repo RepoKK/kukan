@@ -22,6 +22,11 @@ Vue.component('fr-addrem-anki', {
         edit_allowed:{type:Boolean, default:false},
         yoji: {type:String},
     },
+    watch: {
+        in_anki_init(value) {
+            this.in_anki = this.in_anki_init
+        },
+    },
     methods: {
         toggleConfirm: function () {
             if (this.in_anki) {
