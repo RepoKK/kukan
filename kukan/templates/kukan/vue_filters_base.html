@@ -283,7 +283,15 @@ Vue.component('fr-filter-min-max', {
                     </div>
                 </div>
             </div>
-        </b-dropdown-item custom>
+        </b-dropdown-item>
+        <b-dropdown-item v-if="comptype=='b-checkbox'" separator></b-dropdown-item>
+        <b-dropdown-item v-if="comptype=='b-checkbox'" custom>
+            <div class="columns is-mobile">
+                <div class="column">
+                    <b-checkbox v-model="selectAll">全選択</b-checkbox>
+                </div>
+            </div>
+        </b-dropdown-item>
     </fr-filter>
 </script>
 <script>
@@ -299,6 +307,25 @@ Vue.component('fr-filter-checkbox', {
     },
 
     computed: {
+        selectAll: {
+            get: function() {
+                return this.checkboxGroup.length == this.elements.length
+            },
+            set: function (value) {
+                var selected = [];
+
+                if (value) {
+                    this.elements.forEach(function (elem) {
+                        selected.push(elem.index);
+                    });
+                    this.checkboxGroup = selected;
+                } else {
+                    if (this.checkboxGroup.length == this.elements.length) {
+                        this.checkboxGroup = [];
+                    }
+                }
+            }
+        },
         col0: function() {
             return this.indexedElem.filter(function(u) {
                 return u.col == 0 || u.col == null
@@ -321,7 +348,7 @@ Vue.component('fr-filter-checkbox', {
                         lst_label.push(this.elements[this.checkboxGroup[i]].label)
                         res = lst_label.join(", ")
                     }
-                } else if (this.comptype == 'b-radio'){
+                } else if (this.comptype == 'b-radio' && this.checkboxGroup != undefined){
                     res = this.elements[this.checkboxGroup].label
                 }
                 return res
