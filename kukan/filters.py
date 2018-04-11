@@ -77,7 +77,10 @@ class FKanjiType(FFilter):
 
     def add_to_query(self, flt, qry):
         flt = flt.split(', ')
-        qry = qry.filter(classification__classification__in=flt)
+        q = Q(classification__classification__in=flt)
+        if '常用・人名以外' in flt:
+            q = q | Q(classification__classification__isnull=True)
+        qry = qry.filter(q)
         return qry
 
 
