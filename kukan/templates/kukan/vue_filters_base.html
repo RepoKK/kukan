@@ -116,7 +116,7 @@ var Kakusu = {
 <script type="text/x-template" id="fr-filter-template">
     <div>
         <b-dropdown ref="dropDn" @keyup.enter.native="enterApply">
-            <fr-trigger slot="trigger" :title="title" :current="current_filter" :keep_title="keep_title"
+            <fr-trigger slot="trigger" :title="title" :current="current_filter|truncate(18)" :keep_title="keep_title"
                         :state="is_active" @rm_fil="$emit('rm_fil')"></fr-trigger>
             <drop-down-top :title="title" v-on:apply="handleApply"></drop-down-top>
             <slot></slot>
@@ -150,6 +150,13 @@ Vue.component('fr-filter', {
             this.handleApply()
             this.$refs.dropDn.toggle()
         },
+    },
+    filters: {
+        truncate(value, length) {
+            return value.length > length
+                ? value.substr(0, length) + '...'
+                : value
+        }
     },
     template: '#fr-filter-template'
 })
