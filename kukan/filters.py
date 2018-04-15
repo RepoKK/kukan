@@ -33,10 +33,33 @@ class FKanji(FFilter):
 
 class FYomi(FFilter):
     def __init__(self):
-        super().__init__('読み', 'fr-comp-string-simple')
+        super().__init__('読み', 'fr-comp-yomi')
 
     def add_to_query(self, flt, qry):
-        readings = Reading.objects.filter(reading_simple=flt.translate(jau.kat2hir)).exclude(joyo__yomi_joyo='表外')
+        yomi, position, onkun, joyo = flt.split('_')
+        yomi = yomi.translate(jau.kat2hir)
+        readings = Reading.objects.all()
+
+        # Filter position yomi
+        if position == '位始':
+            readings = readings.filter(reading_simple__startswith=yomi)
+        elif position == '位含':
+            readings = readings.filter(reading_simple__contains=yomi)
+        else:
+            readings = readings.filter(reading_simple=yomi)
+
+        # Filter on/kun yomi
+        if onkun == '読音':
+            readings = readings.filter(yomi_type__yomi_type='音')
+        if onkun == '読訓':
+            readings = readings.filter(yomi_type__yomi_type='訓')
+
+        # Filter yojo
+        if joyo == '常用':
+            readings = readings.exclude(joyo__yomi_joyo='表外')
+        if joyo == '常外':
+            readings = readings.filter(joyo__yomi_joyo='表外')
+
         qry = qry.filter(reading__in=readings)
         return qry
 

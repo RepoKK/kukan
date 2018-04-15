@@ -15,6 +15,14 @@ var FrCompStringSimple = {
 }
 
 
+var FrCompYomi = {
+    mixins: [MixinFrComp],
+    template: '<fr-filter-yomi :title="title" v-model="compValue" @rm_fil="rm_fil" :placeholder="placeholder"></fr-filter-yomi>',
+    computed: {
+        placeholder: function () {return (this.title + "を入力下さい")}
+    }
+}
+
 var FrCompKanken = {
     data: function () {
         return {

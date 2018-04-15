@@ -156,7 +156,7 @@ class AjaxList(LoginRequiredMixin, generic.TemplateView):
 class KanjiListFilter(AjaxList):
     model = Kanji
     template_name = 'kukan/kanji_list.html'
-    default_sort = 'kanji'
+    default_sort = 'kanken'
     filters = [FKanji(), FYomi(), FKakusu(), FKanjiType(), FJisClass(), FKanken(), FExNum()]
 
     def get_filtered_list(self, request):
