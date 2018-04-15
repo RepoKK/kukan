@@ -171,10 +171,8 @@ var MixinFrBase = {
     },
     props: ['title', 'value'],
     created() {
-        if (this.value != '') {
-            this.tempFilter = this.value
-            this.filter = this.tempFilter
-        }
+        this.tempFilter = this.value
+        this.filter = this.tempFilter
     },
     methods: {
         handleApply: function (filter_val) {
@@ -193,7 +191,7 @@ var MixinFrBase = {
                 <b-input :placeholder="placeholder" v-model="localValue"></b-input>
         </b-dropdown-item>
         <b-dropdown-item custom>
-            <div style="width:300px;">
+            <div style="width:290px;">
                 <b-radio v-model="matchPosition" native-value="位致">と一致する</b-radio>
                 <b-radio v-model="matchPosition" native-value="位始">から始まる</b-radio>
                 <b-radio v-model="matchPosition" native-value="位含">を含む</b-radio>
@@ -202,7 +200,7 @@ var MixinFrBase = {
         <b-dropdown-item separator></b-dropdown-item>
         <b-dropdown-item custom><strong>音訓読み</strong></b-dropdown-item>
         <b-dropdown-item custom>
-            <div style="width:300px;">
+            <div style="width:290px;">
                 <b-radio v-model="matchOnKun" native-value="読両">両方</b-radio>
                 <b-radio v-model="matchOnKun" native-value="読音">音読み</b-radio>
                 <b-radio v-model="matchOnKun" native-value="読訓">訓読み</b-radio>
@@ -211,7 +209,7 @@ var MixinFrBase = {
         <b-dropdown-item separator></b-dropdown-item>
         <b-dropdown-item custom><strong>常用漢字表</strong></b-dropdown-item>
         <b-dropdown-item custom>
-            <div style="width:300px;">
+            <div style="width:290px;">
                 <b-radio v-model="matchJoyo" native-value="常全">全読み</b-radio>
                 <b-radio v-model="matchJoyo" native-value="常用">常用読み</b-radio>
                 <b-radio v-model="matchJoyo" native-value="常外">常用読み以外</b-radio>
@@ -256,7 +254,9 @@ Vue.component('fr-filter-yomi', {
                 return flt
             },
             set: function (newVal) {
-                [this.localValue, this.matchPosition, this.matchOnKun, this.matchJoyo] = newVal.split('_')
+                if (newVal != '') {
+                    [this.localValue, this.matchPosition, this.matchOnKun, this.matchJoyo] = newVal.split('_')
+                }
             }
         }
     },
@@ -443,7 +443,7 @@ Vue.component('fr-filter-checkbox', {
             },
             set: function (newVal) {
                 var res = []
-                val = this.value.split(', ')
+                val = newVal.split(', ')
                 for (var i = 0, len = this.elements.length; i < len; i++) {
                     if (val.indexOf(this.elements[i].label) > -1 ) {
                         res.push(i)
