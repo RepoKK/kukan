@@ -1,7 +1,7 @@
 {% extends 'kukan/base_ext.html' %}
 
 {% block content %}
-    <fr-filtered-table :mobile-cards="true">
+    <fr-filtered-table top_title="四字熟語"　:mobile-cards="true">
         <template slot="Anki" slot-scope="{column, props}">
             <fr-addrem-anki :in_anki_init="props.row[column.field]"
                             :yoji="props.row['yoji']"
