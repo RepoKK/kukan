@@ -152,7 +152,7 @@ Vue.component('fr-filter-container', {
                 <p class="level-item title is-4">[[top_title]]</p>
             </div>
             <div class="level-right">
-                <p class="level-item subtitle is-5" v-show="total>0">[[total]]件</p>
+                <p class="level-item" v-show="total>0">[[total]]件</p>
             </div>
         </nav>
         <fr-filter-container @input="onFilterChange"></fr-filter-container>

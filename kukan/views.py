@@ -45,7 +45,10 @@ class Index(LoginRequiredMixin, generic.FormView):
         else:
             self.success_url = reverse('kukan:kanji_list')
             if search != '':
-                self.success_url += '?漢字=' + search
+                if search.translate(jau.kat2hir).translate(jau.hir2nul) == '':
+                    self.success_url += '?読み=' + search + '_位始_読両_常全'
+                else:
+                    self.success_url += '?漢字=' + search
         return super().form_valid(form)
 
     def get_success_url(self):
