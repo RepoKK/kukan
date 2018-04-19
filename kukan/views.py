@@ -45,7 +45,9 @@ class Index(LoginRequiredMixin, generic.FormView):
         else:
             self.success_url = reverse('kukan:kanji_list')
             if search != '':
-                if search.translate(jau.kat2hir).translate(jau.hir2nul) == '':
+                if len(search) == 1 and Kanji.objects.filter(kanji=search).exists():
+                    self.success_url = reverse('kukan:kanji_detail', args=search)
+                elif search.translate(jau.kat2hir).translate(jau.hir2nul) == '':
                     self.success_url += '?読み=' + search + '_位始_読両_常全'
                 else:
                     self.success_url += '?漢字=' + search
