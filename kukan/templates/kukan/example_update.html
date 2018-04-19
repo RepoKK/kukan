@@ -71,6 +71,21 @@
 {% endif %}
 <form action="." method="post">
 {% csrf_token %}
+    <nav class="level is-mobile">
+        <div class="level-left">
+            <div class="level-item">
+                <input type="submit" class="button is-link" value="保存" />
+            </div>
+        </div>
+        <div class="level-right">
+            <div class="buttons">
+                    <a class="button is-info" @click="getDefinition('')" :disabled="word==''">意味習得</a>
+                    <a class="button is-info" @click="onGuessReadings" :disabled="yomi==''">読み設定</a>
+                    <a class="button is-info" :class="{'is-outlined':!showOptDisp}"
+                       @click="btnShowOptDisp = !showOptDisp" :disabled="hasOptInput">任意表示</a>
+            </div>
+        </div>
+    </nav>
 
     <div class="columns">
         <div class="column">
@@ -103,11 +118,6 @@
                             <p class="control is-expanded">
                                 <b-input v-model="yomi" name="yomi" placeholder="読み方（カタカナ）" expanded required></b-input>
                             </p>
-                            <p class="control">
-                                <a class="button is-primary"
-                                   @click="onGuessReadings"
-                                   :disabled="yomi==''">設定</a>
-                            </p>
                         </div>
                     </div>
                 </div>
@@ -119,7 +129,8 @@
                 {% endfor %}
             {% endif %}
         </div>
-        <div class="column">
+
+        <div class="column" v-show="showOptDisp">
             <div class="field">
                 <label class="label">単語（例文）</label>
                 <div class="control">
@@ -133,7 +144,7 @@
                 </div>
             </div>
         </div>
-        <div class="column">
+        <div class="column" v-show="showOptDisp">
             <div class="field">
                 <label class="label">読み方（例文）</label>
                 <div class="field-body">
@@ -207,32 +218,19 @@
     </div>
 
     <div class="field">
-        <div class="control has-addons">
-            <label class="label">単語の意味
-                <a class="button is-small is-primary"  @click="getDefinition('')" :disabled="word==''">習得</a>
-            </label>
-        </div>
+        <label class="label">単語の意味</label>
         <div class="control">
             <textarea v-model="definition"
                       name="definition"
                       class="textarea"
                       placeholder="単語の意味・説明の文章を入力ください。"
-                      rows="10"></textarea>
+                      rows="8"></textarea>
         </div>
         {% if form.definition.errors %}
             {% for error in form.definition.errors %}
                 <p class="help is-danger">{{ error|escape }}</p>
             {% endfor %}
         {% endif %}
-    </div>
-
-    <div class="field is-grouped">
-      <div class="control">
-        <input type="submit" class="button is-link" value="保存" />
-      </div>
-      <div class="control">
-        <button class="button is-text">取り消し</button>
-      </div>
     </div>
 </form>
 {% endblock %}
@@ -259,6 +257,15 @@
             reading_data: [],
             reading_selected: [{{form.reading_selected.value|default_if_none:''}}],
             candidates: '',
+            btnShowOptDisp: false,
+        }
+    },
+    computed: {
+        hasOptInput: function() {
+            return this.word_native != "" || this.yomi_native != ""
+        },
+        showOptDisp: function() {
+            return this.btnShowOptDisp || this.hasOptInput
         }
     },
     methods: {
@@ -269,7 +276,7 @@
                 `word_native=${this.word_native}`,
                 `reading_selected=${this.reading_selected}`,
             ].join('&')
-            axios.get(`/ajax/get_yomi?${params}`)
+            axios.get(`/ajax/get_yomi/?${params}`)
                 .then(({ data }) => {
                     this.reading_data = data.reading_data
                     this.reading_selected = data.reading_selected
@@ -308,7 +315,7 @@
                 `word=${this.word}`,
                 `yomi=${this.yomi}`
             ].join('&')
-            axios.get(`/ajax/set_yomi?${params}`)
+            axios.get(`/ajax/set_yomi/?${params}`)
                 .then(({ data }) => {
                     if (data.candidate) {
                         this.reading_selected = data.candidate
@@ -333,7 +340,7 @@
                 `word_native=${this.word_native}`,
                 `link=${link}`
             ].join('&')
-            axios.get(`/ajax/get_goo?${params}`)
+            axios.get(`/ajax/get_goo/?${params}`)
                 .then(({ data }) => {
                     if (data.definition) {
                         this.definition = data.definition
