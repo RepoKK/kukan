@@ -5,59 +5,43 @@
             <a class="navbar-item" href="/" v-if="has_search">
                 <img src="{% static '/images/favicon/ms-icon-310x310.png' %}" width="28" height="28">
             </a>
-            <div class="navbar-item is-hidden-desktop" v-if="has_search">
-                <form :action="formLink" method="get">
-                    <b-field grouped>
-                        <input class="input" type="search" placeholder="検索..." style="width:140px" :name="critName"></input>
-                        <b-field>
-                            <input type="submit" class="button is-light" :value="searchItem" />
-
-                                <b-dropdown v-model="searchItem" position="is-bottom-left" @submit.prevent
-                                            :mobile-modal="false">
-                                    <button class="button is-light" slot="trigger" @click.prevent>
-                                        <b-icon icon="menu-down"></b-icon>
+            <div class="navbar-item" v-if="has_search">
+                <form action="/" method="post">
+                {% csrf_token %}
+                    <nav class="level">
+                        <div class="level-item">
+                            <b-field>
+                                <input class="input" :class="{'is-hovered':searchVal != ''}"
+                                       name="search" type="search" placeholder="検索" icon="magnify"
+                                       @focus="searchFocused = true" @blur="searchFocused = false"
+                                        v-model="searchVal">
+                                </input>
+                                                            <p class="control" v-if="dispSearchBtn">
+                                    <button class="button" :class="color" @click="searchVal=''">
+                                        <b-icon icon="close-circle-outline"></b-icon>
                                     </button>
-
-                                    <b-dropdown-item value="漢字">漢字</b-dropdown-item>
-                                    <b-dropdown-item value="四字">四字熟語</b-dropdown-item>
-                                    <b-dropdown-item value="例文">例文</b-dropdown-item>
-                                </b-dropdown>
-                        </b-field>
-                </b-field>
+                                </p>
+                            </b-field>
+                        </div>
+                        <div class="level-item" v-if="dispSearchBtn">
+                            <div class="field is-grouped">
+                                <input type="submit" class="button" :class="color" name="kanji" value="漢字" />
+                                <input type="submit" class="button" :class="color" name="yoji" value="四字熟語" />
+                                <input type="submit" class="button" :class="color" name="example" value="例文" />
+                            </div>
+                        </div>
+                    </nav>
                 </form>
             </div>
 
-            <div class="navbar-burger burger" data-target="mainNavBar">
+            <div class="navbar-burger burger" data-target="mainNavBar" v-if="!dispSearchBtn">
                 <span></span>
                 <span></span>
                 <span></span>
             </div>
         </div>
         <div id="mainNavBar" class="navbar-menu">
-
-            <div class="navbar-start" v-if="has_search">
-                <div class="navbar-item is-hidden-touch">
-                        <div class="field is-grouped">
-                            <p class="control">
-                                <input class="input" type="search" placeholder="検索" v-model="searchVal">
-                            </p>
-                            <form action="/kanji/list/" method="get">
-                                <input name="漢字" type="hidden" v-model="searchVal">
-                                <input type="submit" class="button" :class="color" value="漢" />
-                            </form>
-                            <form action="/yoji/list/" method="get">
-                                <input name="漢字" type="hidden" v-model="searchVal">
-                                <input type="submit" class="button" :class="color" value="四" />
-                            </form>
-                            <form action="/example/list/" method="get">
-                                <input name="単語" type="hidden" v-model="searchVal">
-                                <input type="submit" class="button" :class="color" value="例" />
-                            </form>
-                        </div>
-                </div>
-            </div>
-
-            <div class="navbar-end">
+            <div class="navbar-end" v-if="!dispSearchBtn">
                 <a class="navbar-item" href="{% url 'kukan:kanji_list' %}">
                     漢字
                 </a>
@@ -110,22 +94,15 @@ Vue.component('fr-navbar', {
     data: function () {
         return {
             searchItem: "漢字",
+            searchFocused: false,
             searchVal:"",
         }
     },
     computed: {
-        formLink: function () {
-            if (this.searchItem == "漢字") {return "/kanji/list/"}
-            if (this.searchItem == "四字") {return "/yoji/list/"}
-            if (this.searchItem == "例文") {return "/example/list/"}
+        dispSearchBtn: function () {
+            return (this.searchFocused || this.searchVal != '')
         },
-        critName: function () {
-            if (this.searchItem == "漢字") {return "漢字"}
-            if (this.searchItem == "四字") {return "漢字"}
-            if (this.searchItem == "例文") {return "単語"}
-        }
-      },
-
+    },
     props: {
         has_search:{type:Boolean, default:true},
         fix_navbar:{type:Boolean, default:true},
