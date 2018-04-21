@@ -12,6 +12,7 @@
                         <div class="level-item">
                             <b-field>
                                 <input class="input" :class="{'is-hovered':searchVal != ''}"
+                                       style="width:190px"
                                        name="search" type="search" placeholder="検索" icon="magnify"
                                        @focus="searchFocused = true" @blur="searchFocused = false"
                                         v-model="searchVal">
