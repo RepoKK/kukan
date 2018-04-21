@@ -17,8 +17,8 @@
                                        @focus="searchFocused = true" @blur="searchFocused = false"
                                         v-model="searchVal">
                                 </input>
-                                                            <p class="control" v-if="dispSearchBtn">
-                                    <button class="button" :class="color" @click="searchVal=''">
+                                <p class="control" v-if="dispSearchBtn">
+                                    <button class="button" :class="color" @click.stop.prevent="searchVal=''">
                                         <b-icon icon="close-circle-outline"></b-icon>
                                     </button>
                                 </p>
@@ -35,14 +35,14 @@
                 </form>
             </div>
 
-            <div class="navbar-burger burger" data-target="mainNavBar" v-if="!dispSearchBtn">
+            <div class="navbar-burger burger" data-target="mainNavBar">
                 <span></span>
                 <span></span>
                 <span></span>
             </div>
         </div>
         <div id="mainNavBar" class="navbar-menu">
-            <div class="navbar-end" v-if="!dispSearchBtn">
+            <div class="navbar-end">
                 <a class="navbar-item" href="{% url 'kukan:kanji_list' %}">
                     漢字
                 </a>
