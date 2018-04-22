@@ -1,18 +1,17 @@
+{% spaceless %}
     {% for reading in kanji.reading_set.all|dictsort:'joyo_order' %}
-      {% if reading.is_joyo %}
-        <tr>
-            <td class='C_read'>
-                {{reading.get_html_format|safe}}
-            </td>
-            <td class='C_example'>
-                {{reading.get_list_ex_anki|safe}}
-                {% if reading.remark %}
-                    <br><span class='rem'>{{reading.remark}}</span>
-                {% elif reading.ijidokun %}
-                    <br><span class='rem'>{{reading.ijidokun}}</span>
-                {% endif %}
-            </td>
-        </tr>
-      {% endif %}
+        {% if reading.is_joyo %}
+            <tr>
+                <td class='C_read'>{{reading.get_html_format|safe}}</td>
+                <td class='C_example'>{{reading.get_list_ex_anki|safe}}
+                    {% if reading.remark %}
+                        <br><span class='rem'>{{reading.remark}}</span>
+                    {% elif reading.ijidokun %}
+                        <br><span class='rem'>{{reading.ijidokun}}</span>
+                    {% endif %}
+                </td>
+            </tr>
+        {% endif %}
     {% endfor %}
     {{kanji.get_jukiji|safe}}
+{% endspaceless %}

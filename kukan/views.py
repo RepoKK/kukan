@@ -431,8 +431,6 @@ class ExportView(LoginRequiredMixin, generic.FormView):
         writer = csv.writer(response, delimiter='\t', quotechar='"')
         for kj in Kanji.objects.exclude(kanken__difficulty__gt=10):
             anki_read_table = render_to_string('kukan/AnkiReadTable.html', {'kanji': kj})
-            anki_read_table = re.sub('^( *)', '', anki_read_table, flags=re.MULTILINE)
-            anki_read_table = anki_read_table.replace('\n', '')
             writer.writerow([kj.kanji,
                              kj.anki_English,
                              kj.anki_Examples,

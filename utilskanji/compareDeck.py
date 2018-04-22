@@ -343,7 +343,7 @@ def CreateDictLink(expr):
 # MAIN
 importFileName = r'E:\CloudStorage\Google Drive\Kanji\資料\AnkiExport/漢字.txt'
 #importFileName = r'../AnkiExport/漢字 - Copie.txt'
-outputFileName = r'E:\CloudStorage\Google Drive\Kanji\資料\AnkiImport/djangoAnki.csv'
+outputFileName = r'E:\CloudStorage\Google Drive\Kanji\資料\AnkiImport/djAnkiKanji.csv'
 
 print("start")
 deck = CKanjiDeck()
