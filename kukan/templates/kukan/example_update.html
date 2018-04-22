@@ -81,8 +81,10 @@
             <div class="buttons">
                     <a class="button is-info" @click="getDefinition('')" :disabled="word==''">意味</a>
                     <a class="button is-info" @click="onGuessReadings" :disabled="yomi==''">読み</a>
-                    <a class="button is-info" :class="{'is-outlined':!showOptDisp}"
-                       @click="btnShowOptDisp = !showOptDisp" :disabled="hasOptInput">任表示</a>
+                    <a class="button is-info is-rounded" :class="{'is-inverted':!showOptDisp}"
+                       @click="btnShowOptDisp = !showOptDisp" :disabled="hasOptInput">
+                        <b-icon :icon="!showOptDisp?'message-bulleted-off':'message-bulleted'"></b-icon>
+                        </a>
             </div>
         </div>
     </nav>
