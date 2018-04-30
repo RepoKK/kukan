@@ -1,0 +1,332 @@
+
+<script type="text/x-template" id="drop-down-min-max">
+    <b-dropdown-item custom><b-field>
+        <p class="control" v-if="label">
+            <a class="button is-static">
+                [[label]]
+            </a>
+        </p>
+        <b-input :placeholder="placeholder"
+
+                    v-model="localValue">
+        </b-input>
+    </b-field></b-dropdown-item>
+</script>
+<script>
+var NumField = {
+    data: function () {
+        return {
+            _isDropdown: true, // Used internally by DropdownItem
+        }
+    },
+    props: ['value', 'label', 'placeholder'],
+    computed: {
+        localValue: {
+            get() {
+                return this.value;
+            },
+            set(newValue) {
+                this.$emit('input', newValue);
+            }
+        }
+    },
+    template: '#drop-down-min-max',
+}
+</script>
+
+<script type="text/x-template" id="fr-filter-min-max-template">
+    <fr-filter v-on:apply="handleApply" @rm_fil="rm_fil" :title="title" :current_filter="filter" :keep_title="true">
+        <b-dropdown-item custom>
+            <div class="tabs is-centered is-fullwidth">
+                <ul>
+                    <li :class="{'is-active':!is_range}" @click="is_range=false"><a>Exact</a></li>
+                    <li :class="{'is-active':is_range}"  @click="is_range=true"><a>Range</a></li>
+                </ul>
+            </div>
+        </b-dropdown-item>
+
+        <div v-show="!is_range">
+            <fr-numfield label="" :placeholder="title" v-model="exact"></fr-numfield>
+            <b-dropdown-item custom>
+                <div class="field">
+                    <b-checkbox v-model="exact_excl" position="is-right">
+                        除く
+                    </b-checkbox>
+                </div>
+            </b-dropdown-item>
+        </div>
+
+        <div v-show="is_range">
+            <fr-numfield label=">=" :placeholder="title" v-model="min"></fr-numfield>
+            <fr-numfield label="<=" :placeholder="title" v-model="max"></fr-numfield>
+            <b-dropdown-item custom>
+                <div class="field">
+                    <b-checkbox v-model="range_excl" position="is-right">
+                        除く
+                    </b-checkbox>
+                </div>
+            </b-dropdown-item>
+        </div>
+
+    </fr-filter>
+</script>
+<script>
+function convPosInt(str) {
+    strInt = parseInt(str, 10)
+    res = ''
+    if (str == strInt) {
+        res = strInt
+    }
+    return res
+}
+Vue.component('fr-filter-min-max', {
+    mixins: [MixinFrBase],
+    template: '#fr-filter-min-max-template',
+    components: {
+        'fr-numfield': NumField,
+    },
+    data: function () {
+        return {
+            is_range: false,
+            exact: "",
+            exact_excl: false,
+            min: "",
+            max: "",
+            range_excl: false,
+        }
+    },
+    computed: {
+        tempFilter: {
+            get: function () {
+                res = ''
+                if (this.is_range) {
+                    if (this.min.toString()=="" && this.max.toString()=="") {
+                        res = ""
+                    } else {
+                        res = [this.min, this.max].join('~')
+                        if (this.range_excl) {
+                            res = '≠ ' + res
+                        }
+                    }
+                } else {
+                    if (this.exact.toString()!="" ) {
+                        res = this.exact.toString()
+                        if (this.exact_excl) {
+                            res = '≠ ' + res
+                        }
+                    } else {
+                        res = ""
+                    }
+                }
+                return res
+            },
+            set: function (newVal) {
+                var excl = false
+                if (newVal.substring(0, 2) == '≠ ') {
+                    newVal = newVal.substring(2)
+                    excl = true
+                }
+                val = newVal.split('~')
+                if (val.length == 2) {
+                    this.is_range = true
+                    this.exact = null
+                    this.min = convPosInt(val[0], 10)
+                    this.max = convPosInt(val[1], 10)
+                    this.range_excl = excl
+                } else {
+                    this.is_range = false
+                    this.exact = convPosInt(newVal)
+                    this.min = null
+                    this.max = null
+                    this.exact_excl = excl
+                }
+            }
+        }
+    },
+})
+</script>
+
+
+<script type="text/x-template" id="fr-filter-daterange-template">
+    <fr-filter v-on:apply="handleApply" @rm_fil="rm_fil" :title="title" :current_filter="filter" :keep_title="true">
+        <b-dropdown-item custom>
+            <div class="tabs is-centered is-fullwidth">
+                <ul>
+                    <li :class="{'is-active':!is_range}" @click="is_range=false"><a>Exact</a></li>
+                    <li :class="{'is-active':is_range}"  @click="is_range=true"><a>Range</a></li>
+                </ul>
+            </div>
+            <div v-show="!is_range">
+                <b-field>
+                    <b-datepicker
+                        :day-names='["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]'
+                        :date-formatter="(date) => formatDate(date)"
+                        placeholder="Start date"
+                        icon="calendar-today"
+                        :readonly="false"
+                        v-model="date">
+                    </b-datepicker>
+                </b-field>
+            </div>
+            <div v-show="is_range">
+                <b-field label="From" horizontal style="width:350px;" >
+                    <b-datepicker
+                        :day-names='["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]'
+                        :date-formatter="(date) => formatDate(date)"
+                        placeholder="Start date"
+                        icon="calendar-today"
+                        :readonly="false"
+                        v-model="start.date">
+                    </b-datepicker>
+                    <b-timepicker
+                        placeholder="Start time"
+                        icon="clock"
+                        :readonly="false"
+                        v-model="start.time">
+                    </b-timepicker>
+                </b-field>
+                <b-field label="To" horizontal >
+                    <b-datepicker
+                        :day-names='["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]'
+                        :date-formatter="(date) => formatDate(date)"
+                        placeholder="End date"
+                        icon="calendar-today"
+                        :readonly="false"
+                        v-model="end.date">
+                    </b-datepicker>
+                    <b-timepicker
+                        placeholder="End time"
+                        icon="clock"
+                        :readonly="false"
+                        v-model="end.time">
+                    </b-timepicker>
+                </b-field>
+            </div>
+        </b-dropdown-item>
+    </fr-filter>
+</script>
+<script>
+Vue.component('fr-filter-daterange', {
+    mixins: [MixinFrBase],
+    template: '#fr-filter-daterange-template',
+
+    data: function () {
+        return {
+            is_range: false,
+            date: null,
+            start: {
+                date: null,
+                time: null,
+            },
+            end: {
+                date: null,
+                time: null,
+            }
+        }
+    },
+    methods: {
+        formatDate: function (date) {
+            var d = new Date(date);
+            var month = '' + (d.getMonth() + 1);
+            var day = '' + d.getDate();
+            var year = d.getFullYear();
+
+            if (month.length < 2) month = '0' + month;
+            if (day.length < 2) day = '0' + day;
+
+            return [year, month, day].join('-');
+        },
+        formatTime: function (date) {
+            var d = new Date(date);
+            var hours = '' + (d.getHours());
+            var minutes = '' + d.getMinutes();
+
+            if (hours.length < 2) hours = '0' + hours;
+            if (minutes.length < 2) minutes = '0' + minutes;
+
+            return [hours, minutes].join(':');
+        },
+        formatDateTime: function (date, time) {
+            var res = ''
+            if (date!=null) {
+                res = this.formatDate(date)
+                if (time!=null) {
+                    res += ' ' + this.formatTime(time)
+                }
+            }
+            return res
+        },
+    },
+    computed: {
+        start_date: {
+            get: function () {
+                return this.formatDateTime(this.start.date, this.start.time)
+            },
+        },
+        end_date: {
+            get: function () {
+                return this.formatDateTime(this.end.date, this.end.time)
+            },
+        },
+        tempFilter: {
+            get: function () {
+                res = ''
+                if (this.is_range) {
+                    res = [this.start_date, this.end_date].join('~')
+                } else {
+                    res = this.date!=null ? this.formatDate(this.date) : ""
+                }
+                return res
+            },
+            set: function (newVal) {
+                val = newVal.split('~')
+                if (val.length == 2) {
+                    this.is_range = true
+                    this.exact = null
+                    this.start.date = val[0]=='' ? null : new Date(val[0])
+                    this.end.date = val[1]=='' ? null : new Date(val[1])
+                } else if (newVal != "") {
+                    this.is_range = false
+                    this.date = new Date(newVal)
+                    this.start.date = null
+                    this.end.date = null
+                }
+            }
+        }
+    },
+})
+</script>
+
+
+<script type="text/x-template" id="fr-filter-string-template">
+    <fr-filter v-on:apply="handleApply" @rm_fil="rm_fil"
+               :title="title" :current_filter="filter" :keep_title="true">
+        <b-dropdown-item custom><b-field>
+            <b-input :placeholder="placeholder"
+                        v-model="localValue">
+            </b-input>
+        </b-field></b-dropdown-item>
+    </fr-filter>
+</script>
+<script>
+Vue.component('fr-filter-string', {
+    mixins: [MixinFrBase],
+    template: '#fr-filter-string-template',
+    props: ['placeholder'],
+    data: function () {
+        return {
+            localValue: ""
+        }
+    },
+    computed: {
+        tempFilter: {
+            get: function () {
+                return this.localValue
+            },
+            set: function (newVal) {
+                this.localValue = newVal
+            }
+        }
+    },
+})
+</script>

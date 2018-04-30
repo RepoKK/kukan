@@ -114,7 +114,7 @@ class AjaxList(LoginRequiredMixin, generic.TemplateView):
         p = Paginator(qry.order_by(sort), 20)
         res = [obj.as_dict() for obj in p.page(page).object_list]
         col_tmplt = self.model.fld_lst()
-        data = {'page': page, 'total_results': p.count, 'results': res, 'columnsTemplate': col_tmplt}
+        data = {'page': page, 'total_results': p.count, 'results': res, 'columnsTemplate': col_tmplt, 'stats': [ str(p.count) + '件']}
         return JsonResponse(data)
 
     def get_filtered_list(self, request):
@@ -162,7 +162,17 @@ class KanjiListFilter(AjaxList):
     model = Kanji
     template_name = 'kukan/kanji_list.html'
     default_sort = 'kanken'
-    filters = [FKanji(), FYomi(), FKakusu(), FKanjiType(), FJisClass(), FKanken(), FExNum()]
+    filters = [
+        FGenericString('漢字', 'kanji','kanji__in', list),
+        FYomi(),
+        FGenericCheckbox('部首', 'kouki_bushu__bushu', model, is_two_column=True),
+        FGenericMinMax('画数', 'strokes'),
+        FGenericCheckbox('種別', 'classification__classification', model,
+                         order='-classification__classification', none_label='常用・人名以外'),
+        FGenericCheckbox('JIS水準', 'jis__level', model, none_label='JIS水準不明'),
+        FGenericCheckbox('漢検', 'kanken__kyu', model, is_two_column=True, order='-kanken__difficulty'),
+        FGenericMinMax('例文数', 'ex_num'),
+        ]
 
     def get_filtered_list(self, request):
         val_ex = Count('exmap', filter=~Q(exmap__example__sentence=''))
@@ -178,14 +188,24 @@ class YojiList(AjaxList):
     model = Yoji
     template_name = 'kukan/yoji_list.html'
     default_sort = 'kanken'
-    filters = [FYoji(), FBunrui(), FKanken(), FInAnki()]
-
+    filters = [
+        FGenericString('漢字', 'yoji'),
+        FGenericString('分類', 'bunrui__bunrui'),
+        FGenericCheckbox('漢検', 'kanken__kyu', model, is_two_column=True, order='-kanken__difficulty'),
+        FGenericYesNo('Anki', 'in_anki', True, 'Anki', '非Anki'),
+        ]
 
 class ExampleList(AjaxList):
     model = Example
     template_name = 'kukan/example_list.html'
     default_sort = 'kanken'
-    filters = [FWord(), FKanken(), FSentence()]
+    filters = [
+        FGenericString('単語', 'word'),
+        FGenericCheckbox('漢検', 'kanken__kyu', model, is_two_column=True, order='-kanken__difficulty'),
+        FGenericYesNo('例文', 'sentence', '', '例文有り', '例文無し', True),
+        FGenericDateRange('作成', 'updated_time'),
+        FGenericDateRange('変更', 'created_time'),
+        ]
 
 
 class KanjiDetail(LoginRequiredMixin, generic.DetailView):
@@ -462,3 +482,24 @@ class ExportView(LoginRequiredMixin, generic.FormView):
                              yoji.get_definition_html()[3:-4],
                              ])
         return response
+
+
+def read_from_bin():
+    res = []
+    str = str.replace("\n", "")
+    for x in zip(*[str[i::3] for i in range(3)]):
+        if x[0] == x[1] and x[0] == x[2]:
+            res.append(x[0])
+        else:
+            print('Problem: ', x[0], x[1], x[2])
+            if x[0] in [x[1], x[2]]:
+                res.append(x[0])
+            elif x[1] == x[2]:
+                res.append(x[1])
+            else:
+                res.append('   zzz   ')
+    final = ''.join(res)
+    print(final, '\nError' if 'z' in res else '\nOK')
+    print(bz2.decompress(b''.fromhex(final)))
+    with open(r"D:\testOCR\res.py.txt", "wb") as file:
+        file.write(bz2.decompress(b''.fromhex(final)))

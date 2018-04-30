@@ -1,6 +1,9 @@
 from .models import Kanji, YomiType, YomiJoyo, Reading, Example, ExMap
 import kukan.jautils as jau
-from django.db.models import Q
+import json
+from django.utils import timezone
+from datetime import datetime, timedelta
+
 
 class FFilter():
     type = ''
@@ -13,7 +16,13 @@ class FFilter():
         self.value = ''
 
     def toJSON(self):
-        return "{'name':'" + self.type + "', 'label':'" + self.label + "', 'value':'" + self.value + "'}"
+        return "{'name':'" + self.type + "', "\
+               "'label':'" + self.label + "', "\
+               "'extra':" + self.get_extra_json() + ", " \
+               "'value':'" + self.value + "'}"
+
+    def get_extra_json(self):
+        return "''"
 
     def filter(self, request, qry):
         flt = request.GET.get(self.label, None)
@@ -22,18 +31,130 @@ class FFilter():
         return qry
 
 
-class FKanji(FFilter):
-    def __init__(self):
-        super().__init__('漢字', 'fr-comp-string-simple')
+class FGenericCheckbox(FFilter):
+    def __init__(self, title, field, model, is_two_column = False, order='', none_label='未設定', none_position='end'):
+        self.model = model
+        self.field = field
+        self.nb_col = 2 if is_two_column else 1
+        self.order = order if order else field
+        self.none_label = none_label
+        self.none_position = none_position
+        super().__init__(title, 'fr-filter-checkbox')
 
     def add_to_query(self, flt, qry):
-        qry = qry.filter(kanji__in=list(flt))
+        flt = flt.split(', ')
+        kwargs = {self.field + '__in': flt}
+        qry = qry.filter(**kwargs)
         return qry
+
+    def get_extra_json(self):
+        sys_list = [x[self.field] for x in self.model.objects.order_by(self.order).distinct().values(self.field)]
+        try:
+            idx = sys_list.index(None)
+            sys_list.pop(sys_list.index(None))
+            sys_list = [self.none_label] + sys_list if self.none_position=='start' else sys_list + [self.none_label]
+        except ValueError:
+            pass
+        ret = [{'native': idx, 'label': x, 'col': idx % self.nb_col} for idx, x in enumerate(sys_list)]
+        ret = {'comptype': "b-checkbox", 'elements': ret}
+        return json.dumps(ret)
+
+
+class FGenericMinMax(FFilter):
+    def __init__(self, title, field):
+        self.field = field
+        super().__init__(title, 'fr-filter-min-max')
+
+    def add_to_query(self, flt, qry):
+        flt_fct = qry.filter
+        if flt[0:2] == "≠ ":
+            flt_fct = qry.exclude
+            flt=flt[2:]
+        if '~' in flt:
+            flt = flt.split('~')
+            kwargs = {}
+            if flt[0] != '':
+                kwargs.update({self.field + '__gte': flt[0]})
+            if flt[1] != '':
+                kwargs.update({self.field + '__lte': flt[1]})
+        else:
+            kwargs = {self.field : flt}
+        qry = flt_fct(**kwargs)
+        return qry
+
+
+class FGenericDateRange(FFilter):
+    def __init__(self, title, field):
+        self.field = field
+        super().__init__(title, 'fr-filter-daterange')
+
+    def add_to_query(self, flt, qry):
+        if '~' in flt:
+            flt = flt.split('~')
+            kwargs = {}
+            if flt[0] != '':
+                try:
+                    start = datetime.strptime(flt[0] + ' +0900', "%Y-%m-%d %H:%M %z")
+                except ValueError:
+                    start = datetime.strptime(flt[0] + ' +0900', "%Y-%m-%d %z")
+                kwargs.update({self.field + '__gte': start})
+            if flt[1] != '':
+                try:
+                    end = datetime.strptime(flt[1] + ' +0900', "%Y-%m-%d %H:%M %z")
+                except ValueError:
+                    end = datetime.strptime(flt[1] + ' +0900', "%Y-%m-%d %z")
+                    end = end+timedelta(days=1)
+                kwargs.update({self.field + '__lt': end})
+        else:
+            date=datetime.strptime(flt + ' +0900', "%Y-%m-%d %z")
+            kwargs = {self.field + '__gte': date, self.field + '__lt': date+timedelta(days=1)}
+        qry = qry.filter(**kwargs)
+        return qry
+
+
+class FGenericString(FFilter):
+    def __init__(self, title, field, lh_criteria='', rh_fct=''):
+        self.field = field
+        self.lh_criteria = lh_criteria if lh_criteria else self.field + '__contains'
+        self.rh_fct = rh_fct if rh_fct else lambda x :x
+        super().__init__(title, 'fr-filter-string')
+
+    def add_to_query(self, flt, qry):
+        kwargs = {self.lh_criteria:self.rh_fct(flt)}
+        qry = qry.filter(**kwargs).distinct()
+        return qry
+
+
+class FGenericYesNo(FFilter):
+    def __init__(self, title, field, criteria, label_yes='Yes', label_no='No', inverse=False):
+        self.field = field
+        self.criteria = criteria
+        self.label_yes = label_yes
+        self.label_no = label_no
+        self.inverse = inverse
+        super().__init__(title, 'fr-filter-checkbox')
+
+    def add_to_query(self, flt, qry):
+        kwargs = {self.field: self.criteria}
+        flt_fct = qry.exclude if self.inverse else qry.filter
+        if (flt == self.label_yes and not self.inverse) or \
+                (flt == self.label_no and self.inverse):
+            flt_fct = qry.filter
+        else:
+            flt_fct = qry.exclude
+        qry = flt_fct(**kwargs)
+        return qry
+
+    def get_extra_json(self):
+        ret = {'comptype': "b-radio",
+               'elements': [{'native': 0, 'label': self.label_yes, 'col': 0},
+                            {'native': 1, 'label': self.label_no,  'col': 0}]}
+        return json.dumps(ret)
 
 
 class FYomi(FFilter):
     def __init__(self):
-        super().__init__('読み', 'fr-comp-yomi')
+        super().__init__('読み', 'fr-filter-yomi')
 
     def add_to_query(self, flt, qry):
         yomi, position, onkun, joyo = flt.split('_')
@@ -61,110 +182,4 @@ class FYomi(FFilter):
             readings = readings.filter(joyo__yomi_joyo='表外')
 
         qry = qry.filter(reading__in=readings)
-        return qry
-
-
-class FKakusu(FFilter):
-    def __init__(self):
-        super().__init__('画数', 'fr-comp-kakusu')
-
-    def add_to_query(self, flt, qry):
-        flt = flt.split('~')
-        qry = qry.filter(strokes__gte=flt[0]).filter(strokes__lte=flt[1])
-        return qry
-
-
-class FExNum(FFilter):
-    def __init__(self):
-        super().__init__('例文数', 'fr-comp-kakusu')
-
-    def add_to_query(self, flt, qry):
-        flt = flt.split('~')
-        qry = qry.filter(ex_num__gte=flt[0]).filter(ex_num__lte=flt[1])
-        return qry
-
-
-class FKanken(FFilter):
-    def __init__(self):
-        super().__init__('漢検', 'fr-comp-kanken')
-
-    def add_to_query(self, flt, qry):
-        flt = flt.split(', ')
-        qry = qry.filter(kanken__kyu__in=flt)
-        return qry
-
-
-class FKanjiType(FFilter):
-    def __init__(self):
-        super().__init__('種別', 'fr-comp-type')
-
-    def add_to_query(self, flt, qry):
-        flt = flt.split(', ')
-        q = Q(classification__classification__in=flt)
-        if '常用・人名以外' in flt:
-            q = q | Q(classification__classification__isnull=True)
-        qry = qry.filter(q)
-        return qry
-
-
-class FWord(FFilter):
-    def __init__(self):
-        super().__init__('単語', 'fr-comp-word')
-
-    def add_to_query(self, flt, qry):
-        qry = qry.filter(word__contains=flt)
-        return qry
-
-
-class FSentence(FFilter):
-    def __init__(self):
-        super().__init__('例文', 'fr-comp-has-sentence')
-
-    def add_to_query(self, flt, qry):
-        if flt=='例文有り':
-            qry = qry.exclude(sentence='')
-        elif flt=='例文無し':
-            qry = qry.filter(sentence='')
-        return qry
-
-
-class FJisClass(FFilter):
-    def __init__(self):
-        super().__init__('JIS水準', 'fr-comp-jis')
-
-    def add_to_query(self, flt, qry):
-        flt = flt.split(', ')
-        q = Q(jis__level__in=flt)
-        if 'JIS水準不明' in flt:
-            q = q | Q(jis__isnull=True)
-        qry = qry.filter(q)
-        return qry
-
-
-class FYoji(FFilter):
-    def __init__(self):
-        super().__init__('漢字', 'fr-comp-yoji')
-
-    def add_to_query(self, flt, qry):
-        qry = qry.filter(yoji__contains=flt)
-        return qry
-
-
-class FBunrui(FFilter):
-    def __init__(self):
-        super().__init__('分類', 'fr-comp-bunrui')
-
-    def add_to_query(self, flt, qry):
-        qry = qry.filter(bunrui__bunrui__contains=flt).distinct()
-        return qry
-
-class FInAnki(FFilter):
-    def __init__(self):
-        super().__init__('Anki', 'fr-comp-in-anki')
-
-    def add_to_query(self, flt, qry):
-        if flt=='Anki':
-            qry = qry.filter(in_anki=True)
-        elif flt=='非Anki':
-            qry = qry.filter(in_anki=False)
         return qry

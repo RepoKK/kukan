@@ -1,0 +1,78 @@
+<script type="text/x-template" id="fr-filter-yomi-template">
+    <fr-filter v-on:apply="handleApply" @rm_fil="rm_fil"
+               :title="title" :current_filter="filterDisp" :keep_title="true">
+        <b-dropdown-item custom>
+                <b-input :placeholder="placeholder" v-model="localValue"></b-input>
+        </b-dropdown-item>
+        <b-dropdown-item custom>
+            <div style="width:290px;">
+                <b-radio v-model="matchPosition" native-value="位致">と一致する</b-radio>
+                <b-radio v-model="matchPosition" native-value="位始">から始まる</b-radio>
+                <b-radio v-model="matchPosition" native-value="位含">を含む</b-radio>
+            </div>
+        </b-dropdown-item>
+        <b-dropdown-item separator></b-dropdown-item>
+        <b-dropdown-item custom><strong>音訓読み</strong></b-dropdown-item>
+        <b-dropdown-item custom>
+            <div style="width:290px;">
+                <b-radio v-model="matchOnKun" native-value="読両">両方</b-radio>
+                <b-radio v-model="matchOnKun" native-value="読音">音読み</b-radio>
+                <b-radio v-model="matchOnKun" native-value="読訓">訓読み</b-radio>
+            </div>
+        </b-dropdown-item>
+        <b-dropdown-item separator></b-dropdown-item>
+        <b-dropdown-item custom><strong>常用漢字表</strong></b-dropdown-item>
+        <b-dropdown-item custom>
+            <div style="width:290px;">
+                <b-radio v-model="matchJoyo" native-value="常全">全読み</b-radio>
+                <b-radio v-model="matchJoyo" native-value="常用">常用読み</b-radio>
+                <b-radio v-model="matchJoyo" native-value="常外">常用読み以外</b-radio>
+            </div>
+        </b-dropdown-item>
+    </fr-filter>
+</script>
+<script>
+Vue.component('fr-filter-yomi', {
+    mixins: [MixinFrBase],
+    template: '#fr-filter-yomi-template',
+    props: ['placeholder'],
+    data: function () {
+        return {
+            localValue: "",
+            matchPosition: "位致",
+            matchOnKun: "読両",
+            matchJoyo: "常全"
+        }
+    },
+    computed: {
+        filterDisp: function() {
+            [val, pos, onkun, joyo] = this.filter.split('_');
+            var extra = []
+            if (pos == '位始') {extra.push('始')}
+            if (pos == '位含') {extra.push('含')}
+            if (onkun == '読音') {extra.push('音')}
+            if (onkun == '読訓') {extra.push('訓')}
+            if (joyo == '常用') {extra.push('常用')}
+            if (joyo == '常外') {extra.push('常外')}
+            if (extra != '') {val += ' (' + extra.join('/') + ')'}
+            return val
+        },
+        tempFilter: {
+            get: function () {
+                const flt = [
+                    `${this.localValue}`,
+                    `${this.matchPosition}`,
+                    `${this.matchOnKun}`,
+                    `${this.matchJoyo}`
+                ].join('_')
+                return flt
+            },
+            set: function (newVal) {
+                if (newVal != '') {
+                    [this.localValue, this.matchPosition, this.matchOnKun, this.matchJoyo] = newVal.split('_')
+                }
+            }
+        }
+    },
+})
+</script>

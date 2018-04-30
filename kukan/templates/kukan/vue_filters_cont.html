@@ -53,17 +53,16 @@ var FrCompAddFilter = {
                 <component :is="filter_list[filter_idx].name"
                             :title="filter_list[filter_idx].label"
                             :idx='filter_idx'
+                            :extra="filter_list[filter_idx].extra"
                             @rm_fil="rm_fil"
                             v-model='filter_list[filter_idx].value'>
                 </component>
-<!--[[filter_list[filter_idx].value]]-->
             </div>
             <div class="column is-narrow" v-if="inactive_filters.length>0">
                 <fr-filter-add :elements="inactive_filters" :activenb="active_filters.length"
                         @add_fil="add_fil"></fr-filter-add>
             </div>
         </div>
-<!--[[url_filter]]-->
     </div>
 </script>
 <script>
@@ -75,17 +74,6 @@ Vue.component('fr-filter-container', {
         }
     },
     components: {
-        'fr-comp-kakusu': FrCompKakausu,
-        'fr-comp-kanken': FrCompKanken,
-        'fr-comp-type': FrCompType,
-        'fr-comp-string-simple': FrCompStringSimple,
-        'fr-comp-yomi': FrCompYomi,
-        'fr-comp-word': FrCompStringSimple,
-        'fr-comp-has-sentence': FrCompHas,
-        'fr-comp-jis': FrJisClass,
-        'fr-comp-yoji': FrCompStringSimple,
-        'fr-comp-bunrui': FrCompStringSimple,
-        'fr-comp-in-anki': FrCompInAnki,
 
         'fr-filter-add': FrCompAddFilter
     },
@@ -140,19 +128,18 @@ Vue.component('fr-filter-container', {
     },
     template: '#filter-container'
 })
-
 </script>
 
 
 
 <script type="text/x-template" id="filtered-table">
     <div>
-        <nav class="level is-mobile">
+        <nav class="level">
             <div class="level-left">
                 <p class="level-item title is-4">[[top_title]]</p>
             </div>
             <div class="level-right">
-                <p class="level-item" v-show="total>0">[[total]]件</p>
+                <p class="level-item" v-show="total>0" v-for="item in stats">[[item]]</p>
             </div>
         </nav>
         <fr-filter-container @input="onFilterChange"></fr-filter-container>
@@ -182,6 +169,7 @@ Vue.component('fr-filter-container', {
                     :field="column.field"
                     :label="column.label"
                     :visible="column.visible"
+                    :numeric="column.numeric=='true'"
                     sortable >
                         <slot :name="column.label" v-bind="{'column': column, 'props': props}">
                             <b-icon icon="check" v-if="column.type == 'bool' && props.row[column.field]==true"></b-icon>
@@ -214,7 +202,6 @@ Vue.component('fr-filtered-table', {
     data() {
         return {
             containerSize: "is-fluid",
-            activeTab: 1,
             data: [],
             isEmpty: false,
             isBordered: false,
@@ -222,10 +209,9 @@ Vue.component('fr-filtered-table', {
             isNarrowed: true,
             isLoading: false,
             hasMobileCards: false,
-
             columnsTemplate: [],
-
             total: 0,
+            stats: [],
             sortField: '{{sort_by}}',
             sortOrder: '{{sort_order}}',
             defaultSortOrder: 'desc',
@@ -255,17 +241,15 @@ Vue.component('fr-filtered-table', {
                 `page=${this.page}`,
                 `${this.filter}`
             ].join('&')
-
             this.isLoading = true
-
             var currentPageCrit = location.pathname;
             var state = {"params": location.search};
             history.replaceState(state, null, `?${params}`);
-
             axios.get(`${location.pathname}?ajax=1&${params}`)
                 .then(({ data }) => {
                     this.data = []
                     this.total = data.total_results
+                    this.stats = data.stats
                     data.results.forEach((item) => {
                         this.data.push(item)
                     })
@@ -332,10 +316,8 @@ Vue.component('fr-filtered-table', {
     // Attach onpopstate event handler
     window.onpopstate = function(event) {
         //alert("location: " + document.location + ", state: " + JSON.stringify(event.state));
-
         };
     },
     template: '#filtered-table'
 })
-
 </script>

@@ -1,0 +1,105 @@
+<script type="text/x-template" id="fr-filter-checkbox-template">
+
+    <fr-filter v-on:apply="handleApply" @rm_fil="rm_fil" :title="title" :current_filter="filter">
+        <b-dropdown-item custom>
+            <div class="columns is-mobile">
+                <div class="column">
+                    <div v-for="(elem, index) in col0" class="field">
+                        <component :is="comptype" v-model="checkboxGroup" :native-value=elem.index>[[elem.label]]</component>
+                    </div>
+                </div>
+                <div class="column" v-if="col1.length>0">
+                    <div v-for="(elem, index) in col1" class="field">
+                        <component :is="comptype" v-model="checkboxGroup" :native-value=elem.index>[[elem.label]]</component>
+                    </div>
+                </div>
+            </div>
+        </b-dropdown-item>
+        <b-dropdown-item v-if="comptype=='b-checkbox'" separator></b-dropdown-item>
+        <b-dropdown-item v-if="comptype=='b-checkbox'" custom>
+            <div class="columns is-mobile">
+                <div class="column">
+                    <b-checkbox v-model="selectAll">全選択</b-checkbox>
+                </div>
+            </div>
+        </b-dropdown-item>
+    </fr-filter>
+</script>
+<script>
+Vue.component('fr-filter-checkbox', {
+    mixins: [MixinFrBase],
+    template: '#fr-filter-checkbox-template',
+    data: function () {
+        return {
+            checkboxGroup: ""
+        }
+    },
+    computed: {
+        comptype: function() {
+            return this.extra.comptype
+        },
+        elements: function() {
+            return this.extra.elements
+        },
+        selectAll: {
+            get: function() {
+                return this.checkboxGroup.length == this.elements.length
+            },
+            set: function (value) {
+                var selected = [];
+                if (value) {
+                    this.elements.forEach(function (elem) {
+                        selected.push(elem.index);
+                    });
+                    this.checkboxGroup = selected;
+                } else {
+                    if (this.checkboxGroup.length == this.elements.length) {
+                        this.checkboxGroup = [];
+                    }
+                }
+            }
+        },
+        col0: function() {
+            return this.indexedElem.filter(function(u) {
+                return u.col == 0 || u.col == null
+            })
+        },
+        col1: function() {
+            return this.indexedElem.filter(function(u) {
+                return u.col == 1
+            })
+        },
+        indexedElem: function() {
+            return this.elements.map((obj,idx) => {obj.index = idx; return obj;})
+        },
+        tempFilter: {
+            get: function () {
+                res = ""
+                if (this.comptype == 'b-checkbox' && this.checkboxGroup.length>0) {
+                    lst_label = []
+                    for (var i = 0, len = this.checkboxGroup.length; i < len; i++) {
+                        lst_label.push(this.elements[this.checkboxGroup[i]].label)
+                        res = lst_label.join(", ")
+                    }
+                } else if (this.comptype == 'b-radio' && this.checkboxGroup != undefined){
+                    res = this.elements[this.checkboxGroup].label
+                }
+                return res
+            },
+            set: function (newVal) {
+                var res = []
+                val = newVal.split(', ')
+                for (var i = 0, len = this.elements.length; i < len; i++) {
+                    if (val.indexOf(this.elements[i].label) > -1 ) {
+                        res.push(i)
+                    }
+                }
+                if (this.comptype == 'b-radio') {
+                    res = res[0]
+                }
+                this.checkboxGroup = res
+            }
+        },
+    },
+})
+</script>
