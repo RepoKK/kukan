@@ -10,7 +10,7 @@ from django.template.loader import render_to_string
 from django.db.models import Q
 from django.http import JsonResponse
 from functools import reduce
-from django.core.paginator import Paginator
+from django.core.paginator import Paginator, EmptyPage
 import csv
 import re
 import kukan.jautils as jau
@@ -111,10 +111,14 @@ class AjaxList(LoginRequiredMixin, generic.TemplateView):
 
         qry = self.get_filtered_list(request)
 
-        p = Paginator(qry.order_by(sort), 20)
-        res = [obj.as_dict() for obj in p.page(page).object_list]
         col_tmplt = self.model.fld_lst()
-        data = {'page': page, 'total_results': p.count, 'results': res, 'columnsTemplate': col_tmplt, 'stats': [ str(p.count) + '件']}
+        try:
+            p = Paginator(qry.order_by(sort), 20, allow_empty_first_page=True)
+            res = [obj.as_dict() for obj in p.page(page).object_list]
+            data = {'page': page, 'total_results': p.count, 'results': res, 'columnsTemplate': col_tmplt, 'stats': [ str(p.count) + ' 件']}
+        except EmptyPage:
+            data = {'page': 0, 'total_results': 0, 'results': [], 'columnsTemplate': col_tmplt, 'stats': '0 件'}
+
         return JsonResponse(data)
 
     def get_filtered_list(self, request):
@@ -203,8 +207,8 @@ class ExampleList(AjaxList):
         FGenericString('単語', 'word'),
         FGenericCheckbox('漢検', 'kanken__kyu', model, is_two_column=True, order='-kanken__difficulty'),
         FGenericYesNo('例文', 'sentence', '', '例文有り', '例文無し', True),
-        FGenericDateRange('作成', 'updated_time'),
-        FGenericDateRange('変更', 'created_time'),
+        FGenericDateRange('作成', 'created_time'),
+        FGenericDateRange('変更', 'updated_time'),
         ]
 
 

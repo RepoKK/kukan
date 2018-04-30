@@ -89,6 +89,10 @@ class FGenericDateRange(FFilter):
         super().__init__(title, 'fr-filter-daterange')
 
     def add_to_query(self, flt, qry):
+        flt_fct = qry.filter
+        if flt[0:2] == "≠ ":
+            flt_fct = qry.exclude
+            flt=flt[2:]
         if '~' in flt:
             flt = flt.split('~')
             kwargs = {}
@@ -108,7 +112,7 @@ class FGenericDateRange(FFilter):
         else:
             date=datetime.strptime(flt + ' +0900', "%Y-%m-%d %z")
             kwargs = {self.field + '__gte': date, self.field + '__lt': date+timedelta(days=1)}
-        qry = qry.filter(**kwargs)
+        qry = flt_fct(**kwargs)
         return qry
 
 
