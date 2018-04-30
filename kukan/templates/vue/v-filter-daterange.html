@@ -38,7 +38,7 @@ var MixinDateTimeFormat = {
 </script>
 
 <script type="text/x-template" id="date-field-template">
-    <b-field>
+    <b-field style="min-width:150px;">
         <b-datepicker
             :day-names='["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]'
             :date-formatter="(date) => formatDate(date)"
@@ -62,8 +62,9 @@ var DateField = {
 
 
 <script type="text/x-template" id="time-field-template">
-    <b-field>
+    <b-field style="min-width:100px;">
         <b-timepicker
+            :first-day-of-week="1"
             :placeholder="placeholder"
             icon="clock"
             :readonly="false"
@@ -91,18 +92,24 @@ var TimeField = {
                     <li :class="{'is-active':is_range}"  @click="is_range=true"><a>日時範囲</a></li>
                 </ul>
             </div>
+        </b-dropdown-item>
 
-            <div v-show="!is_range">
+        <div v-show="!is_range">
+            <b-dropdown-item custom>
                 <fr-datefield v-model="date" placeholder="日付"></fr-datefield>
+            </b-dropdown-item>
+            <b-dropdown-item custom>
                 <div class="field is-grouped is-grouped-right">
                     <b-checkbox v-model="exact_excl">
                         除く
                     </b-checkbox>
                 </div>
-            </div>
+            </b-dropdown-item>
+        </div>
 
-            <div v-show="is_range">
-                <b-field label="開始" horizontal style="width:350px;" >
+        <div v-show="is_range">
+            <b-dropdown-item custom>
+                <b-field label="開始" horizontal >
                     <fr-datefield v-model="start.date" placeholder="日付"></fr-datefield>
                     <fr-timefield v-model="start.time" placeholder="時間"></fr-timefield>
                 </b-field>
@@ -110,13 +117,15 @@ var TimeField = {
                     <fr-datefield v-model="end.date" placeholder="日付"></fr-datefield>
                     <fr-timefield v-model="end.time" placeholder="時間"></fr-timefield>
                 </b-field>
+            </b-dropdown-item>
+            <b-dropdown-item custom>
                 <div class="field is-grouped is-grouped-right">
                     <b-checkbox v-model="range_excl">
                         除く
                     </b-checkbox>
                 </div>
-            </div>
-        </b-dropdown-item>
+            </b-dropdown-item>
+        </div>
     </fr-filter>
 </script>
 <script>
