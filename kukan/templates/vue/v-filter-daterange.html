@@ -1,0 +1,215 @@
+
+<script>
+var MixinDateTimeFormat = {
+    methods: {
+        formatDate: function (date) {
+            var d = new Date(date);
+            var month = '' + (d.getMonth() + 1);
+            var day = '' + d.getDate();
+            var year = d.getFullYear();
+
+            if (month.length < 2) month = '0' + month;
+            if (day.length < 2) day = '0' + day;
+
+            return [year, month, day].join('-');
+        },
+        formatTime: function (date) {
+            var d = new Date(date);
+            var hours = '' + (d.getHours());
+            var minutes = '' + d.getMinutes();
+
+            if (hours.length < 2) hours = '0' + hours;
+            if (minutes.length < 2) minutes = '0' + minutes;
+
+            return [hours, minutes].join(':');
+        },
+        formatDateTime: function (date, time) {
+            var res = null
+            if (date!=null) {
+                res = this.formatDate(date)
+                if (time!=null) {
+                    res += ' ' + this.formatTime(time)
+                }
+            }
+            return res
+        },
+    },
+}
+</script>
+
+<script type="text/x-template" id="date-field-template">
+    <b-field>
+        <b-datepicker
+            :day-names='["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]'
+            :date-formatter="(date) => formatDate(date)"
+            :placeholder="placeholder"
+            icon="calendar-today"
+            :readonly="false"
+            v-model="localValue">
+        </b-datepicker>
+    </b-field>
+</script>
+<script>
+var DateField = {
+    template: '#date-field-template',
+    mixins: [MixinDateTimeFormat],
+    props: ['value', 'placeholder'],
+    computed: {
+        localValue: vModelComputed
+    },
+}
+</script>
+
+
+<script type="text/x-template" id="time-field-template">
+    <b-field>
+        <b-timepicker
+            :placeholder="placeholder"
+            icon="clock"
+            :readonly="false"
+            v-model="localValue">
+        </b-timepicker>
+    </b-field>
+</script>
+<script>
+var TimeField = {
+    template: '#time-field-template',
+    props: ['value', 'placeholder'],
+    computed: {
+        localValue: vModelComputed
+    },
+}
+</script>
+
+
+<script type="text/x-template" id="fr-filter-daterange-template">
+    <fr-filter v-on:apply="handleApply" @rm_fil="rm_fil" :title="title" :current_filter="filter" :keep_title="true">
+        <b-dropdown-item custom>
+            <div class="tabs is-centered is-fullwidth">
+                <ul>
+                    <li :class="{'is-active':!is_range}" @click="is_range=false"><a>日付</a></li>
+                    <li :class="{'is-active':is_range}"  @click="is_range=true"><a>日時範囲</a></li>
+                </ul>
+            </div>
+
+            <div v-show="!is_range">
+                <fr-datefield v-model="date" placeholder="日付"></fr-datefield>
+                <div class="field is-grouped is-grouped-right">
+                    <b-checkbox v-model="exact_excl">
+                        除く
+                    </b-checkbox>
+                </div>
+            </div>
+
+            <div v-show="is_range">
+                <b-field label="開始" horizontal style="width:350px;" >
+                    <fr-datefield v-model="start.date" placeholder="日付"></fr-datefield>
+                    <fr-timefield v-model="start.time" placeholder="時間"></fr-timefield>
+                </b-field>
+                <b-field label="終了" horizontal >
+                    <fr-datefield v-model="end.date" placeholder="日付"></fr-datefield>
+                    <fr-timefield v-model="end.time" placeholder="時間"></fr-timefield>
+                </b-field>
+                <div class="field is-grouped is-grouped-right">
+                    <b-checkbox v-model="range_excl">
+                        除く
+                    </b-checkbox>
+                </div>
+            </div>
+        </b-dropdown-item>
+    </fr-filter>
+</script>
+<script>
+Vue.component('fr-filter-daterange', {
+    mixins: [MixinFrBase, MixinDateTimeFormat],
+    template: '#fr-filter-daterange-template',
+    components: {
+        'fr-datefield': DateField,
+        'fr-timefield': TimeField,
+    },
+    data: function () {
+        return {
+            is_range: false,
+            date: null,
+            exact_excl: false,
+            start: {
+                date: null,
+                time: null,
+            },
+            end: {
+                date: null,
+                time: null,
+            },
+            range_excl: false,
+        }
+    },
+    computed: {
+        start_date: {
+            get: function () {
+                return this.formatDateTime(this.start.date, this.start.time)
+            },
+        },
+        end_date: {
+            get: function () {
+                return this.formatDateTime(this.end.date, this.end.time)
+            },
+        },
+        tempFilter: {
+            get: function () {
+                res = ''
+                if (this.is_range) {
+                    if (this.start_date==null && this.end_date==null) {
+                        res = ""
+                    } else {
+                        res = [this.start_date, this.end_date].join('~')
+                        if (this.range_excl) {
+                            res = '≠ ' + res
+                        }
+                    }
+                } else {
+                    if (this.date!=null) {
+                        res = this.formatDate(this.date)
+                        if (this.exact_excl) {
+                            res = '≠ ' + res
+                        }
+                    } else {
+                        res = ""
+                    }
+                }
+                return res
+            },
+            set: function (newVal) {
+                var excl = false
+                if (newVal.substring(0, 2) == '≠ ') {
+                    newVal = newVal.substring(2)
+                    excl = true
+                }
+                val = newVal.split('~')
+                if (val.length == 2) {
+                    this.is_range = true
+                    this.exact = null
+                    if (val[0]!='') {
+                        this.start.date = new Date(val[0].substring(0,10))
+                        if (val[0].length == 16) {
+                            this.start.time = new Date(val[0])
+                        }
+                    }
+                    if (val[1]!='') {
+                        this.end.date = new Date(val[1].substring(0,10))
+                        if (val[0].length == 16) {
+                            this.end.time = new Date(val[1])
+                        }
+                    }
+                    this.range_excl = excl
+                } else if (newVal != "") {
+                    this.is_range = false
+                    this.date = new Date(newVal)
+                    this.start.date = null
+                    this.end.date = null
+                    this.exact_excl = excl
+                }
+            }
+        }
+    },
+})
+</script>

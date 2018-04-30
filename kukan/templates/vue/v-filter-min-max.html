@@ -1,0 +1,156 @@
+<script type="text/x-template" id="drop-down-min-max">
+    <b-dropdown-item custom><b-field>
+        <p class="control" v-if="label">
+            <a class="button is-static">
+                [[label]]
+            </a>
+        </p>
+        <b-input :placeholder="placeholder"
+
+                    v-model="localValue">
+        </b-input>
+    </b-field></b-dropdown-item>
+</script>
+<script>
+var NumField = {
+    data: function () {
+        return {
+            _isDropdown: true, // Used internally by DropdownItem
+        }
+    },
+    props: ['value', 'label', 'placeholder'],
+    computed: {
+        localValue: {
+            get() {
+                return this.value;
+            },
+            set(newValue) {
+                this.$emit('input', newValue);
+            }
+        }
+    },
+    template: '#drop-down-min-max',
+}
+</script>
+
+<script type="text/x-template" id="fr-filter-min-max-template">
+    <fr-filter v-on:apply="handleApply" @rm_fil="rm_fil" :title="title" :current_filter="filter" :keep_title="true">
+        <b-dropdown-item custom>
+            <div class="tabs is-centered is-fullwidth">
+                <ul>
+                    <li :class="{'is-active':!is_range}" @click="is_range=false"><a>値</a></li>
+                    <li :class="{'is-active':is_range}"  @click="is_range=true"><a>範囲</a></li>
+                </ul>
+            </div>
+        </b-dropdown-item>
+
+        <div v-show="!is_range">
+            <b-dropdown-item custom>
+                <b-field>
+                    <b-input :placeholder="title" v-model="exact"></b-input>
+                </b-field>
+            </b-dropdown-item>
+            <b-dropdown-item custom>
+                <div class="field is-grouped is-grouped-right">
+                    <b-checkbox v-model="exact_excl">
+                        除く
+                    </b-checkbox>
+                </div>
+            </b-dropdown-item>
+        </div>
+
+        <div v-show="is_range">
+            <b-dropdown-item custom>
+                <b-field label=">=" horizontal>
+                    <b-input :placeholder="title" v-model="min"></b-input>
+                </b-field>
+                <b-field label="<=" horizontal>
+                    <b-input :placeholder="title" v-model="max"></b-input>
+                </b-field>
+            </b-dropdown-item>
+            <b-dropdown-item custom>
+                <div class="field is-grouped is-grouped-right">
+                    <b-checkbox v-model="range_excl">
+                        除く
+                    </b-checkbox>
+                </div>
+            </b-dropdown-item>
+        </div>
+
+    </fr-filter>
+</script>
+<script>
+function convPosInt(str) {
+    strInt = parseInt(str, 10)
+    res = ''
+    if (str == strInt) {
+        res = strInt
+    }
+    return res
+}
+Vue.component('fr-filter-min-max', {
+    mixins: [MixinFrBase],
+    template: '#fr-filter-min-max-template',
+    components: {
+        'fr-numfield': NumField,
+    },
+    data: function () {
+        return {
+            is_range: false,
+            exact: "",
+            exact_excl: false,
+            min: "",
+            max: "",
+            range_excl: false,
+        }
+    },
+    computed: {
+        tempFilter: {
+            get: function () {
+                res = ''
+                if (this.is_range) {
+                    if (this.min.toString()=="" && this.max.toString()=="") {
+                        res = ""
+                    } else {
+                        res = [this.min, this.max].join('~')
+                        if (this.range_excl) {
+                            res = '≠ ' + res
+                        }
+                    }
+                } else {
+                    if (this.exact.toString()!="" ) {
+                        res = this.exact.toString()
+                        if (this.exact_excl) {
+                            res = '≠ ' + res
+                        }
+                    } else {
+                        res = ""
+                    }
+                }
+                return res
+            },
+            set: function (newVal) {
+                var excl = false
+                if (newVal.substring(0, 2) == '≠ ') {
+                    newVal = newVal.substring(2)
+                    excl = true
+                }
+                val = newVal.split('~')
+                if (val.length == 2) {
+                    this.is_range = true
+                    this.exact = null
+                    this.min = convPosInt(val[0], 10)
+                    this.max = convPosInt(val[1], 10)
+                    this.range_excl = excl
+                } else {
+                    this.is_range = false
+                    this.exact = convPosInt(newVal)
+                    this.min = null
+                    this.max = null
+                    this.exact_excl = excl
+                }
+            }
+        }
+    },
+})
+</script>
