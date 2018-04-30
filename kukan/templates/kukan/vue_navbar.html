@@ -10,19 +10,17 @@
                 {% csrf_token %}
                     <nav class="level">
                         <div class="level-item">
-                            <b-field>
+                            <div class="field is-grouped">
                                 <input class="input" :class="{'is-hovered':searchVal != ''}"
                                        style="width:190px"
                                        name="search" type="search" placeholder="検索" icon="magnify"
                                        @focus="searchFocused = true" @blur="searchFocused = false"
                                         v-model="searchVal">
                                 </input>
-                                <p class="control" v-if="dispSearchBtn">
-                                    <button class="button" :class="color" @click.stop.prevent="searchVal=''">
-                                        <b-icon icon="close-circle-outline"></b-icon>
-                                    </button>
-                                </p>
-                            </b-field>
+                                <div class="button" :class="color" @click="searchVal=''" v-if="dispSearchBtn">
+                                    <b-icon icon="close-circle-outline"></b-icon>
+                                </div>
+                            </div>
                         </div>
                         <div class="level-item" v-if="dispSearchBtn">
                             <div class="field is-grouped">
