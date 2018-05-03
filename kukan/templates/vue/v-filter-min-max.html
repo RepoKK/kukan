@@ -34,12 +34,12 @@ var NumField = {
 </script>
 
 <script type="text/x-template" id="fr-filter-min-max-template">
-    <fr-filter v-on:apply="handleApply" @rm_fil="rm_fil" :title="title" :current_filter="filter" :keep_title="true">
+    <fr-filter {{FFilter.template.std|safe}}>
         <b-dropdown-item custom>
             <div class="tabs is-centered is-fullwidth">
                 <ul>
-                    <li :class="{'is-active':!is_range}" @click="is_range=false"><a>値</a></li>
-                    <li :class="{'is-active':is_range}"  @click="is_range=true"><a>範囲</a></li>
+                    <li :class="{'is-active':!is_range}" @click="is_range=false"><a>{{FFilter.transl.value}}</a></li>
+                    <li :class="{'is-active':is_range}"  @click="is_range=true"><a>{{FFilter.transl.range}}</a></li>
                 </ul>
             </div>
         </b-dropdown-item>
@@ -53,7 +53,7 @@ var NumField = {
             <b-dropdown-item custom>
                 <div class="field is-grouped is-grouped-right">
                     <b-checkbox v-model="exact_excl">
-                        除く
+                        {{FFilter.transl.exclude}}
                     </b-checkbox>
                 </div>
             </b-dropdown-item>
@@ -71,7 +71,7 @@ var NumField = {
             <b-dropdown-item custom>
                 <div class="field is-grouped is-grouped-right">
                     <b-checkbox v-model="range_excl">
-                        除く
+                        {{FFilter.transl.exclude}}
                     </b-checkbox>
                 </div>
             </b-dropdown-item>

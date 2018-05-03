@@ -149,6 +149,7 @@ class AjaxList(LoginRequiredMixin, generic.TemplateView):
 
         context = super().get_context_data(**kwargs)
         context['filter_list'] = filter_list
+        context.update(FFilter.get_filter_context_strings())
         context['active_filters'] = active_filters
         context['page'] = self.request.GET.get('page', 1)
         sortOrder = self.request.GET.get('sort_by', self.default_sort)

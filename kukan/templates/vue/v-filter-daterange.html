@@ -84,24 +84,24 @@ var TimeField = {
 
 
 <script type="text/x-template" id="fr-filter-daterange-template">
-    <fr-filter v-on:apply="handleApply" @rm_fil="rm_fil" :title="title" :current_filter="filter" :keep_title="true">
+    <fr-filter {{FFilter.template.std|safe}}>
         <b-dropdown-item custom>
             <div class="tabs is-centered is-fullwidth">
                 <ul>
-                    <li :class="{'is-active':!is_range}" @click="is_range=false"><a>日付</a></li>
-                    <li :class="{'is-active':is_range}"  @click="is_range=true"><a>日時範囲</a></li>
+                    <li :class="{'is-active':!is_range}" @click="is_range=false"><a>{{FFilter.transl.date}}</a></li>
+                    <li :class="{'is-active':is_range}"  @click="is_range=true"><a>{{FFilter.transl.daterange}}</a></li>
                 </ul>
             </div>
         </b-dropdown-item>
 
         <div v-show="!is_range">
             <b-dropdown-item custom>
-                <fr-datefield v-model="date" placeholder="日付"></fr-datefield>
+                <fr-datefield v-model="date" placeholder="{{FFilter.transl.date}}"></fr-datefield>
             </b-dropdown-item>
             <b-dropdown-item custom>
                 <div class="field is-grouped is-grouped-right">
                     <b-checkbox v-model="exact_excl">
-                        除く
+                        {{FFilter.transl.exclude}}
                     </b-checkbox>
                 </div>
             </b-dropdown-item>
@@ -109,19 +109,19 @@ var TimeField = {
 
         <div v-show="is_range">
             <b-dropdown-item custom>
-                <b-field label="開始" horizontal >
-                    <fr-datefield v-model="start.date" placeholder="日付"></fr-datefield>
-                    <fr-timefield v-model="start.time" placeholder="時間"></fr-timefield>
+                <b-field label="{{FFilter.transl.datestart}}" horizontal >
+                    <fr-datefield v-model="start.date" placeholder="{{FFilter.transl.date}}"></fr-datefield>
+                    <fr-timefield v-model="start.time" placeholder="{{FFilter.transl.time}}"></fr-timefield>
                 </b-field>
-                <b-field label="終了" horizontal >
-                    <fr-datefield v-model="end.date" placeholder="日付"></fr-datefield>
-                    <fr-timefield v-model="end.time" placeholder="時間"></fr-timefield>
+                <b-field label="{{FFilter.transl.dateend}}" horizontal >
+                    <fr-datefield v-model="end.date" placeholder="{{FFilter.transl.date}}"></fr-datefield>
+                    <fr-timefield v-model="end.time" placeholder="{{FFilter.transl.time}}"></fr-timefield>
                 </b-field>
             </b-dropdown-item>
             <b-dropdown-item custom>
                 <div class="field is-grouped is-grouped-right">
                     <b-checkbox v-model="range_excl">
-                        除く
+                        {{FFilter.transl.exclude}}
                     </b-checkbox>
                 </div>
             </b-dropdown-item>

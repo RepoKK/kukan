@@ -1,6 +1,6 @@
 <script type="text/x-template" id="fr-filter-checkbox-template">
 
-    <fr-filter v-on:apply="handleApply" @rm_fil="rm_fil" :title="title" :current_filter="filter">
+    <fr-filter {{FFilter.template.std|safe}}>
         <b-dropdown-item custom>
             <div class="columns is-mobile">
                 <div class="column">
@@ -19,7 +19,7 @@
         <b-dropdown-item v-if="comptype=='b-checkbox'" custom>
             <div class="columns is-mobile">
                 <div class="column">
-                    <b-checkbox v-model="selectAll">全選択</b-checkbox>
+                    <b-checkbox v-model="selectAll">{{FFilter.transl.selectall}}</b-checkbox>
                 </div>
             </div>
         </b-dropdown-item>
@@ -29,6 +29,9 @@
 Vue.component('fr-filter-checkbox', {
     mixins: [MixinFrBase],
     template: '#fr-filter-checkbox-template',
+    props: {
+        keep_title:{type:Boolean, default:false}
+    },
     data: function () {
         return {
             checkboxGroup: ""

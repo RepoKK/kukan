@@ -1,6 +1,5 @@
 <script type="text/x-template" id="fr-filter-yomi-template">
-    <fr-filter v-on:apply="handleApply" @rm_fil="rm_fil"
-               :title="title" :current_filter="filterDisp" :keep_title="true">
+    <fr-filter {{FFilter.template.std|safe}}>
         <b-dropdown-item custom>
                 <b-input :placeholder="placeholder" v-model="localValue"></b-input>
         </b-dropdown-item>

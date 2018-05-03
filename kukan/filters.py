@@ -10,6 +10,30 @@ class FFilter():
     label = ''
     value = ''
 
+    @staticmethod
+    def get_filter_context_strings():
+        return {
+            'FFilter': {
+                'transl': {
+                    'addfilter': 'ﾌｨﾙﾀｰ追加',
+                    'apply': '適用',
+                    'value': '値',
+                    'selectall': '全選択',
+                    'range': '範囲',
+                    'exclude': '除く',
+                    'time': '時間',
+                    'date': '日付',
+                    'daterange': '日時範囲',
+                    'datestart': '開始',
+                    'dateend': '終了',
+                },
+                'template': {
+                    'std': '@apply="handleApply" @rm_fil="rm_fil" :title="title" '
+                           ':current_filter="filterDisp" :keep_title="keep_title"'
+                }
+            }
+        }
+
     def __init__(self, label, type):
         self.type = type
         self.label = label
@@ -22,7 +46,7 @@ class FFilter():
                "'value':'" + self.value + "'}"
 
     def get_extra_json(self):
-        return "''"
+        return "{}"
 
     def filter(self, request, qry):
         flt = request.GET.get(self.label, None)

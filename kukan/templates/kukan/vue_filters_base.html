@@ -55,7 +55,7 @@ var Trigger = {
             </div>
             <!-- Right side -->
             <div class="level-right">
-                <a class="button is-primary" @click="handleApply">適用</a>
+                <a class="button is-primary" @click="handleApply">{{FFilter.transl.apply}}</a>
             </div>
         </nav>
     </b-dropdown-item>
@@ -83,7 +83,7 @@ var DropDownTop = {
 
 <script type="text/x-template" id="fr-filter-template">
     <div>
-        <b-dropdown ref="dropDn" @keyup.enter.native="enterApply">
+        <b-dropdown ref="dropDn" @keyup.enter.native="enterApply" @active-change="activeChange">
             <fr-trigger slot="trigger" :title="title" :current="current_filter|truncate(18)" :keep_title="keep_title"
                         :state="is_active" @rm_fil="$emit('rm_fil')"></fr-trigger>
             <drop-down-top :title="title" v-on:apply="handleApply"></drop-down-top>
@@ -107,7 +107,7 @@ Vue.component('fr-filter', {
     props: {
         title:String,
         current_filter:String,
-        keep_title:{type:Boolean, default:false}
+        keep_title:{type:Boolean, default:true}
         },
     methods: {
         handleApply: function (filter_val) {
@@ -116,6 +116,9 @@ Vue.component('fr-filter', {
         enterApply: function () {
             this.handleApply()
             this.$refs.dropDn.toggle()
+        },
+        activeChange: function (active) {
+            this.$emit('active-change',active)
         },
     },
     filters: {
@@ -136,19 +139,36 @@ var MixinFrBase = {
             filter: ""
         }
     },
-    props: ['title', 'idx', 'extra', 'value'],
+    props: {
+        title:String,
+        idx: Number,
+        extra: Object,
+        value: String,
+        keep_title:{type:Boolean, default:true}
+        },
     created() {
-        this.tempFilter = this.value
-        this.filter = this.tempFilter
+        this.resetToProps()
+    },
+    computed: {
+        filterDisp: function() {
+            return this.filter
+        },
     },
     methods: {
+        resetToProps: function () {
+            this.tempFilter = this.value
+            this.filter = this.tempFilter
+        },
         handleApply: function (filter_val) {
             this.filter=this.tempFilter
             this.$emit('input', this.filter)
         },
         rm_fil: function () {
             this.$emit('rm_fil', this.idx)
-        }
+        },
+        activeChange: function (active) {
+            this.resetToProps()
+        },
     },
 }
 </script>
@@ -156,8 +176,7 @@ var MixinFrBase = {
 
 
 <script type="text/x-template" id="fr-filter-string-template">
-    <fr-filter v-on:apply="handleApply" @rm_fil="rm_fil"
-               :title="title" :current_filter="filter" :keep_title="true">
+    <fr-filter {{FFilter.template.std|safe}}>
         <b-dropdown-item custom><b-field>
             <b-input :placeholder="placeholder"
                         v-model="localValue">
