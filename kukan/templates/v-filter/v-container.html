@@ -1,0 +1,82 @@
+<script type="text/x-template" id="filter-container">
+    <div class="container">
+        <div class="columns is-multiline is-mobile is-variable is-1">
+            <div class="column is-narrow" v-for="filter_idx in active_filters" :key="filter_idx">
+                <component :is="filter_list[filter_idx].name"
+                            :title="filter_list[filter_idx].label"
+                            :idx='filter_idx'
+                            :extra="filter_list[filter_idx].extra"
+                            @rm_fil="rm_fil"
+                            v-model='filter_list[filter_idx].value'>
+                </component>
+            </div>
+            <div class="column is-narrow" v-if="inactive_filters.length>0">
+                <fr-filter-add :elements="inactive_filters" :activenb="active_filters.length"
+                        @add_fil="add_fil"></fr-filter-add>
+            </div>
+        </div>
+    </div>
+</script>
+<script>
+Vue.component('fr-filter-container', {
+    data: function () {
+        return {
+            filter_list: {{filter_list|safe}},
+            active_filters: {{active_filters|safe}}
+        }
+    },
+    components: {
+
+        'fr-filter-add': FrCompAddFilter
+    },
+    computed: {
+        inactive_filters: function () {
+            res = []
+            af = this.active_filters
+            for (var i = 0, len = this.filter_list.length; i < len; i++) {
+                if (this.active_filters.indexOf(i) < 0) {
+                    res.push({'native':i, 'label': this.filter_list[i].label},)
+                }
+            }
+            return res
+        },
+        url_filter: {
+            get: function () {
+                res = []
+                for (var i = 0, len = this.active_filters.length; i < len; i++) {
+                    flt_idx = this.active_filters[i]
+                    if (this.filter_list[flt_idx].value) {
+                        res.push(this.filter_list[flt_idx].label + '=' + this.filter_list[flt_idx].value)
+                    }
+                }
+                return res.join("&")
+            },
+            set: function () {
+            },
+        }
+    },
+    methods: {
+        add_fil: function (idx) {
+            for (var i = 0; i < idx.length; i++) {
+                this.active_filters.push(idx[i])
+            }
+        },
+        rm_fil: function (idx) {
+            var index = this.active_filters.indexOf(idx);
+            if (index > -1) {
+                this.filter_list[idx].value = ""
+                this.active_filters.splice(index, 1);
+            }
+        },
+    },
+    watch: {
+        'url_filter': function(val, oldVal){
+            this.$emit('input', this.url_filter)
+        }
+    },
+    created() {
+        this.$emit('input', this.url_filter)
+    },
+    template: '#filter-container'
+})
+</script>

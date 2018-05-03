@@ -1,0 +1,144 @@
+<script type="text/x-template" id="filtered-table">
+    <div>
+        <nav class="level is-mobile">
+            <div class="level-left">
+                <p class="level-item title is-4">[[top_title]]</p>
+            </div>
+            <div class="level-right">
+                <p class="level-item" v-show="total>0" v-for="item in stats">[[item]]</p>
+            </div>
+        </nav>
+        <fr-filter-container @input="onFilterChange"></fr-filter-container>
+        <br>
+        <b-table
+            :data="isEmpty ? [] : data"  :loading="isLoading"
+            :striped="isStriped" :narrowed="isNarrowed" :mobile-cards="mobileCards"
+            paginated backend-pagination :total="total" :per-page="perPage" :current-page="page" @page-change="onPageChange"
+            backend-sorting :default-sort-direction="defaultSortOrder" :default-sort="[sortField, sortOrder]" @sort="onSort"
+        >
+            <template slot-scope="props">
+                <b-table-column v-for="(column, index) in columnsTemplate"
+                    :key="index"
+                    :field="column.field"
+                    :label="column.label"
+                    :visible="column.visible"
+                    :numeric="column.numeric=='true'"
+                    sortable >
+                        <slot :name="column.label" v-bind="{'column': column, 'props': props}">
+                            <b-icon icon="check" v-if="column.type == 'bool' && props.row[column.field]==true"></b-icon>
+                            <span v-html="fldformat(props.row[column.field], column, props.row['link'])"></span>
+                        </slot>
+                </b-table-column>
+            </template>
+
+            <template slot="empty">
+                <section class="section">
+                    <div class="content has-text-grey has-text-centered">
+                        <p>
+                            <b-icon
+                                icon="emoticon-sad"
+                                size="is-large">
+                            </b-icon>
+                        </p>
+                        <p>結果ありません</p>
+                    </div>
+                </section>
+            </template>
+        </b-table>
+    </div>
+</script>
+<script>
+Vue.component('fr-filtered-table', {
+    template: '#filtered-table',
+    props: {
+        top_title: { type: String },
+        perPage: {
+            type: [Number, String],
+            default: 20
+        },
+        isStriped: {type: Boolean, default: true},
+        isNarrowed: {type: Boolean, default: true},
+        mobileCards: {type: Boolean, default: false},
+    },
+    data() {
+        return {
+            containerSize: "is-fluid",
+            data: [],
+            isEmpty: false,
+            isLoading: false,
+
+            columnsTemplate: [],
+            total: 0,
+            stats: [],
+            sortField: '{{sort_by}}',
+            sortOrder: '{{sort_order}}',
+            defaultSortOrder: 'desc',
+            page: {{page}},
+            filter:''
+        }
+    },
+    methods: {
+        loadAsyncData() {
+            sortDir = this.sortOrder == 'asc' ? '' : '-'
+            const params = [
+                `sort_by=${sortDir}${this.sortField}`,
+                `page=${this.page}`,
+                `${this.filter}`
+            ].join('&')
+            this.isLoading = true
+            var currentPageCrit = location.pathname;
+            var state = {"params": location.search};
+            history.replaceState(state, null, `?${params}`);
+            axios.get(`${location.pathname}?ajax=1&${params}`)
+                .then(({ data }) => {
+                    this.data = []
+                    this.total = data.total_results
+                    this.stats = data.stats
+                    data.results.forEach((item) => {
+                        this.data.push(item)
+                    })
+                    this.columnsTemplate = data.columnsTemplate
+                    this.isLoading = false
+                })
+                .catch((error) => {
+                    this.data = []
+                    this.total = 0
+                    this.isLoading = false
+                    throw error
+                })
+        },
+        onFilterChange(filter) {
+            this.filter = filter
+            this.loadAsyncData()
+        },
+        onPageChange(page) {
+            this.page = page
+            this.loadAsyncData()
+        },
+        onSort(field, order) {
+            this.sortField = field
+            this.sortOrder = order
+            this.loadAsyncData()
+        },
+        fldformat: function(value, col, fldlink) {
+            if (value==null) return ''
+            var res = value
+            if (col.type == "bool") {
+                res = ''
+            }
+            if (col.link != '') {
+                res = '<a href="' + col.link + fldlink + '/">' + value + '</a>'
+            }
+            return res
+        },
+        fldicon: function(value, fldtype, fldlink) {
+            if (fldtype == "bool") {
+                res = ''
+            }
+            if (fldlink != '') {
+            }
+            return res
+        },
+    },
+})
+</script>

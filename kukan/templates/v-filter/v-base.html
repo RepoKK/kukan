@@ -20,6 +20,7 @@ const vModelComputed = {
 </script>
 <script>
 var Trigger = {
+    template: '#trigger-button',
     props: ['title', 'current', 'state', 'keep_title'],
     computed: {
         cur_title: function () {
@@ -41,7 +42,6 @@ var Trigger = {
             this.$emit('rm_fil')
         }
     },
-    template: '#trigger-button'
 }
 </script>
 
@@ -49,11 +49,9 @@ var Trigger = {
 <script type="text/x-template" id="drop-down-top">
     <b-dropdown-item custom>
         <nav class="level is-mobile" style="font-size:1rem;">
-            <!-- Left side -->
             <div class="level-left">
                 <p class="level-item"><strong>[[title]]</strong></p>
             </div>
-            <!-- Right side -->
             <div class="level-right">
                 <a class="button is-primary" @click="handleApply">{{FFilter.transl.apply}}</a>
             </div>
@@ -62,23 +60,21 @@ var Trigger = {
 </script>
 <script>
 var DropDownTop = {
-        data() {
-            return {
-                _isDropdown: true // Used internally by DropdownItem
-            }
-        },
+    template: '#drop-down-top',
     props: ['title'],
+    data() {
+        return {
+            _isDropdown: true // Used internally by DropdownItem
+        }
+    },
     methods: {
         handleApply: function () {
             this.$parent.selectItem(this)
             this.$emit('apply')
         }
     },
-    template: '#drop-down-top'
 }
 </script>
-
-
 
 
 <script type="text/x-template" id="fr-filter-template">
@@ -93,22 +89,23 @@ var DropDownTop = {
 </script>
 <script>
 Vue.component('fr-filter', {
-    data: function () {
-        return {
-        }
-    },
     components: {
         'fr-trigger': Trigger,
         'drop-down-top': DropDownTop,
     },
-    computed: {
-        is_active: function () {return (this.current_filter!='')}
-      },
+    template: '#fr-filter-template',
     props: {
         title:String,
         current_filter:String,
         keep_title:{type:Boolean, default:true}
-        },
+    },
+    data: function () {
+        return {
+        }
+    },
+    computed: {
+        is_active: function () {return (this.current_filter!='')}
+      },
     methods: {
         handleApply: function (filter_val) {
             this.$emit('apply')
@@ -128,24 +125,24 @@ Vue.component('fr-filter', {
                 : value
         }
     },
-    template: '#fr-filter-template'
 })
 </script>
 
+
 <script>
 var MixinFrBase = {
-    data: function () {
-        return {
-            filter: ""
-        }
-    },
     props: {
         title:String,
         idx: Number,
         extra: Object,
         value: String,
         keep_title:{type:Boolean, default:true}
-        },
+    },
+    data: function () {
+        return {
+            filter: ""
+        }
+    },
     created() {
         this.resetToProps()
     },
@@ -171,38 +168,4 @@ var MixinFrBase = {
         },
     },
 }
-</script>
-
-
-
-<script type="text/x-template" id="fr-filter-string-template">
-    <fr-filter {{FFilter.template.std|safe}}>
-        <b-dropdown-item custom><b-field>
-            <b-input :placeholder="placeholder"
-                        v-model="localValue">
-            </b-input>
-        </b-field></b-dropdown-item>
-    </fr-filter>
-</script>
-<script>
-Vue.component('fr-filter-string', {
-    mixins: [MixinFrBase],
-    template: '#fr-filter-string-template',
-    props: ['placeholder'],
-    data: function () {
-        return {
-            localValue: ""
-        }
-    },
-    computed: {
-        tempFilter: {
-            get: function () {
-                return this.localValue
-            },
-            set: function (newVal) {
-                this.localValue = newVal
-            }
-        }
-    },
-})
 </script>

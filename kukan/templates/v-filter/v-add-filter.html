@@ -1,0 +1,45 @@
+<script type="text/x-template" id="fr-add-filter">
+    <div>
+        <b-dropdown>
+            <span slot="trigger" class="button is-selected is-primary is-outlined">
+                [[title_btn]]<b-icon icon="plus-circle-outline" size="is-small"></b-icon>
+            </span>
+            <drop-down-top :title="title" @apply="handleApply"></drop-down-top>
+            <b-dropdown-item custom>
+                <div v-for="(elem, index) in elements" class="field">
+                    <b-checkbox v-model="checkboxGroup" :native-value=elem.native>[[elem.label]]</b-checkbox>
+                </div>
+            </b-dropdown-item custom>
+        </b-dropdown>
+    </div>
+</script>
+<script>
+var FrCompAddFilter = {
+    data: function () {
+        return {
+            checkboxGroup: [],
+            title: "{{FFilter.transl.addfilter}}"
+        }
+    },
+    components: {
+        'drop-down-top': DropDownTop,
+    },
+    computed: {
+        title_btn: function () {
+            res = ""
+            if (this.activenb == 0) {
+                res = this.title + "　"
+            }
+            return res
+        }
+    },
+    methods: {
+        handleApply: function (filter_val) {
+            this.$emit('add_fil', this.checkboxGroup)
+            this.checkboxGroup = []
+        }
+    },
+    props: ['elements', 'activenb'],
+    template: '#fr-add-filter'
+}
+</script>
