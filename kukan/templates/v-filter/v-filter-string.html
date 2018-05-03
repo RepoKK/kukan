@@ -1,17 +1,17 @@
 
-<script type="text/x-template" id="fr-filter-string-template">
-    <fr-filter {{FFilter.template.std|safe}}>
+<script type="text/x-template" id="v-filter-string-template">
+    <v-filter {{FFilter.template.std|safe}}>
         <b-dropdown-item custom><b-field>
             <b-input :placeholder="placeholder"
                         v-model="localValue">
             </b-input>
         </b-field></b-dropdown-item>
-    </fr-filter>
+    </v-filter>
 </script>
 <script>
-Vue.component('fr-filter-string', {
+Vue.component('v-filter-string', {
     mixins: [MixinFrBase],
-    template: '#fr-filter-string-template',
+    template: '#v-filter-string-template',
     props: ['placeholder'],
     data: function () {
         return {

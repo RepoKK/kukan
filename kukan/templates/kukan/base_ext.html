@@ -4,14 +4,14 @@
     {% block banner %}{% endblock %}
     <section class="section" style="padding-top: 1rem;padding-bottom: 1rem">
         <main>
-            <fr-navbar color="is-light" :fix_navbar="showNavBar"
-                       v-bind:class="{ 'is-hidden': !showNavBar }"></fr-navbar>
+            <vue-navbar color="is-light" :fix_navbar="showNavBar"
+                       v-bind:class="{ 'is-hidden': !showNavBar }"></vue-navbar>
             <div class="container" v-bind:class="containerSize">
                 {% block content %}
                 {% endblock %}
             </div>
         </main>
-</section>
+    </section>
 {% endblock body%}
 
 {% block mixin_ext %}

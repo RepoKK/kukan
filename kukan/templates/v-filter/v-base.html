@@ -77,23 +77,23 @@ var DropDownTop = {
 </script>
 
 
-<script type="text/x-template" id="fr-filter-template">
+<script type="text/x-template" id="v-filter-template">
     <div>
         <b-dropdown ref="dropDn" @keyup.enter.native="enterApply" @active-change="activeChange">
-            <fr-trigger slot="trigger" :title="title" :current="current_filter|truncate(18)" :keep_title="keep_title"
-                        :state="is_active" @rm_fil="$emit('rm_fil')"></fr-trigger>
+            <vf-trigger slot="trigger" :title="title" :current="current_filter|truncate(18)" :keep_title="keep_title"
+                        :state="is_active" @rm_fil="$emit('rm_fil')"></vf-trigger>
             <drop-down-top :title="title" v-on:apply="handleApply"></drop-down-top>
             <slot></slot>
         </b-dropdown>
     </div>
 </script>
 <script>
-Vue.component('fr-filter', {
+Vue.component('v-filter', {
     components: {
-        'fr-trigger': Trigger,
+        'vf-trigger': Trigger,
         'drop-down-top': DropDownTop,
     },
-    template: '#fr-filter-template',
+    template: '#v-filter-template',
     props: {
         title:String,
         current_filter:String,

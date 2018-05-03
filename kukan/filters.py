@@ -63,7 +63,7 @@ class FGenericCheckbox(FFilter):
         self.order = order if order else field
         self.none_label = none_label
         self.none_position = none_position
-        super().__init__(title, 'fr-filter-checkbox')
+        super().__init__(title, 'v-filter-checkbox')
 
     def add_to_query(self, flt, qry):
         flt = flt.split(', ')
@@ -87,7 +87,7 @@ class FGenericCheckbox(FFilter):
 class FGenericMinMax(FFilter):
     def __init__(self, title, field):
         self.field = field
-        super().__init__(title, 'fr-filter-min-max')
+        super().__init__(title, 'v-filter-min-max')
 
     def add_to_query(self, flt, qry):
         flt_fct = qry.filter
@@ -110,7 +110,7 @@ class FGenericMinMax(FFilter):
 class FGenericDateRange(FFilter):
     def __init__(self, title, field):
         self.field = field
-        super().__init__(title, 'fr-filter-daterange')
+        super().__init__(title, 'v-filter-daterange')
 
     def add_to_query(self, flt, qry):
         flt_fct = qry.filter
@@ -145,7 +145,7 @@ class FGenericString(FFilter):
         self.field = field
         self.lh_criteria = lh_criteria if lh_criteria else self.field + '__contains'
         self.rh_fct = rh_fct if rh_fct else lambda x :x
-        super().__init__(title, 'fr-filter-string')
+        super().__init__(title, 'v-filter-string')
 
     def add_to_query(self, flt, qry):
         kwargs = {self.lh_criteria:self.rh_fct(flt)}
@@ -160,7 +160,7 @@ class FGenericYesNo(FFilter):
         self.label_yes = label_yes
         self.label_no = label_no
         self.inverse = inverse
-        super().__init__(title, 'fr-filter-checkbox')
+        super().__init__(title, 'v-filter-checkbox')
 
     def add_to_query(self, flt, qry):
         kwargs = {self.field: self.criteria}
@@ -182,7 +182,7 @@ class FGenericYesNo(FFilter):
 
 class FYomi(FFilter):
     def __init__(self):
-        super().__init__('読み', 'fr-filter-yomi')
+        super().__init__('読み', 'v-filter-yomi')
 
     def add_to_query(self, flt, qry):
         yomi, position, onkun, joyo = flt.split('_')

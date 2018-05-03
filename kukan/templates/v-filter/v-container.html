@@ -11,14 +11,14 @@
                 </component>
             </div>
             <div class="column is-narrow" v-if="inactive_filters.length>0">
-                <fr-filter-add :elements="inactive_filters" :activenb="active_filters.length"
-                        @add_fil="add_fil"></fr-filter-add>
+                <v-filter-add :elements="inactive_filters" :activenb="active_filters.length"
+                        @add_fil="add_fil"></v-filter-add>
             </div>
         </div>
     </div>
 </script>
 <script>
-Vue.component('fr-filter-container', {
+Vue.component('v-filter-container', {
     data: function () {
         return {
             filter_list: {{filter_list|safe}},
@@ -27,7 +27,7 @@ Vue.component('fr-filter-container', {
     },
     components: {
 
-        'fr-filter-add': FrCompAddFilter
+        'v-filter-add': FrCompAddFilter
     },
     computed: {
         inactive_filters: function () {

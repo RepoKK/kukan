@@ -33,8 +33,8 @@ var NumField = {
 }
 </script>
 
-<script type="text/x-template" id="fr-filter-min-max-template">
-    <fr-filter {{FFilter.template.std|safe}}>
+<script type="text/x-template" id="v-filter-min-max-template">
+    <v-filter {{FFilter.template.std|safe}}>
         <b-dropdown-item custom>
             <div class="tabs is-centered is-fullwidth">
                 <ul>
@@ -77,7 +77,7 @@ var NumField = {
             </b-dropdown-item>
         </div>
 
-    </fr-filter>
+    </v-filter>
 </script>
 <script>
 function convPosInt(str) {
@@ -88,11 +88,11 @@ function convPosInt(str) {
     }
     return res
 }
-Vue.component('fr-filter-min-max', {
+Vue.component('v-filter-min-max', {
     mixins: [MixinFrBase],
-    template: '#fr-filter-min-max-template',
+    template: '#v-filter-min-max-template',
     components: {
-        'fr-numfield': NumField,
+        'vf-numfield': NumField,
     },
     data: function () {
         return {

@@ -8,7 +8,7 @@
                 <p class="level-item" v-show="total>0" v-for="item in stats">[[item]]</p>
             </div>
         </nav>
-        <fr-filter-container @input="onFilterChange"></fr-filter-container>
+        <v-filter-container @input="onFilterChange"></v-filter-container>
         <br>
         <b-table
             :data="isEmpty ? [] : data"  :loading="isLoading"
@@ -48,7 +48,7 @@
     </div>
 </script>
 <script>
-Vue.component('fr-filtered-table', {
+Vue.component('v-filtered-table', {
     template: '#filtered-table',
     props: {
         top_title: { type: String },

@@ -83,8 +83,8 @@ var TimeField = {
 </script>
 
 
-<script type="text/x-template" id="fr-filter-daterange-template">
-    <fr-filter {{FFilter.template.std|safe}}>
+<script type="text/x-template" id="v-filter-daterange-template">
+    <v-filter {{FFilter.template.std|safe}}>
         <b-dropdown-item custom>
             <div class="tabs is-centered is-fullwidth">
                 <ul>
@@ -96,7 +96,7 @@ var TimeField = {
 
         <div v-show="!is_range">
             <b-dropdown-item custom>
-                <fr-datefield v-model="date" placeholder="{{FFilter.transl.date}}"></fr-datefield>
+                <vf-datefield v-model="date" placeholder="{{FFilter.transl.date}}"></vf-datefield>
             </b-dropdown-item>
             <b-dropdown-item custom>
                 <div class="field is-grouped is-grouped-right">
@@ -110,12 +110,12 @@ var TimeField = {
         <div v-show="is_range">
             <b-dropdown-item custom>
                 <b-field label="{{FFilter.transl.datestart}}" horizontal >
-                    <fr-datefield v-model="start.date" placeholder="{{FFilter.transl.date}}"></fr-datefield>
-                    <fr-timefield v-model="start.time" placeholder="{{FFilter.transl.time}}"></fr-timefield>
+                    <vf-datefield v-model="start.date" placeholder="{{FFilter.transl.date}}"></vf-datefield>
+                    <vf-timefield v-model="start.time" placeholder="{{FFilter.transl.time}}"></vf-timefield>
                 </b-field>
                 <b-field label="{{FFilter.transl.dateend}}" horizontal >
-                    <fr-datefield v-model="end.date" placeholder="{{FFilter.transl.date}}"></fr-datefield>
-                    <fr-timefield v-model="end.time" placeholder="{{FFilter.transl.time}}"></fr-timefield>
+                    <vf-datefield v-model="end.date" placeholder="{{FFilter.transl.date}}"></vf-datefield>
+                    <vf-timefield v-model="end.time" placeholder="{{FFilter.transl.time}}"></vf-timefield>
                 </b-field>
             </b-dropdown-item>
             <b-dropdown-item custom>
@@ -126,15 +126,15 @@ var TimeField = {
                 </div>
             </b-dropdown-item>
         </div>
-    </fr-filter>
+    </v-filter>
 </script>
 <script>
-Vue.component('fr-filter-daterange', {
+Vue.component('v-filter-daterange', {
     mixins: [MixinFrBase, MixinDateTimeFormat],
-    template: '#fr-filter-daterange-template',
+    template: '#v-filter-daterange-template',
     components: {
-        'fr-datefield': DateField,
-        'fr-timefield': TimeField,
+        'vf-datefield': DateField,
+        'vf-timefield': TimeField,
     },
     data: function () {
         return {

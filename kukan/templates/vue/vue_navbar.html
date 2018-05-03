@@ -1,5 +1,5 @@
 {% load static %}
-<script type="text/x-template" id="fr-navbar">
+<script type="text/x-template" id="vue-navbar">
     <nav class="navbar is-fixed-top" :class="color">
         <div class="navbar-brand">
             <a class="navbar-item" href="/" v-if="has_search">
@@ -89,7 +89,7 @@
 </script>
 
 <script>
-Vue.component('fr-navbar', {
+Vue.component('vue-navbar', {
     data: function () {
         return {
             searchItem: "漢字",
@@ -124,6 +124,6 @@ Vue.component('fr-navbar', {
     mounted: function () {
         this.displayNavBar()
     },
-    template: '#fr-navbar'
+    template: '#vue-navbar'
 })
 </script>

@@ -1,6 +1,6 @@
-<script type="text/x-template" id="fr-filter-checkbox-template">
+<script type="text/x-template" id="v-filter-checkbox-template">
 
-    <fr-filter {{FFilter.template.std|safe}}>
+    <v-filter {{FFilter.template.std|safe}}>
         <b-dropdown-item custom>
             <div class="columns is-mobile">
                 <div class="column">
@@ -23,12 +23,12 @@
                 </div>
             </div>
         </b-dropdown-item>
-    </fr-filter>
+    </v-filter>
 </script>
 <script>
-Vue.component('fr-filter-checkbox', {
+Vue.component('v-filter-checkbox', {
     mixins: [MixinFrBase],
-    template: '#fr-filter-checkbox-template',
+    template: '#v-filter-checkbox-template',
     props: {
         keep_title:{type:Boolean, default:false}
     },

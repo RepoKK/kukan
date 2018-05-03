@@ -1,5 +1,5 @@
-<script type="text/x-template" id="fr-filter-yomi-template">
-    <fr-filter {{FFilter.template.std|safe}}>
+<script type="text/x-template" id="v-filter-yomi-template">
+    <v-filter {{FFilter.template.std|safe}}>
         <b-dropdown-item custom>
                 <b-input :placeholder="placeholder" v-model="localValue"></b-input>
         </b-dropdown-item>
@@ -28,12 +28,12 @@
                 <b-radio v-model="matchJoyo" native-value="常外">常用読み以外</b-radio>
             </div>
         </b-dropdown-item>
-    </fr-filter>
+    </v-filter>
 </script>
 <script>
-Vue.component('fr-filter-yomi', {
+Vue.component('v-filter-yomi', {
     mixins: [MixinFrBase],
-    template: '#fr-filter-yomi-template',
+    template: '#v-filter-yomi-template',
     props: ['placeholder'],
     data: function () {
         return {
