@@ -95,7 +95,7 @@ class Kanji(models.Model):
     def as_dict(self):
         res = {}
         for fld in Kanji._meta.get_fields():
-            if fld.concrete:
+            if fld.concrete and fld.name in ['kanji', 'bushu', 'kanken', 'strokes', 'classification']:
                 if fld.name == 'bushu' or fld.name == 'kouki_bushu':
                     if self.bushu is not None:
                         res['bushu'] = self.bushu.bushu
