@@ -51,6 +51,7 @@ class KoukiBushu(models.Model):
     variations = models.CharField('VARIATIONS', max_length=5)
     reading = models.CharField('READING', max_length=50)
     number = models.IntegerField()
+    kakusu = models.IntegerField()
 
     def __str__(self):
         return self.bushu + '　(' + self.reading + ')'

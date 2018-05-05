@@ -1,9 +1,10 @@
-from .models import Kanji, YomiType, YomiJoyo, Reading, Example, ExMap
+from .models import KoukiBushu, Kanji, YomiType, YomiJoyo, Reading, Example, ExMap
 import kukan.jautils as jau
 import json
 from django.utils import timezone
 from datetime import datetime, timedelta
-
+import collections
+from django.db.models import Max, Min
 
 class FFilter():
     type = ''
@@ -28,7 +29,7 @@ class FFilter():
                     'dateend': '終了',
                 },
                 'template': {
-                    'std': '@apply="handleApply" @rm_fil="rm_fil" :title="title" '
+                    'std': '@apply="handleApply" @rm_fil="rm_fil" :title="title" @active-change="activeChange"'
                            ':current_filter="filterDisp" :keep_title="keep_title"'
                 }
             }
@@ -210,4 +211,21 @@ class FYomi(FFilter):
             readings = readings.filter(joyo__yomi_joyo='表外')
 
         qry = qry.filter(reading__in=readings)
+        return qry
+
+
+class FBushu(FFilter):
+    def __init__(self):
+        super().__init__('部首', 'v-filter-bushu')
+
+    def get_extra_json(self):
+        dct = collections.defaultdict(list)
+        for x in KoukiBushu.objects.values_list('bushu', 'kakusu'):
+            dct[x[1]].append(x[0])
+        ret = {'listBushu': [{'strokeNumber': k, 'bushu': dct[k]} for k in dct.keys()],
+               'kakusu': KoukiBushu.objects.aggregate(min=Min('kakusu'), max=Max('kakusu'))}
+        return json.dumps(ret)
+
+    def add_to_query(self, flt, qry):
+        qry = qry.filter(kouki_bushu__bushu__in=flt)
         return qry

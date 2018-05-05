@@ -83,6 +83,9 @@ var DropDownTop = {
             <vf-trigger slot="trigger" :title="title" :current="current_filter|truncate(18)" :keep_title="keep_title"
                         :state="is_active" @rm_fil="$emit('rm_fil')"></vf-trigger>
             <drop-down-top :title="title" v-on:apply="handleApply"></drop-down-top>
+            <b-dropdown-item custom style="padding: 0px;visibility: hidden;">
+                <p class="is-hidden-touch">Hidden</p>
+            </b-dropdown-item>
             <slot></slot>
         </b-dropdown>
     </div>

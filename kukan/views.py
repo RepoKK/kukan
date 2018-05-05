@@ -170,7 +170,7 @@ class KanjiListFilter(AjaxList):
     filters = [
         FGenericString('漢字', 'kanji','kanji__in', list),
         FYomi(),
-        FGenericCheckbox('部首', 'kouki_bushu__bushu', model, is_two_column=True),
+        FBushu(),
         FGenericMinMax('画数', 'strokes'),
         FGenericCheckbox('種別', 'classification__classification', model,
                          order='-classification__classification', none_label='常用・人名以外'),

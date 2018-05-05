@@ -1,0 +1,110 @@
+<script type="text/x-template" id="v-filter-bushu-template">
+    <v-filter {{FFilter.template.std|safe}}>
+        <b-dropdown-item custom>
+            <div class="columns is-gapless is-mobile">
+                <div class="column">
+                    <b-input placeholder="康煕部首" v-model="localValue"></b-input>
+                </div>
+                <div class="column is-narrow">
+                    <button class="button is-black is-inverted"
+                            @mousedown.prevent @click="localValue=localValue.slice(0,-1)">
+                        <b-icon icon="backspace" size="is-small"></b-icon>
+                    </button>
+                </div>
+            </div>
+        </b-dropdown-item>
+        <b-dropdown-item separator></b-dropdown-item>
+        <b-dropdown-item custom style="min-width: 290px;">
+
+            <div class="columns is-gapless is-mobile is-centered">
+                <div class="column is-narrow">
+                    <button class="button is-white" @mousedown.prevent @click="increment('down', 5)">
+                        <b-icon icon="chevron-left" size="is-small"></b-icon>
+                    </button>
+                </div>
+                <div class="column is-narrow">
+                    <button class="button is-white" @mousedown.prevent @click="increment('down', 1)">
+                        <b-icon icon="minus" size="is-small"></b-icon>
+                    </button>
+                </div>
+                <div class="column is-narrow">
+                    <div class="field has-addons">
+                        <p class="control">
+                            <input class="input has-text-centered" placeholder="画数"
+                                     @keypress="isNumber"
+                                     v-model="strokeNumber"
+                                     style="width: 50px; text-alignment: center;"
+                            ></input>
+                        </p>
+                        <p class="control">
+                            <span class="button is-static">画</span>
+                        </p>
+                    </div>
+                </div>
+                <div class="column is-narrow">
+                    <button class="button is-white" @mousedown.prevent @click="increment('up', 1)">
+                        <b-icon icon="plus" size="is-small"></b-icon>
+                    </button>
+                </div>
+                <div class="column is-narrow">
+                    <button class="button is-white" @mousedown.prevent @click="increment('up', 5)">
+                        <b-icon icon="chevron-right" size="is-small"></b-icon>
+                    </button>
+                </div>
+            </div>
+            <div class="buttons" v-for="(lst, index) in listBushu" v-if="strokeNumber==lst.strokeNumber">
+                <span class="button is-light" v-for="(bushu, idx) in lst.bushu" @click="localValue+=bushu">[[bushu]]</span>
+                <span class="button is-hidden-desktop" v-for="n in 35-lst.bushu.length" style="visibility: hidden;">隠</span>
+            </div>
+        </b-dropdown-item>
+    </v-filter>
+</script>
+<script>
+Vue.component('v-filter-bushu', {
+    mixins: [MixinFrBase],
+    template: '#v-filter-bushu-template',
+    data: function () {
+        return {
+            localValue: "",
+            strokeNumber: 1,
+        }
+    },
+    computed: {
+        listBushu: function() {
+            return this.extra.listBushu
+        },
+        kakusu: function() {
+            return {min: this.extra.kakusu.min, max: this.extra.kakusu.max}
+        },
+        tempFilter: {
+            get: function () {
+                return this.localValue
+            },
+            set: function (newVal) {
+                this.localValue = newVal
+            }
+        }
+    },
+    methods: {
+        isNumber: function(evt) {
+            evt = (evt) ? evt : window.event;
+            var charCode = (evt.which) ? evt.which : evt.keyCode;
+            if ((charCode > 31 && (charCode < 48 || charCode > 57))) {
+                evt.preventDefault();;
+            } else {
+                return true;
+            }
+        },
+        increment: function (dir, step) {
+            var res = 0
+            if (dir=='down') {
+                res = Math.floor((this.strokeNumber - 0.1)/step)*step;
+            } else {
+                res = Math.ceil((this.strokeNumber + 0.1)/step)*step;
+            }
+            this.strokeNumber=Math.min(Math.max(parseInt(res), this.kakusu.min), this.kakusu.max);
+        }
+    }
+
+})
+</script>
