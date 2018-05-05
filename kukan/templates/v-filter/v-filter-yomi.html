@@ -1,7 +1,7 @@
 <script type="text/x-template" id="v-filter-yomi-template">
     <v-filter {{FFilter.template.std|safe}}>
         <b-dropdown-item custom>
-                <b-input :placeholder="placeholder" v-model="localValue"></b-input>
+                <b-input :placeholder="title" v-model="localValue"></b-input>
         </b-dropdown-item>
         <b-dropdown-item custom>
             <div style="width:290px;">
@@ -34,7 +34,6 @@
 Vue.component('v-filter-yomi', {
     mixins: [MixinFrBase],
     template: '#v-filter-yomi-template',
-    props: ['placeholder'],
     data: function () {
         return {
             localValue: "",

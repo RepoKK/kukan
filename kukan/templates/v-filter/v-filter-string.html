@@ -2,7 +2,7 @@
 <script type="text/x-template" id="v-filter-string-template">
     <v-filter {{FFilter.template.std|safe}}>
         <b-dropdown-item custom><b-field>
-            <b-input :placeholder="placeholder"
+            <b-input :placeholder="title"
                         v-model="localValue">
             </b-input>
         </b-field></b-dropdown-item>
@@ -12,7 +12,6 @@
 Vue.component('v-filter-string', {
     mixins: [MixinFrBase],
     template: '#v-filter-string-template',
-    props: ['placeholder'],
     data: function () {
         return {
             localValue: ""

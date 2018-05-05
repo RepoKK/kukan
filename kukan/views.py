@@ -37,7 +37,7 @@ class Index(LoginRequiredMixin, generic.FormView):
         if 'yoji' in self.request.POST:
             self.success_url = reverse('kukan:yoji_list')
             if search != '':
-                self.success_url += '?漢字=' + search
+                self.success_url += '?漢字=' + search + '&Anki=Anki'
         elif 'example' in self.request.POST:
             self.success_url = reverse('kukan:example_list')
             if search != '':
