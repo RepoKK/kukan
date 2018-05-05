@@ -70,6 +70,12 @@ Vue.component('v-filter-yomi', {
                 if (newVal != '') {
                     [this.localValue, this.matchPosition, this.matchOnKun, this.matchJoyo] = newVal.split('_')
                 }
+                if (newVal == '' || this.localValue == '') {
+                    this.localValue=""
+                    this.matchPosition="位致"
+                    this.matchOnKun="読両"
+                    this.matchJoyo="常全"
+                }
             }
         }
     },
