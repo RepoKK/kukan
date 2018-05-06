@@ -47,7 +47,7 @@ var NumField = {
         <div v-show="!is_range">
             <b-dropdown-item custom>
                 <b-field>
-                    <b-input :placeholder="title" v-model="exact"></b-input>
+                    <b-input type="number" :placeholder="title" v-model="exact"></b-input>
                 </b-field>
             </b-dropdown-item>
             <b-dropdown-item custom>
@@ -62,10 +62,10 @@ var NumField = {
         <div v-show="is_range">
             <b-dropdown-item custom>
                 <b-field label=">=" horizontal>
-                    <b-input :placeholder="title" v-model="min"></b-input>
+                    <b-input type="number" :placeholder="title" v-model="min"></b-input>
                 </b-field>
                 <b-field label="<=" horizontal>
-                    <b-input :placeholder="title" v-model="max"></b-input>
+                    <b-input type="number" :placeholder="title" v-model="max"></b-input>
                 </b-field>
             </b-dropdown-item>
             <b-dropdown-item custom>
