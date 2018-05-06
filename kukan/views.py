@@ -26,7 +26,7 @@ from django.contrib.auth.decorators import login_required
 from django.views.decorators.csrf import csrf_exempt
 
 from .filters import *
-
+import time
 
 class Index(LoginRequiredMixin, generic.FormView):
     template_name = 'kukan/index.html'
@@ -108,14 +108,17 @@ class AjaxList(LoginRequiredMixin, generic.TemplateView):
     def get_list(self, request, *args, **kwargs):
         page = request.GET.get('page', None)
         sort = request.GET.get('sort_by', None)
-
+        start_time = time.time()
         qry = self.get_filtered_list(request)
 
         col_tmplt = self.model.fld_lst()
         try:
             p = Paginator(qry.order_by(sort), 20, allow_empty_first_page=True)
             res = [obj.as_dict() for obj in p.page(page).object_list]
-            data = {'page': page, 'total_results': p.count, 'results': res, 'columnsTemplate': col_tmplt, 'stats': [ str(p.count) + ' 件']}
+            end_time = time.time()
+            data = {'page': page, 'total_results': p.count, 'results': res, 'columnsTemplate': col_tmplt,
+                    'stats': [ str(p.count) + ' 件',
+                               'Q:' + '{:d}'.format(int((end_time - start_time)*1000)),]}
         except EmptyPage:
             data = {'page': 0, 'total_results': 0, 'results': [], 'columnsTemplate': col_tmplt, 'stats': '0 件'}
 

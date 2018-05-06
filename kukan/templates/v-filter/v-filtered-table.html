@@ -6,6 +6,8 @@
             </div>
             <div class="level-right">
                 <p class="level-item" v-show="total>0" v-for="item in stats">[[item]]</p>
+                <p class="level-item" v-show="total>0">S:[[serverTime]]</p>
+                <p class="level-item" v-show="total>0">T:[[totalTime]]</p>
             </div>
         </nav>
         <v-filter-container @input="onFilterChange"></v-filter-container>
@@ -74,11 +76,16 @@ Vue.component('v-filtered-table', {
             sortOrder: '{{sort_order}}',
             defaultSortOrder: 'desc',
             page: {{page}},
-            filter:''
+            filter:'',
+
+            serverTime:null,
+            totalTime:null,
+
         }
     },
     methods: {
         loadAsyncData() {
+            startTime=Date.now()
             sortDir = this.sortOrder == 'asc' ? '' : '-'
             const params = [
                 `sort_by=${sortDir}${this.sortField}`,
@@ -91,14 +98,14 @@ Vue.component('v-filtered-table', {
             history.replaceState(state, null, `?${params}`);
             axios.get(`${location.pathname}?ajax=1&${params}`)
                 .then(({ data }) => {
+                    this.serverTime=Date.now()-startTime
                     this.data = []
                     this.total = data.total_results
                     this.stats = data.stats
-                    data.results.forEach((item) => {
-                        this.data.push(item)
-                    })
+                    this.data=data.results
                     this.columnsTemplate = data.columnsTemplate
                     this.isLoading = false
+                    this.totalTime=Date.now()-startTime
                 })
                 .catch((error) => {
                     this.data = []
