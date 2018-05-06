@@ -49,7 +49,7 @@
                 <table class="table is-fullwidth">
                     <thead><th>意味</th></thead>
                     <tbody>
-                        {% for value in kanji.meaning_list %}
+                        {% for value in kanji.kanjidetails.meaning_list %}
                             <td>{{value}}</td></tr>
                         {% endfor %}
                     </tbody>

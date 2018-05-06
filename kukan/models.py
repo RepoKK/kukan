@@ -73,21 +73,8 @@ class Kanji(models.Model):
     strokes = models.IntegerField('画数')
     classification = models.ForeignKey(Classification, on_delete=models.CASCADE, verbose_name='種別',
                                        blank=True, null=True)
-    meaning = models.CharField('意味', max_length=1000, blank=True)
-    external_ref = models.CharField('外部辞典', max_length=1000, blank=True)
     jis = models.ForeignKey(JisClass, on_delete=models.CASCADE, verbose_name='JIS水準',
-                              blank=True, null=True)
-    new_kanji = models.ForeignKey('self', related_name='kyuji', on_delete=models.CASCADE, null=True, blank=True)
-
-    anki_English = models.CharField(max_length=1000)
-    anki_Examples = models.CharField(max_length=1000)
-    anki_Kanji_Radical = models.CharField(max_length=10)
-    anki_Traditional_Form = models.CharField(max_length=10)
-    anki_Traditional_Radical = models.CharField(max_length=10)
-    anki_Reading_Table = models.CharField(max_length=10000)
-    anki_kjBushuMei = models.CharField(max_length=100)
-    anki_kjIjiDoukun = models.CharField(max_length=5000)
-
+                            blank=True, null=True)
 
     def __str__(self):
         return self.kanji
@@ -127,44 +114,34 @@ class Kanji(models.Model):
     def fld_lst(cls):
         list_fld = []
         for fld in Kanji._meta.get_fields():
-            if fld.concrete and fld.name[0:4]!='anki' and fld.name!='kouki_bushu' and fld.name!='new_kanji' and fld.name!='jis':
+            if fld.concrete and fld.name in ['kanji', 'bushu', 'kanken', 'strokes', 'classification']:
                 list_fld.append({'label': fld.verbose_name if fld.verbose_name != '' else fld.name,
                                  'field': fld.name,
                                  # TODO: really bad way to set link
                                  'link': '/kanji/' if fld.name == 'kanji' else '',
                                  'type': '',
-                                 'visible': fld.name not in ['anki_Examples', 'anki_Reading_Table',
-                                                             'anki_kjIjiDoukun', 'meaning', 'external_ref']})
+                                 'visible': True})
         list_fld.append({'label': '例文数', 'field': 'ex_num', 'link':'', 'type': '', 'visible': True})
         return list_fld
-
-    class Meta:
-        ordering = ['kanji']
 
 
     def basic_info2(self):
         list_fld = []
         for fld in ['bushu', 'kouki_bushu','strokes', 'classification', 'kanken', 'jis']:
                     list_fld.append([ self._meta.get_field(fld).verbose_name, getattr(self, fld)])
-        list_fld.append(['外部辞典', '<a href="' + self.external_ref + '">漢字辞典オンライン</a>'])
-        if self.new_kanji is not None:
+        list_fld.append(['外部辞典', '<a href="' + self.kanjidetails.external_ref + '">漢字辞典オンライン</a>'])
+        if self.kanjidetails.new_kanji is not None:
             list_fld.append(['新字体',
-                             '<a href="' + reverse('kukan:kanji_detail', kwargs={'pk': self.new_kanji}) + '">' + self.new_kanji.kanji + '</a>'])
-        old_kanji = Kanji.objects.filter(new_kanji=self)
+                             '<a href="'
+                             + reverse('kukan:kanji_detail', kwargs={'pk': self.kanjidetails.new_kanji}) + '">'
+                             + self.kanjidetails.new_kanji.kanji + '</a>'])
+        old_kanji = Kanji.objects.filter(kanjidetails__new_kanji=self)
         if old_kanji.count()>0:
             lst = []
             for kj in old_kanji:
                 lst.append('<a href="' + reverse('kukan:kanji_detail', kwargs={'pk': kj}) + '">' + kj.kanji + '</a>')
             list_fld.append(['旧字体',"、 ".join(lst)])
         return list_fld
-
-
-    def meaning_list(self):
-        res = ""
-        if self.meaning != "":
-            res = json.loads(self.meaning)
-        return res
-
 
     def get_jukiji(self):
         list_juku = []
@@ -185,6 +162,29 @@ class Kanji(models.Model):
             res = "<tr><td class='C_read C_special' colspan=2>"
             res += '<br>'.join(list_juku)
             res += "</td></tr>"
+        return res
+
+
+class KanjiDetails(models.Model):
+    kanji = models.OneToOneField(Kanji, on_delete=models.CASCADE, verbose_name='漢字')
+    meaning = models.CharField('意味', max_length=1000, blank=True)
+    external_ref = models.CharField('外部辞典', max_length=1000, blank=True)
+
+    new_kanji = models.ForeignKey(Kanji, related_name='kyuji', on_delete=models.CASCADE, null=True, blank=True)
+
+    anki_English = models.CharField(max_length=1000)
+    anki_Examples = models.CharField(max_length=1000)
+    anki_Kanji_Radical = models.CharField(max_length=10)
+    anki_Traditional_Form = models.CharField(max_length=10)
+    anki_Traditional_Radical = models.CharField(max_length=10)
+    anki_Reading_Table = models.CharField(max_length=10000)
+    anki_kjBushuMei = models.CharField(max_length=100)
+    anki_kjIjiDoukun = models.CharField(max_length=5000)
+
+    def meaning_list(self):
+        res = ""
+        if self.meaning != "":
+            res = json.loads(self.meaning)
         return res
 
 
