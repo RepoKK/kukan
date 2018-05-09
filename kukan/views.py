@@ -491,23 +491,25 @@ class ExportView(LoginRequiredMixin, generic.FormView):
                              ])
         return response
 
-
-def read_from_bin():
-    res = []
-    str = str.replace("\n", "")
-    for x in zip(*[str[i::3] for i in range(3)]):
-        if x[0] == x[1] and x[0] == x[2]:
-            res.append(x[0])
-        else:
-            print('Problem: ', x[0], x[1], x[2])
-            if x[0] in [x[1], x[2]]:
-                res.append(x[0])
-            elif x[1] == x[2]:
-                res.append(x[1])
-            else:
-                res.append('   zzz   ')
-    final = ''.join(res)
-    print(final, '\nError' if 'z' in res else '\nOK')
-    print(bz2.decompress(b''.fromhex(final)))
-    with open(r"D:\testOCR\res.py.txt", "wb") as file:
-        file.write(bz2.decompress(b''.fromhex(final)))
+# TODO
+# def read_from_bin():
+#     res = []
+#     str = str.replace("\n", "")
+#     for x in zip(*[str[i::3] for i in range(3)]):
+#         if x[0] == x[1] and x[0] == x[2]:
+#             res.append(x[0])
+#         else:
+#             print('Problem: ', x[0], x[1], x[2])
+#             if x[0] in [x[1], x[2]]:
+#                 res.append(x[0])
+#             elif x[1] == x[2]:
+#                 res.append(x[1])
+#             else:
+#                 res.append('   zzz   ')
+#     final = ''.join(res)
+#     print(final, '\nError' if 'z' in res else '\nOK')
+#     print(bz2.decompress(b''.fromhex(final)))
+#     with open(r"D:\testOCR\res.py.txt", "wb") as file:
+#         file.write(bz2.decompress(b''.fromhex(final)))
+#
+# C:\Program Files (x86)\Tesseract-OCR>tesseract.exe D:\testOCR\test.bmp D:\testOCR\out -c tessedit_char_whitelist=0123456789Abcdef -c load_system_dawg=f -c load_freq_dawg=f

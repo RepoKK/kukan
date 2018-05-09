@@ -4,7 +4,7 @@ import json
 from django.utils import timezone
 from datetime import datetime, timedelta
 import collections
-from django.db.models import Max, Min
+from django.db.models import Max, Min, Q
 
 class FFilter():
     type = ''
@@ -69,7 +69,11 @@ class FGenericCheckbox(FFilter):
     def add_to_query(self, flt, qry):
         flt = flt.split(', ')
         kwargs = {self.field + '__in': flt}
-        qry = qry.filter(**kwargs)
+        q = Q(**kwargs)
+        if self.none_label in flt:
+            kwargs = {self.field + '__isnull': True}
+            q = q|Q(**kwargs)
+        qry = qry.filter(q)
         return qry
 
     def get_extra_json(self):
