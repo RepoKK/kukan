@@ -96,9 +96,8 @@ class StatsPage(LoginRequiredMixin, TemplateView):
         return context
 
 
-class AjaxList(LoginRequiredMixin, generic.TemplateView):
-
-    class FieldProperties:
+class TableData:
+    class FieldProps:
         def __init__(self, model, in_props):
             # Default properties
             self.props = {
@@ -148,44 +147,53 @@ class AjaxList(LoginRequiredMixin, generic.TemplateView):
 
         @staticmethod
         def link_pk(base):
-            return (lambda obj: '/' + base + '/' + str(obj.pk))
+            return lambda obj: '/' + base + '/' + str(obj.pk)
 
-
-    def __init__(self):
-        super().__init__()
+    def __init__(self, model, table_fields):
+        self.model = model
         self._field_prop_list = []
-        for fld in self.table_fields:
+        for fld in table_fields:
             if type(fld) is str:
                 fld = {'name': fld}
-            self._field_prop_list.append(AjaxList.FieldProperties(self.model, fld))
+            self._field_prop_list.append(self.FieldProps(model, fld))
 
     def get_col_template(self):
         return [x.get_props_dict() for x in self._field_prop_list]
 
     def get_table_row(self, obj):
-        return {x[0]:x[1] for x in [y.format(obj) for y in self._field_prop_list]}
+        return {x[0]: x[1] for x in [y.format(obj) for y in self._field_prop_list]}
+
+    def get_table_data(self, lst):
+        return [self.get_table_row(obj) for obj in lst]
+
+
+class AjaxList(LoginRequiredMixin, generic.TemplateView):
+    model = None
+    table_data = None
+    default_sort = None
+    filters = None
 
     def dispatch(self, request, *args, **kwargs):
-        if request.method.lower() == 'get' and request.GET.get('ajax', None)=='1':
+        if request.method.lower() == 'get' and request.GET.get('ajax', None) == '1':
             handler = self.get_list
         else:
             handler = super().dispatch
         return handler(request, *args, **kwargs)
 
-    def get_list(self, request, *args, **kwargs):
+    def get_list(self, request):
         page = request.GET.get('page', None)
         sort = request.GET.get('sort_by', None)
         start_time = time.time()
         qry = self.get_filtered_list(request)
 
-        col_tmplt = self.get_col_template()
+        col_tmplt = self.table_data.get_col_template()
         try:
             p = Paginator(qry.order_by(sort), 20, allow_empty_first_page=True)
-            res = [self.get_table_row(obj) for obj in p.page(page).object_list]
+            res = self.table_data.get_table_data(p.page(page).object_list)
             end_time = time.time()
             data = {'page': page, 'total_results': p.count, 'results': res, 'columnsTemplate': col_tmplt,
-                    'stats': [ str(p.count) + ' 件',
-                               'Q:' + '{:d}'.format(int((end_time - start_time)*1000)),]}
+                    'stats': [str(p.count) + ' 件',
+                              'Q:' + '{:d}'.format(int((end_time - start_time)*1000))]}
         except EmptyPage:
             data = {'page': 0, 'total_results': 0, 'results': [], 'columnsTemplate': col_tmplt, 'stats': '0 件'}
 
@@ -222,12 +230,12 @@ class AjaxList(LoginRequiredMixin, generic.TemplateView):
         context.update(FFilter.get_filter_context_strings())
         context['active_filters'] = active_filters
         context['page'] = self.request.GET.get('page', 1)
-        sortOrder = self.request.GET.get('sort_by', self.default_sort)
-        if sortOrder[0] == '-':
-            context['sort_by'] = sortOrder[1:]
+        sort_order = self.request.GET.get('sort_by', self.default_sort)
+        if sort_order[0] == '-':
+            context['sort_by'] = sort_order[1:]
             context['sort_order'] = 'desc'
         else:
-            context['sort_by'] = sortOrder
+            context['sort_by'] = sort_order
             context['sort_order'] = 'asc'
 
         return context
@@ -238,7 +246,7 @@ class KanjiListFilter(AjaxList):
     template_name = 'kukan/kanji_list.html'
     default_sort = 'kanken'
     filters = [
-        FGenericString('漢字', 'kanji','kanji__in', list),
+        FGenericString('漢字', 'kanji', 'kanji__in', list),
         FYomi(),
         FBushu(),
         FGenericMinMax('画数', 'strokes'),
@@ -248,12 +256,12 @@ class KanjiListFilter(AjaxList):
         FGenericCheckbox('漢検', 'kanken__kyu', model, is_two_column=True, order='-kanken__difficulty'),
         FGenericMinMax('例文数', 'ex_num'),
     ]
-    table_fields = [
-        {'name': 'kanji', 'link': AjaxList.FieldProperties.link_pk('kanji')},
+    table_data = TableData(model, [
+        {'name': 'kanji', 'link': TableData.FieldProps.link_pk('kanji')},
         {'name': 'kouki_bushu', 'format': lambda x: str(x)[0]},
         'kanken', 'strokes', 'classification',
         {'name': 'ex_num', 'label': '例文数'},
-    ]
+    ])
 
     def get_filtered_list(self, request):
         val_ex = Count('exmap', filter=~Q(exmap__example__sentence=''))
@@ -275,10 +283,10 @@ class YojiList(AjaxList):
         FGenericCheckbox('漢検', 'kanken__kyu', model, is_two_column=True, order='-kanken__difficulty'),
         FGenericYesNo('Anki', 'in_anki', True, 'Anki', '非Anki'),
     ]
-    table_fields = [
-        {'name': 'yoji', 'link': AjaxList.FieldProperties.link_pk('yoji')},
+    table_data = TableData(model, [
+        {'name': 'yoji', 'link': TableData.FieldProps.link_pk('yoji')},
         'reading', 'kanken', 'in_anki'
-    ]
+    ])
 
 
 class ExampleList(AjaxList):
@@ -292,21 +300,26 @@ class ExampleList(AjaxList):
         FGenericDateRange('作成', 'created_time'),
         FGenericDateRange('変更', 'updated_time'),
     ]
-    table_fields = [
-        {'name': 'word', 'link': AjaxList.FieldProperties.link_pk('example')},
+    table_data = TableData(model, [
+        {'name': 'word', 'link': TableData.FieldProps.link_pk('example')},
         'yomi', 'sentence', 'kanken', 'is_joyo',
-        {'name': 'updated_time', 'format': AjaxList.FieldProperties.format_datetime_min }
-    ]
+        {'name': 'updated_time', 'format': TableData.FieldProps.format_datetime_min}
+    ])
 
 
 class KanjiDetail(LoginRequiredMixin, generic.DetailView):
     model = Kanji
+    table_data = TableData(model, [
+        {'name': 'word', 'link': TableData.FieldProps.link_pk('example')},
+        'yomi', 'sentence', 'kanken', 'is_joyo',
+        {'name': 'updated_time', 'format': TableData.FieldProps.format_datetime_min}
+    ])
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        qry=Example.objects.filter(word__contains=context['kanji']).exclude(sentence='')
-        context['data'] = json.dumps([obj.as_dict() for obj in qry])
-        context['columns'] = json.dumps(Example.fld_lst())
+        qry = Example.objects.filter(word__contains=context['kanji']).exclude(sentence='')
+        context['data'] = json.dumps(self.table_data.get_table_data(qry))
+        context['columns'] = json.dumps(self.table_data.get_col_template())
         return context
 
 
