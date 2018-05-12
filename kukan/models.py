@@ -79,52 +79,6 @@ class Kanji(models.Model):
     def __str__(self):
         return self.kanji
 
-    def as_dict(self):
-        res = {}
-        for fld in Kanji._meta.get_fields():
-            if fld.concrete and fld.name in ['kanji', 'bushu', 'kanken', 'strokes', 'classification']:
-                if fld.name == 'bushu' or fld.name == 'kouki_bushu':
-                    if self.bushu is not None:
-                        res['bushu'] = self.bushu.bushu
-                    if self.kouki_bushu is not None:
-                        res['bushu'] = self.kouki_bushu.bushu
-                elif fld.name == 'kanken':
-                    res['kanken'] = self.kanken.kyu
-                elif fld.name == 'classification':
-                    if self.classification is not None:
-                        res['classification'] = self.classification.classification
-                    else:
-                        res['classification'] = ""
-                elif fld.name == 'jis' and self.jis is not None:
-                    res['jis'] = self.jis.level
-                elif fld.name == 'new_kanji':
-                    if self.new_kanji is not None:
-                        res['new_kanji'] = self.new_kanji.kanji
-                    else:
-                        res['new_kanji'] = ''
-                else:
-                    res[fld.name] = getattr(self, fld.name)
-        res['ex_num'] = Example.objects.filter(kanjis=self.kanji).exclude(sentence='').count()
-
-        res['link'] = self.pk
-        return res
-
-
-    @classmethod
-    def fld_lst(cls):
-        list_fld = []
-        for fld in Kanji._meta.get_fields():
-            if fld.concrete and fld.name in ['kanji', 'bushu', 'kanken', 'strokes', 'classification']:
-                list_fld.append({'label': fld.verbose_name if fld.verbose_name != '' else fld.name,
-                                 'field': fld.name,
-                                 # TODO: really bad way to set link
-                                 'link': '/kanji/' if fld.name == 'kanji' else '',
-                                 'type': '',
-                                 'visible': True})
-        list_fld.append({'label': '例文数', 'field': 'ex_num', 'link':'', 'type': '', 'visible': True})
-        return list_fld
-
-
     def basic_info2(self):
         list_fld = []
         for fld in ['bushu', 'kouki_bushu','strokes', 'classification', 'kanken', 'jis']:
@@ -288,32 +242,6 @@ class Example(models.Model):
                                        aggregate(Max('kanken'))['kanken__max'])
         super().save(*args, **kwargs)
 
-    def as_dict(self):
-        res = {}
-        res['word'] = self.word
-        res['yomi'] = self.yomi
-        res['sentence'] = self.sentence
-        res['is_joyo'] = self.is_joyo
-        res['kanken'] = self.kanken.kyu
-        class_date = timezone.localtime(self.updated_time)
-        res['updated_time'] = class_date.strftime("%Y.%m.%d %H:%M")
-        res['link'] = self.pk
-        return res
-
-
-    @classmethod
-    def fld_lst(cls):
-        list_fld = []
-        for fld in ['word', 'yomi', 'sentence', 'is_joyo', 'kanken', 'updated_time']:
-            fld = Example._meta.get_field(fld)
-            if fld.concrete:
-                list_fld.append({'label': fld.verbose_name if fld.verbose_name != '' else fld.name,
-                                 'field': fld.name,
-                                 'link': '/example/' if fld.name == 'word' else '',
-                                 'type': 'bool' if fld.name == 'is_joyo' else '',
-                                 'visible': True})
-        return list_fld
-
     def get_absolute_url(self):
         return reverse('kukan:example_detail', kwargs={'pk': self.pk})
 
@@ -394,28 +322,6 @@ class Yoji(models.Model):
             random.shuffle(idxList)
             self.anki_cloze = idxList[0]+idxList[1]
         super().save(*args, **kwargs)
-
-    def as_dict(self):
-        res = {}
-        res['yoji'] = self.yoji
-        res['reading'] = self.reading
-        res['kanken'] = self.kanken.kyu
-        res['in_anki'] = self.in_anki
-        res['link'] = self.pk
-        return res
-
-    @classmethod
-    def fld_lst(cls):
-        list_fld = []
-        for fld in ['yoji', 'reading', 'kanken', 'in_anki']:
-            fld = Yoji._meta.get_field(fld)
-            if fld.concrete:
-                list_fld.append({'label': fld.verbose_name if fld.verbose_name != '' else fld.name,
-                                 'field': fld.name,
-                                 'link': '/yoji/' if fld.name == 'yoji' else '',
-                                 'type': 'bool' if fld.name == 'in_anki' else '',
-                                 'visible': True})
-        return list_fld
 
     def get_definition_html(self):
         return markdown.markdown(self.meaning, output_format="html5")

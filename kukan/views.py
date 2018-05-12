@@ -98,6 +98,73 @@ class StatsPage(LoginRequiredMixin, TemplateView):
 
 class AjaxList(LoginRequiredMixin, generic.TemplateView):
 
+    class FieldProperties:
+        def __init__(self, model, in_props):
+            # Default properties
+            self.props = {
+                'field': in_props['name'],
+                'label': in_props['name'],
+                'link': None,
+                'format': self.std_str,
+                'visible': True
+            }
+            if in_props['name'] in [x.name for x in model._meta.get_fields()]:
+                fld = model._meta.get_field(in_props['name'])
+
+                self.props.update({
+                    'label': fld.verbose_name if fld.verbose_name != '' else fld.name,
+                    'type': 'bool' if fld.get_internal_type() == 'BooleanField' else '',
+                    'format': self.format_identical if fld.get_internal_type() == 'BooleanField' else self.std_str,
+                })
+            # Override with input dict properties
+            self.props.update(in_props)
+            self.link_fn = self.props.pop('link')
+            self.format_fld = self.props.pop('format')
+
+        def get_props_dict(self):
+            return self.props
+
+        def format(self, obj):
+            value = self.format_fld(getattr(obj, self.props['field']))
+            if self.link_fn is not None:
+                value = '<a href="' + self.link_fn(obj) + '/">' + str(value) + '</a>'
+            return self.props['field'], value
+
+        def add_link(self, obj):
+            return 'link', self.link_fn(obj) if self.link_fn is not None else ''
+
+        @staticmethod
+        def std_str(var):
+            return '' if var is None else str(var)
+
+        @staticmethod
+        def format_identical(var):
+            return var
+
+        @staticmethod
+        def format_datetime_min(datetime_var):
+            class_date = timezone.localtime(datetime_var)
+            return class_date.strftime("%Y.%m.%d %H:%M")
+
+        @staticmethod
+        def link_pk(base):
+            return (lambda obj: '/' + base + '/' + str(obj.pk))
+
+
+    def __init__(self):
+        super().__init__()
+        self._field_prop_list = []
+        for fld in self.table_fields:
+            if type(fld) is str:
+                fld = {'name': fld}
+            self._field_prop_list.append(AjaxList.FieldProperties(self.model, fld))
+
+    def get_col_template(self):
+        return [x.get_props_dict() for x in self._field_prop_list]
+
+    def get_table_row(self, obj):
+        return {x[0]:x[1] for x in [y.format(obj) for y in self._field_prop_list]}
+
     def dispatch(self, request, *args, **kwargs):
         if request.method.lower() == 'get' and request.GET.get('ajax', None)=='1':
             handler = self.get_list
@@ -111,10 +178,10 @@ class AjaxList(LoginRequiredMixin, generic.TemplateView):
         start_time = time.time()
         qry = self.get_filtered_list(request)
 
-        col_tmplt = self.model.fld_lst()
+        col_tmplt = self.get_col_template()
         try:
             p = Paginator(qry.order_by(sort), 20, allow_empty_first_page=True)
-            res = [obj.as_dict() for obj in p.page(page).object_list]
+            res = [self.get_table_row(obj) for obj in p.page(page).object_list]
             end_time = time.time()
             data = {'page': page, 'total_results': p.count, 'results': res, 'columnsTemplate': col_tmplt,
                     'stats': [ str(p.count) + ' 件',
@@ -180,7 +247,13 @@ class KanjiListFilter(AjaxList):
         FGenericCheckbox('JIS水準', 'jis__level', model, none_label='JIS水準不明'),
         FGenericCheckbox('漢検', 'kanken__kyu', model, is_two_column=True, order='-kanken__difficulty'),
         FGenericMinMax('例文数', 'ex_num'),
-        ]
+    ]
+    table_fields = [
+        {'name': 'kanji', 'link': AjaxList.FieldProperties.link_pk('kanji')},
+        {'name': 'kouki_bushu', 'format': lambda x: str(x)[0]},
+        'kanken', 'strokes', 'classification',
+        {'name': 'ex_num', 'label': '例文数'},
+    ]
 
     def get_filtered_list(self, request):
         val_ex = Count('exmap', filter=~Q(exmap__example__sentence=''))
@@ -201,7 +274,12 @@ class YojiList(AjaxList):
         FGenericString('分類', 'bunrui__bunrui'),
         FGenericCheckbox('漢検', 'kanken__kyu', model, is_two_column=True, order='-kanken__difficulty'),
         FGenericYesNo('Anki', 'in_anki', True, 'Anki', '非Anki'),
-        ]
+    ]
+    table_fields = [
+        {'name': 'yoji', 'link': AjaxList.FieldProperties.link_pk('yoji')},
+        'reading', 'kanken', 'in_anki'
+    ]
+
 
 class ExampleList(AjaxList):
     model = Example
@@ -213,7 +291,12 @@ class ExampleList(AjaxList):
         FGenericYesNo('例文', 'sentence', '', '例文有り', '例文無し', True),
         FGenericDateRange('作成', 'created_time'),
         FGenericDateRange('変更', 'updated_time'),
-        ]
+    ]
+    table_fields = [
+        {'name': 'word', 'link': AjaxList.FieldProperties.link_pk('example')},
+        'yomi', 'sentence', 'kanken', 'is_joyo',
+        {'name': 'updated_time', 'format': AjaxList.FieldProperties.format_datetime_min }
+    ]
 
 
 class KanjiDetail(LoginRequiredMixin, generic.DetailView):

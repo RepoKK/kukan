@@ -28,7 +28,7 @@
                     sortable >
                         <slot :name="column.label" v-bind="{'column': column, 'props': props}">
                             <b-icon icon="check" v-if="column.type == 'bool' && props.row[column.field]==true"></b-icon>
-                            <span v-html="fldformat(props.row[column.field], column, props.row['link'])"></span>
+                            <span v-if="column.type != 'bool'" v-html="props.row[column.field]"></span>
                         </slot>
                 </b-table-column>
             </template>
@@ -126,25 +126,6 @@ Vue.component('v-filtered-table', {
             this.sortField = field
             this.sortOrder = order
             this.loadAsyncData()
-        },
-        fldformat: function(value, col, fldlink) {
-            if (value==null) return ''
-            var res = value
-            if (col.type == "bool") {
-                res = ''
-            }
-            if (col.link != '') {
-                res = '<a href="' + col.link + fldlink + '/">' + value + '</a>'
-            }
-            return res
-        },
-        fldicon: function(value, fldtype, fldlink) {
-            if (fldtype == "bool") {
-                res = ''
-            }
-            if (fldlink != '') {
-            }
-            return res
         },
     },
 })
