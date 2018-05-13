@@ -36,8 +36,7 @@
                     {% for exmap in kanji.exmap_set.all %}
                         {% if not exmap.reading %}
                         <tr>
-                            <td><a href="{% url 'kukan:example_detail' exmap.example.pk %}">{{exmap.example}}</a></td>
-                            <td></td>
+                            <td colspan="2"><a href="{% url 'kukan:example_detail' exmap.example.pk %}">{{exmap.example}}</a></td>
                         </tr>
                         {% endif %}
                     {% endfor %}
