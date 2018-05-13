@@ -59,16 +59,16 @@
     </div>
 
 <template>
-    <b-table :data="data" striped narrowed v-if="data.length>0">
+    <b-table :data="table_data.data" striped narrowed v-if="table_data.data.length>0">
         <template slot-scope="props">
-                <b-table-column v-for="(column, index) in columns"
+                <b-table-column v-for="(column, index) in table_data.columns"
                     :key="index"
                     :field="column.field"
                     :label="column.label"
                     :visible="column.visible">
                         <slot :name="column.label" v-bind="{'column': column, 'props': props}">
                             <b-icon icon="check" v-if="column.type == 'bool' && props.row[column.field]==true"></b-icon>
-                            <span v-html="fldformat(props.row[column.field], column, props.row['link'])"></span>
+                            <span v-if="column.type != 'bool'" v-html="props.row[column.field]"></span>
                         </slot>
                 </b-table-column>
         </template>
@@ -80,29 +80,7 @@
 {% block vue_data %}
     data() {
         return {
-            data: {{data|safe}},
-            columns: {{columns|safe}},
+            table_data: {{table_data|safe}},
         }
     },
-    methods: {
-        fldformat: function(value, col, fldlink) {
-            if (value==null) return ''
-            var res = value
-            if (col.type == "bool") {
-                res = ''
-            }
-            if (col.link != '') {
-                res = '<a href="' + col.link + fldlink + '/">' + value + '</a>'
-            }
-            return res
-        },
-        fldicon: function(value, fldtype, fldlink) {
-            if (fldtype == "bool") {
-                res = ''
-            }
-            if (fldlink != '') {
-            }
-            return res
-        },
-    }
 {% endblock vue_data %}

@@ -166,6 +166,9 @@ class TableData:
     def get_table_data(self, lst):
         return [self.get_table_row(obj) for obj in lst]
 
+    def get_table_full(self, lst):
+        return {'columns': self.get_col_template(), 'data': self.get_table_data(lst)}
+
 
 class AjaxList(LoginRequiredMixin, generic.TemplateView):
     model = None
@@ -186,16 +189,15 @@ class AjaxList(LoginRequiredMixin, generic.TemplateView):
         start_time = time.time()
         qry = self.get_filtered_list(request)
 
-        col_tmplt = self.table_data.get_col_template()
         try:
             p = Paginator(qry.order_by(sort), 20, allow_empty_first_page=True)
-            res = self.table_data.get_table_data(p.page(page).object_list)
+            table_data = self.table_data.get_table_full(p.page(page).object_list)
             end_time = time.time()
-            data = {'page': page, 'total_results': p.count, 'results': res, 'columnsTemplate': col_tmplt,
+            data = {'page': page, 'total_results': p.count, 'table_data': table_data,
                     'stats': [str(p.count) + ' 件',
                               'Q:' + '{:d}'.format(int((end_time - start_time)*1000))]}
         except EmptyPage:
-            data = {'page': 0, 'total_results': 0, 'results': [], 'columnsTemplate': col_tmplt, 'stats': '0 件'}
+            data = {'page': 0, 'total_results': 0, 'results': [], 'columnsTemplate': '', 'stats': '0 件'}
 
         return JsonResponse(data)
 
@@ -309,7 +311,7 @@ class ExampleList(AjaxList):
 
 class KanjiDetail(LoginRequiredMixin, generic.DetailView):
     model = Kanji
-    table_data = TableData(model, [
+    table_data = TableData(Example, [
         {'name': 'word', 'link': TableData.FieldProps.link_pk('example')},
         'yomi', 'sentence', 'kanken', 'is_joyo',
         {'name': 'updated_time', 'format': TableData.FieldProps.format_datetime_min}
@@ -318,8 +320,7 @@ class KanjiDetail(LoginRequiredMixin, generic.DetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         qry = Example.objects.filter(word__contains=context['kanji']).exclude(sentence='')
-        context['data'] = json.dumps(self.table_data.get_table_data(qry))
-        context['columns'] = json.dumps(self.table_data.get_col_template())
+        context['table_data'] = json.dumps(self.table_data.get_table_full(qry))
         return context
 
 

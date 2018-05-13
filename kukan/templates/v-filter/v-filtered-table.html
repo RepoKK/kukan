@@ -102,8 +102,8 @@ Vue.component('v-filtered-table', {
                     this.data = []
                     this.total = data.total_results
                     this.stats = data.stats
-                    this.data=data.results
-                    this.columnsTemplate = data.columnsTemplate
+                    this.data=data.table_data.data
+                    this.columnsTemplate = data.table_data.columns
                     this.isLoading = false
                     this.totalTime=Date.now()-startTime
                 })
