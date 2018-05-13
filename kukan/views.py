@@ -275,6 +275,7 @@ class YojiList(AjaxList):
     filters = [
         FGenericString('漢字', 'yoji'),
         FGenericString('分類', 'bunrui__bunrui'),
+        FYomiSimple('reading'),
         FGenericCheckbox('漢検', 'kanken__kyu', model, is_two_column=True, order='-kanken__difficulty'),
         FGenericYesNo('Anki', 'in_anki', True, 'Anki', '非Anki'),
     ]

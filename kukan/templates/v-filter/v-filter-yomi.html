@@ -57,12 +57,15 @@ Vue.component('v-filter-yomi', {
         },
         tempFilter: {
             get: function () {
-                const flt = [
-                    `${this.localValue}`,
-                    `${this.matchPosition}`,
-                    `${this.matchOnKun}`,
-                    `${this.matchJoyo}`
-                ].join('_')
+                flt = ""
+                if (this.localValue != "") {
+                    flt = [
+                        `${this.localValue}`,
+                        `${this.matchPosition}`,
+                        `${this.matchOnKun}`,
+                        `${this.matchJoyo}`
+                    ].join('_')
+                }
                 return flt
             },
             set: function (newVal) {

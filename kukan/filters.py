@@ -185,6 +185,26 @@ class FGenericYesNo(FFilter):
         return json.dumps(ret)
 
 
+class FYomiSimple(FFilter):
+    def __init__(self, field):
+        self.field = field
+        super().__init__('読み', 'v-filter-yomi-simple')
+
+    def add_to_query(self, flt, qry):
+        yomi, position = flt.split('_')
+        yomi = yomi.translate(jau.kat2hir)
+
+        if position == '位始':
+            kwargs = {self.field + '__startswith': yomi}
+        elif position == '位含':
+            kwargs = {self.field + '__contains': yomi}
+        else:
+            kwargs = {self.field: yomi}
+
+        qry = qry.filter(**kwargs)
+        return qry
+
+
 class FYomi(FFilter):
     def __init__(self):
         super().__init__('読み', 'v-filter-yomi')

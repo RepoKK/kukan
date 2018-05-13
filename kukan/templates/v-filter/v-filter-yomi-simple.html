@@ -1,0 +1,57 @@
+<script type="text/x-template" id="v-filter-yomi-simple-template">
+    <v-filter {{FFilter.template.std|safe}}>
+        <b-dropdown-item custom>
+                <b-input :placeholder="title" v-model="localValue"></b-input>
+        </b-dropdown-item>
+        <b-dropdown-item custom>
+            <div style="width:290px;">
+                <b-radio v-model="matchPosition" native-value="位致">と一致する</b-radio>
+                <b-radio v-model="matchPosition" native-value="位始">から始まる</b-radio>
+                <b-radio v-model="matchPosition" native-value="位含">を含む</b-radio>
+            </div>
+        </b-dropdown-item>
+    </v-filter>
+</script>
+<script>
+Vue.component('v-filter-yomi-simple', {
+    mixins: [MixinFrBase],
+    template: '#v-filter-yomi-simple-template',
+    data: function () {
+        return {
+            localValue: "",
+            matchPosition: "",
+        }
+    },
+    computed: {
+        filterDisp: function() {
+            [val, pos] = this.filter.split('_');
+            var extra = []
+            if (pos == '位始') {extra.push('始')}
+            if (pos == '位含') {extra.push('含')}
+            if (extra != '') {val += ' (' + extra.join('/') + ')'}
+            return val
+        },
+        tempFilter: {
+            get: function () {
+                flt = ""
+                if (this.localValue) {
+                    flt = [
+                        `${this.localValue}`,
+                        `${this.matchPosition}`
+                    ].join('_')
+                }
+                return flt
+            },
+            set: function (newVal) {
+                if (newVal != '') {
+                    [this.localValue, this.matchPosition] = newVal.split('_')
+                }
+                if (newVal == '' || this.localValue == '') {
+                    this.localValue=""
+                    this.matchPosition="位始"
+                }
+            }
+        }
+    },
+})
+</script>
