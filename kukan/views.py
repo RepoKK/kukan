@@ -184,20 +184,21 @@ class AjaxList(LoginRequiredMixin, generic.TemplateView):
         return handler(request, *args, **kwargs)
 
     def get_list(self, request):
-        page = request.GET.get('page', None)
-        sort = request.GET.get('sort_by', None)
+        page = request.GET.get('page', 1)
+        sort_by = request.GET.get('sort_by', self.default_sort)
+        table_data = {'page': page, 'sort_by': sort_by, 'columns': '', 'data': ''}
         start_time = time.time()
         qry = self.get_filtered_list(request)
 
         try:
-            p = Paginator(qry.order_by(sort), 20, allow_empty_first_page=True)
-            table_data = self.table_data.get_table_full(p.page(page).object_list)
+            p = Paginator(qry.order_by(sort_by), 20, allow_empty_first_page=True)
+            table_data.update(self.table_data.get_table_full(p.page(page).object_list))
             end_time = time.time()
-            data = {'page': page, 'total_results': p.count, 'table_data': table_data,
+            data = {'total_results': p.count, 'table_data': table_data,
                     'stats': [str(p.count) + ' 件',
                               'Q:' + '{:d}'.format(int((end_time - start_time)*1000))]}
         except EmptyPage:
-            data = {'page': 0, 'total_results': 0, 'results': [], 'columnsTemplate': '', 'stats': '0 件'}
+            data = {'total_results': 0, 'table_data': {'columns': '', 'data': ''}, 'stats': '0 件'}
 
         return JsonResponse(data)
 
@@ -231,14 +232,6 @@ class AjaxList(LoginRequiredMixin, generic.TemplateView):
         context['filter_list'] = filter_list
         context.update(FFilter.get_filter_context_strings())
         context['active_filters'] = active_filters
-        context['page'] = self.request.GET.get('page', 1)
-        sort_order = self.request.GET.get('sort_by', self.default_sort)
-        if sort_order[0] == '-':
-            context['sort_by'] = sort_order[1:]
-            context['sort_order'] = 'desc'
-        else:
-            context['sort_by'] = sort_order
-            context['sort_order'] = 'asc'
 
         return context
 

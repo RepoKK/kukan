@@ -16,10 +16,10 @@
             :data="isEmpty ? [] : data"  :loading="isLoading"
             :striped="isStriped" :narrowed="isNarrowed" :mobile-cards="mobileCards"
             paginated backend-pagination :total="total" :per-page="perPage" :current-page="page" @page-change="onPageChange"
-            backend-sorting :default-sort-direction="defaultSortOrder" :default-sort="[sortField, sortOrder]" @sort="onSort"
+            backend-sorting :default-sort="[sortField, sortOrder]" @sort="onSort"
         >
             <template slot-scope="props">
-                <b-table-column v-for="(column, index) in columnsTemplate"
+                <b-table-column v-for="(column, index) in columns"
                     :key="index"
                     :field="column.field"
                     :label="column.label"
@@ -69,13 +69,12 @@ Vue.component('v-filtered-table', {
             isEmpty: false,
             isLoading: false,
 
-            columnsTemplate: [],
+            columns: [],
             total: 0,
             stats: [],
-            sortField: '{{sort_by}}',
-            sortOrder: '{{sort_order}}',
-            defaultSortOrder: 'desc',
-            page: {{page}},
+            sortField: '',
+            sortOrder: '',
+            page: 1,
             filter:'',
 
             serverTime:null,
@@ -83,29 +82,48 @@ Vue.component('v-filtered-table', {
 
         }
     },
+    computed: {
+        sort_by: {
+            get: function () {
+                sortDir = this.sortOrder == 'desc' ? '-' : ''
+                return sortDir + this.sortField
+            },
+            set: function (val) {
+                if (val.slice(0,1)=='-') {
+                    this.sortOrder = 'desc'
+                    this.sortField = val.slice(1)
+                } else {
+                    this.sortOrder = 'asc'
+                    this.sortField = val
+                }
+            }
+        }
+    },
     methods: {
         loadAsyncData() {
             startTime=Date.now()
             sortDir = this.sortOrder == 'asc' ? '' : '-'
-            const params = [
-                `sort_by=${sortDir}${this.sortField}`,
-                `page=${this.page}`,
-                `${this.filter}`
-            ].join('&')
+            params = [`${this.filter}`, `page=${this.page}`]
+            if (this.sort_by != '') {
+                params.push(`sort_by=${this.sort_by}`)
+            }
+            params = params.join('&')
             this.isLoading = true
-            var currentPageCrit = location.pathname;
-            var state = {"params": location.search};
-            history.replaceState(state, null, `?${params}`);
+
             axios.get(`${location.pathname}?ajax=1&${params}`)
                 .then(({ data }) => {
                     this.serverTime=Date.now()-startTime
-                    this.data = []
                     this.total = data.total_results
                     this.stats = data.stats
                     this.data=data.table_data.data
-                    this.columnsTemplate = data.table_data.columns
+                    this.columns = data.table_data.columns
+                    this.sort_by=data.table_data.sort_by
                     this.isLoading = false
                     this.totalTime=Date.now()-startTime
+
+                    var currentPageCrit = location.pathname;
+                    var state = {"params": location.search};
+                    history.replaceState(state, null, `?${params}`);
                 })
                 .catch((error) => {
                     this.data = []
