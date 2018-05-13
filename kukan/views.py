@@ -186,7 +186,7 @@ class AjaxList(LoginRequiredMixin, generic.TemplateView):
     def get_list(self, request):
         page = request.GET.get('page', 1)
         sort_by = request.GET.get('sort_by', self.default_sort)
-        table_data = {'page': page, 'sort_by': sort_by, 'columns': '', 'data': ''}
+        table_data = {'page': int(page), 'sort_by': sort_by, 'columns': '', 'data': ''}
         start_time = time.time()
         qry = self.get_filtered_list(request)
 

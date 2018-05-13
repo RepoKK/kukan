@@ -13,13 +13,13 @@
         <v-filter-container @input="onFilterChange"></v-filter-container>
         <br>
         <b-table
-            :data="isEmpty ? [] : data"  :loading="isLoading"
+            :data="isEmpty ? [] : table_data.data"  :loading="isLoading"
             :striped="isStriped" :narrowed="isNarrowed" :mobile-cards="mobileCards"
-            paginated backend-pagination :total="total" :per-page="perPage" :current-page="page" @page-change="onPageChange"
+            paginated backend-pagination :total="total" :per-page="perPage" :current-page="table_data.page" @page-change="onPageChange"
             backend-sorting :default-sort="[sortField, sortOrder]" @sort="onSort"
         >
             <template slot-scope="props">
-                <b-table-column v-for="(column, index) in columns"
+                <b-table-column v-for="(column, index) in table_data.columns"
                     :key="index"
                     :field="column.field"
                     :label="column.label"
@@ -64,48 +64,48 @@ Vue.component('v-filtered-table', {
     },
     data() {
         return {
-            containerSize: "is-fluid",
-            data: [],
             isEmpty: false,
             isLoading: false,
 
-            columns: [],
             total: 0,
             stats: [],
-            sortField: '',
-            sortOrder: '',
-            page: 1,
             filter:'',
+            table_data: {page: 1, sort_by: '', columns: '', data: []},
 
             serverTime:null,
             totalTime:null,
-
         }
     },
     computed: {
-        sort_by: {
+        sortField: {
             get: function () {
-                sortDir = this.sortOrder == 'desc' ? '-' : ''
-                return sortDir + this.sortField
-            },
-            set: function (val) {
-                if (val.slice(0,1)=='-') {
-                    this.sortOrder = 'desc'
-                    this.sortField = val.slice(1)
-                } else {
-                    this.sortOrder = 'asc'
-                    this.sortField = val
+                res = this.table_data.sort_by
+                if (res.slice(0,1)=='-') {
+                    res = res.slice(1)
                 }
+                return res
+            },
+            set: function (newVal) {
+                sortDir = this.sortOrder == 'asc' ? '' : '-'
+                this.table_data.sort_by = sortDir + newVal
             }
-        }
+        },
+        sortOrder: {
+            get: function () {
+                return this.table_data.sort_by.slice(0,1)=='-' ? 'desc' : 'asc'
+            },
+            set: function (newVal) {
+                sortDir = newVal == 'asc' ? '' : '-'
+                this.table_data.sort_by = sortDir + this.sortField
+            }
+        },
     },
     methods: {
         loadAsyncData() {
             startTime=Date.now()
-            sortDir = this.sortOrder == 'asc' ? '' : '-'
-            params = [`${this.filter}`, `page=${this.page}`]
-            if (this.sort_by != '') {
-                params.push(`sort_by=${this.sort_by}`)
+            params = [`${this.filter}`, `page=${this.table_data.page}`]
+            if (this.table_data.sort_by != '') {
+                params.push(`sort_by=${this.table_data.sort_by}`)
             }
             params = params.join('&')
             this.isLoading = true
@@ -115,9 +115,7 @@ Vue.component('v-filtered-table', {
                     this.serverTime=Date.now()-startTime
                     this.total = data.total_results
                     this.stats = data.stats
-                    this.data=data.table_data.data
-                    this.columns = data.table_data.columns
-                    this.sort_by=data.table_data.sort_by
+                    this.table_data=data.table_data
                     this.isLoading = false
                     this.totalTime=Date.now()-startTime
 
@@ -126,7 +124,6 @@ Vue.component('v-filtered-table', {
                     history.replaceState(state, null, `?${params}`);
                 })
                 .catch((error) => {
-                    this.data = []
                     this.total = 0
                     this.isLoading = false
                     throw error
