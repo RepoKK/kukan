@@ -134,7 +134,7 @@ Vue.component('v-filtered-table', {
             this.loadAsyncData()
         },
         onPageChange(page) {
-            this.page = page
+            this.table_data.page = page
             this.loadAsyncData()
         },
         onSort(field, order) {
