@@ -233,6 +233,10 @@ class AjaxList(LoginRequiredMixin, generic.TemplateView):
         context.update(FFilter.get_filter_context_strings())
         context['active_filters'] = active_filters
 
+        page = self.request.GET.get('page', 1)
+        sort_by = self.request.GET.get('sort_by', self.default_sort)
+        context['table_data'] = json.dumps({'page': int(page), 'sort_by': sort_by, 'columns': '', 'data': ''})
+
         return context
 
 

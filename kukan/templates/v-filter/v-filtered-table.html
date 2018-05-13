@@ -70,7 +70,7 @@ Vue.component('v-filtered-table', {
             total: 0,
             stats: [],
             filter:'',
-            table_data: {page: 1, sort_by: '', columns: '', data: []},
+            table_data: {{table_data|safe}},
 
             serverTime:null,
             totalTime:null,
