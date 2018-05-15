@@ -4,7 +4,7 @@
     <v-filtered-table top_title="四字熟語"　:mobile-cards="true">
         <template slot="Anki" slot-scope="{column, props}">
             <fr-addrem-anki :in_anki_init="props.row[column.field]"
-                            :yoji="props.row['yoji']"
+                            :yoji="props.row['yoji'].match(/<a [^>]+>([^<]+)<\/a>/)[1]"
                             :edit_allowed="editEnabled">
             </fr-addrem-anki>
         </template>
