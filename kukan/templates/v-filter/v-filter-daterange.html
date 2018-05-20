@@ -155,16 +155,25 @@ Vue.component('v-filter-daterange', {
     computed: {
         start_date: {
             get: function () {
-                return this.formatDateTime(this.start.date, this.start.time)
+                res = null
+                if (this.start.date != null) {
+                    res = this.formatDateTime(this.start.date, this.start.time)
+                }
+                return res
             },
         },
         end_date: {
             get: function () {
-                return this.formatDateTime(this.end.date, this.end.time)
+                res = null
+                if (this.end.date != null) {
+                    res = this.formatDateTime(this.end.date, this.end.time)
+                }
+                return res
             },
         },
         tempFilter: {
             get: function () {
+                console.log('get')
                 res = ''
                 if (this.is_range) {
                     if (this.start_date==null && this.end_date==null) {
@@ -188,6 +197,7 @@ Vue.component('v-filter-daterange', {
                 return res
             },
             set: function (newVal) {
+                console.log('SET' + newVal)
                 var excl = false
                 if (newVal.substring(0, 2) == '≠ ') {
                     newVal = newVal.substring(2)
@@ -195,30 +205,50 @@ Vue.component('v-filter-daterange', {
                 }
                 val = newVal.split('~')
                 if (val.length == 2) {
-                    this.is_range = true
-                    this.exact = null
-                    if (val[0]!='') {
-                        this.start.date = new Date(val[0].substring(0,10))
-                        if (val[0].length == 16) {
-                            this.start.time = new Date(val[0])
+                    if (val[0]=='' && val[1]=='') {
+                        this.reset_exact()
+                        this.reset_range()
+                    } else {
+                        this.reset_exact()
+                        if (val[0]!='') {
+                            this.start.date = new Date(val[0].substring(0,10))
+                            if (val[0].length == 16) {
+                                this.start.time = new Date(val[0])
+                            }
                         }
-                    }
-                    if (val[1]!='') {
-                        this.end.date = new Date(val[1].substring(0,10))
-                        if (val[0].length == 16) {
-                            this.end.time = new Date(val[1])
+                        if (val[1]!='') {
+                            this.end.date = new Date(val[1].substring(0,10))
+                            if (val[1].length == 16) {
+                                this.end.time = new Date(val[1])
+                            }
                         }
+                        this.range_excl = excl
                     }
-                    this.range_excl = excl
                 } else if (newVal != "") {
-                    this.is_range = false
+                    this.reset_range()
                     this.date = new Date(newVal)
-                    this.start.date = null
-                    this.end.date = null
                     this.exact_excl = excl
+                } else {
+                    this.reset_exact()
+                    this.reset_range()
                 }
             }
         }
+    },
+    methods: {
+        reset_exact: function () {
+            this.is_range = true
+            this.date = null
+            this.exact_excl = false
+        },
+        reset_range: function () {
+            this.is_range = false
+            this.range_excl = false
+            this.start.date = null
+            this.start.time = null
+            this.end.date = null
+            this.end.time = null
+        },
     },
 })
 </script>

@@ -104,15 +104,22 @@ class TableData:
                 'field': in_props['name'],
                 'label': in_props['name'],
                 'link': None,
+                'type': in_props.get('type', ''),
                 'format': self.std_str,
                 'visible': True
             }
             if in_props['name'] in [x.name for x in model._meta.get_fields()]:
                 fld = model._meta.get_field(in_props['name'])
+                if self.props['type'] == '':
+                    var_type = ''
+                    if fld.get_internal_type() == 'BooleanField':
+                        var_type = 'bool'
+                    elif fld.get_internal_type() in 'IntegerField FloatField':
+                        var_type = 'numeric'
+                    self.props.update({'type': var_type})
 
                 self.props.update({
                     'label': fld.verbose_name if fld.verbose_name != '' else fld.name,
-                    'type': 'bool' if fld.get_internal_type() == 'BooleanField' else '',
                     'format': self.format_identical if fld.get_internal_type() == 'BooleanField' else self.std_str,
                 })
             # Override with input dict properties
@@ -124,7 +131,8 @@ class TableData:
             return self.props
 
         def format(self, obj):
-            value = self.format_fld(getattr(obj, self.props['field']))
+            value = reduce(lambda x, y: getattr(x, y), self.props['field'].split('__'), obj)
+            value = self.format_fld(value)
             if self.link_fn is not None:
                 value = '<a href="' + self.link_fn(obj) + '/">' + str(value) + '</a>'
             return self.props['field'], value
@@ -176,6 +184,10 @@ class AjaxList(LoginRequiredMixin, generic.TemplateView):
     default_sort = None
     filters = None
 
+    def __init__(self):
+        super().__init__()
+        self.object_counter = '件'
+
     def dispatch(self, request, *args, **kwargs):
         if request.method.lower() == 'get' and request.GET.get('ajax', None) == '1':
             handler = self.get_list
@@ -186,7 +198,7 @@ class AjaxList(LoginRequiredMixin, generic.TemplateView):
     def get_list(self, request):
         page = request.GET.get('page', 1)
         sort_by = request.GET.get('sort_by', self.default_sort)
-        table_data = {'page': int(page), 'sort_by': sort_by, 'columns': '', 'data': ''}
+        table_data = {'page': int(page), 'sort_by': sort_by, 'columns': '', 'data': []}
         start_time = time.time()
         qry = self.get_filtered_list(request)
 
@@ -195,12 +207,21 @@ class AjaxList(LoginRequiredMixin, generic.TemplateView):
             table_data.update(self.table_data.get_table_full(p.page(page).object_list))
             end_time = time.time()
             data = {'total_results': p.count, 'table_data': table_data,
-                    'stats': [str(p.count) + ' 件',
-                              'Q:' + '{:d}'.format(int((end_time - start_time)*1000))]}
+                    'stats': self.get_stats(qry, p, start_time, end_time)}
+            data.update(self.get_extra_json(p, page, qry))
         except EmptyPage:
-            data = {'total_results': 0, 'table_data': {'columns': '', 'data': ''}, 'stats': '0 件'}
+            data = {'total_results': 0, 'table_data': table_data, 'stats': '0 ' + self.object_counter}
 
         return JsonResponse(data)
+
+    # noinspection PyUnusedLocal,PyMethodMayBeStatic
+    def get_extra_json(self, p, page, qry):
+        return {}
+
+    # noinspection PyUnusedLocal
+    def get_stats(self, qry, p, start_time, end_time):
+        return [str(p.count) + ' ' + self.object_counter,
+                'Q:' + '{:d}'.format(int((end_time - start_time)*1000))]
 
     def get_filtered_list(self, request):
         qry = self.model.objects.all()
@@ -235,7 +256,7 @@ class AjaxList(LoginRequiredMixin, generic.TemplateView):
 
         page = self.request.GET.get('page', 1)
         sort_by = self.request.GET.get('sort_by', self.default_sort)
-        context['table_data'] = json.dumps({'page': int(page), 'sort_by': sort_by, 'columns': '', 'data': ''})
+        context['table_data'] = json.dumps({'page': int(page), 'sort_by': sort_by, 'columns': '', 'data': []})
 
         return context
 
@@ -336,18 +357,13 @@ class ExampleCreate(LoginRequiredMixin, CreateView):
     form_class = ExampleForm
     context_object_name = 'example'
 
-    def form_valid(self, form):
-        # This method is called when valid form data has been POSTed.
-        # It should return an HttpResponse.
-        fld = form.fields
-        return super().form_valid(form)
-
 
 class ExampleUpdate(LoginRequiredMixin, UpdateView):
     template_name = 'kukan/example_update.html'
     model = Example
     form_class = ExampleForm
     context_object_name = 'example'
+
 
 @login_required
 def yoji_anki(request):
@@ -428,10 +444,12 @@ def get_yomi(request):
 @login_required
 def set_yomi(request):
     word = request.GET.get('word', None)
+    word_native = request.GET.get('word_native', None)
+    if word_native is not None and word_native != '':
+        word = word_native
     yomi = request.GET.get('yomi', None)
     yomi = yomi.translate(jau.hir2kat)
 
-    data = {}
     lst_reading = []
     lst_id = []
     for kj in word:
@@ -483,9 +501,7 @@ def get_goo(request):
         yomi = yomi.translate(jau.hir2kat)
         yomi = yomi.replace('・', '')
         yomi = re.sub('〔.*〕', '', yomi)
-        definition = block[0].getchildren()[0].text
     except IndexError:
-        block = tree.xpath('//dt[@class="title search-ttl-a"]')
         for block in tree.xpath('//dt[@class="title search-ttl-a"]'):
             if block.getparent().getparent().get('href')[0:3] == '/jn':
                 candidates.append({'word': block.text, 'link': block.getparent().getparent().get('href')})
@@ -546,6 +562,8 @@ class ExportView(LoginRequiredMixin, generic.FormView):
                              example.kanken])
         return response
 
+    # noinspection PyUnusedLocal
+    @staticmethod
     def export_anki_kanji(request):
         # Create the HttpResponse object with the appropriate CSV header.
         response = HttpResponse(content_type='text/csv')
@@ -568,7 +586,8 @@ class ExportView(LoginRequiredMixin, generic.FormView):
                              kj.anki_kjIjiDoukun])
         return response
 
-
+    # noinspection PyUnusedLocal
+    @staticmethod
     def export_anki_yoji(request):
         # Create the HttpResponse object with the appropriate CSV header.
         response = HttpResponse(content_type='text/csv')

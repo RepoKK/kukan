@@ -27,6 +27,7 @@ class FFilter():
                     'daterange': '日時範囲',
                     'datestart': '開始',
                     'dateend': '終了',
+                    'noresult': '結果ありません',
                 },
                 'template': {
                     'std': '@apply="handleApply" @rm_fil="rm_fil" :title="title" @active-change="activeChange"'

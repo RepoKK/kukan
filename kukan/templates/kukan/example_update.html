@@ -328,6 +328,7 @@
             const params = [
                 `ex_id=${example_id}`,
                 `word=${this.word}`,
+                `word_native=${this.word_native}`,
                 `yomi=${this.yomi}`
             ].join('&')
             axios.get(`/ajax/set_yomi/?${params}`)

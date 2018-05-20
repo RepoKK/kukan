@@ -25,9 +25,11 @@
                     :label="column.label"
                     :visible="column.visible"
                     :numeric="column.numeric=='true'"
+                                :centered="column.type=='bool'"
                     sortable >
                         <slot :name="column.label" v-bind="{'column': column, 'props': props}">
-                            <b-icon icon="check" v-if="column.type == 'bool' && props.row[column.field]==true"></b-icon>
+                            <b-icon icon="check" size="is-small"
+                                    v-if="column.type == 'bool' && props.row[column.field]==true"></b-icon>
                             <span v-if="column.type != 'bool'" v-html="props.row[column.field]"></span>
                         </slot>
                 </b-table-column>
@@ -42,7 +44,7 @@
                                 size="is-large">
                             </b-icon>
                         </p>
-                        <p>結果ありません</p>
+                        <p>{{FFilter.transl.noresult}}</p>
                     </div>
                 </section>
             </template>
