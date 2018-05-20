@@ -548,7 +548,7 @@ class ExportView(LoginRequiredMixin, generic.FormView):
 
         q_set = Example.objects.exclude(sentence='').exclude(kanken__difficulty__gt=10)
         if choice == 'anki_kaki_ayu':
-            q_set = q_set.exclude(kanken__difficulty__lt=8)
+            q_set = q_set.filter(Q(kanken__difficulty__gte=8) | Q(word__endswith='義語）'))
 
         for example in q_set:
             word = example.word_native if example.word_native != "" else example.word
