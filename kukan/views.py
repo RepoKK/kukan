@@ -17,6 +17,7 @@ import kukan.jautils as jau
 import json
 from django.db.models import Count
 import html2text
+from collections import defaultdict
 
 from lxml import html
 import requests
@@ -564,7 +565,7 @@ class ExportView(LoginRequiredMixin, generic.FormView):
 
     # noinspection PyUnusedLocal
     @staticmethod
-    def export_anki_kanji(request):
+    def export_anki_kanji():
         # Create the HttpResponse object with the appropriate CSV header.
         response = HttpResponse(content_type='text/csv')
         response['Content-Disposition'] = 'attachment; filename="djAnkiKanji.csv"'
@@ -588,16 +589,25 @@ class ExportView(LoginRequiredMixin, generic.FormView):
 
     # noinspection PyUnusedLocal
     @staticmethod
-    def export_anki_yoji(request):
+    def export_anki_yoji():
         # Create the HttpResponse object with the appropriate CSV header.
         response = HttpResponse(content_type='text/csv')
         response['Content-Disposition'] = 'attachment; filename="djAnkiYoji.csv"'
 
+        test_kanji = defaultdict(list)
+        for yoji in Yoji.objects.filter(in_anki=True):
+            test_kanji[yoji.yoji[0:2]].append(yoji.yoji[2:4])
+
         writer = csv.writer(response, delimiter='\t', quotechar='"')
         for yoji in Yoji.objects.filter(in_anki=True):
-            cloze = ''
-            for yj, idx in zip(yoji.yoji, yoji.anki_cloze):
-                cloze += "{{c" + str(idx) + "::" + yj + "}}"
+            cloze = "{{{{c{0}::{1}::{2}}}}}{{{{c{3}::{4}::{5}}}}}".format(
+                yoji.anki_cloze[0],
+                yoji.yoji[0:2],
+                '、'.join([x for x in test_kanji[yoji.yoji[2:4]] if x != yoji.yoji[0:2]]),
+                yoji.anki_cloze[2],
+                yoji.yoji[2:4],
+                '、'.join([x for x in test_kanji[yoji.yoji[0:2]] if x != yoji.yoji[2:4]]),
+            )
             writer.writerow([yoji.yoji,
                              cloze,
                              yoji.reading,
