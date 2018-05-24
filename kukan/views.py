@@ -594,19 +594,21 @@ class ExportView(LoginRequiredMixin, generic.FormView):
         response = HttpResponse(content_type='text/csv')
         response['Content-Disposition'] = 'attachment; filename="djAnkiYoji.csv"'
 
-        test_kanji = defaultdict(list)
+        test_start = defaultdict(list)
+        test_end = defaultdict(list)
         for yoji in Yoji.objects.filter(in_anki=True):
-            test_kanji[yoji.yoji[0:2]].append(yoji.yoji[2:4])
+            test_start[yoji.yoji[0:2]].append(yoji.yoji[2:4])
+            test_end[yoji.yoji[2:4]].append(yoji.yoji[0:2])
 
         writer = csv.writer(response, delimiter='\t', quotechar='"')
         for yoji in Yoji.objects.filter(in_anki=True):
             cloze = "{{{{c{0}::{1}::{2}}}}}{{{{c{3}::{4}::{5}}}}}".format(
                 yoji.anki_cloze[0],
                 yoji.yoji[0:2],
-                '、'.join([x for x in test_kanji[yoji.yoji[2:4]] if x != yoji.yoji[0:2]]),
+                '、'.join([x for x in test_end[yoji.yoji[2:4]] if x != yoji.yoji[0:2]]),
                 yoji.anki_cloze[2],
                 yoji.yoji[2:4],
-                '、'.join([x for x in test_kanji[yoji.yoji[0:2]] if x != yoji.yoji[2:4]]),
+                '、'.join([x for x in test_start[yoji.yoji[0:2]] if x != yoji.yoji[2:4]]),
             )
             writer.writerow([yoji.yoji,
                              cloze,

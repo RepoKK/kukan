@@ -2,6 +2,7 @@ from django.forms import Form, ModelForm, Textarea, CharField, TextInput, Choice
 from .models import Kanji, Bushu, YomiType, YomiJoyo, Reading, Example, ExMap
 from django.utils.translation import gettext_lazy as _
 import kukan.jautils as jau
+from django.db import transaction
 
 class SearchForm(Form):
     search = CharField(required=False,
@@ -111,8 +112,7 @@ class ExampleForm(ModelForm):
                                    params={'word': word}))
         return self.cleaned_data
 
-
-
+    @transaction.atomic
     def save(self, commit=True):
         if self.instance.is_joyo is None:
             self.instance.is_joyo = False
