@@ -5,8 +5,7 @@
   "main": "index.js",
   "dependencies": {
     "axios": "^0.18.0",
-    "buefy": "^0.6.3",
-    "bulma": "^0.6.2",
+    "buefy": "^0.6.6",
     "mdi": "^2.1.19",
     "vue": "^2.5.13"
   },

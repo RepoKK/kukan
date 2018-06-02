@@ -1,6 +1,9 @@
 <template>
-    <div class="field" :class="rootClasses">
-        <div v-if="horizontal" class="field-label is-normal">
+    <div class="field" :class="[rootClasses, fieldType()]">
+        <div
+            v-if="horizontal"
+            class="field-label is-normal"
+            :class="customClass">
             <label
                 v-if="label"
                 :for="labelFor"
@@ -12,6 +15,7 @@
             <label
                 v-if="label"
                 :for="labelFor"
+                :class="customClass"
                 class="label">
                 {{ label }}
             </label>
@@ -19,7 +23,7 @@
         <b-field-body
             v-if="horizontal"
             :message="newMessage ? formattedMessage : ''"
-            :type="newMessage ? newType : ''">
+            :type="newType">
             <slot/>
         </b-field-body>
         <template v-else>
@@ -55,7 +59,8 @@
             addons: {
                 type: Boolean,
                 default: true
-            }
+            },
+            customClass: String
         },
         data() {
             return {
@@ -66,7 +71,7 @@
         },
         computed: {
             rootClasses() {
-                return [this.fieldType, this.newPosition, {
+                return [this.newPosition, {
                     'is-expanded': this.expanded,
                     'is-grouped-multiline': this.groupMultiline,
                     'is-horizontal': this.horizontal
@@ -91,26 +96,6 @@
 
                 if (this.position) return prefix + position[1]
             },
-
-            /**
-             * Field has addons if there are more than one slot
-             * (element / component) in the Field.
-             * Or is grouped when prop is set.
-             */
-
-            fieldType() {
-                if (this.grouped) return 'is-grouped'
-
-                if (
-                    this.$slots.default !== undefined &&
-                    this.$slots.default.length > 1 &&
-                    this.addons &&
-                    !this.horizontal
-                ) {
-                    return 'has-addons'
-                }
-            },
-
             /**
              * Formatted message in case it's an array
              * (each element is separated by <br> tag)
@@ -144,6 +129,30 @@
              */
             message(value) {
                 this.newMessage = value
+            }
+        },
+        methods: {
+            /**
+             * Field has addons if there are more than one slot
+             * (element / component) in the Field.
+             * Or is grouped when prop is set.
+             * Is a method to be called when component re-render.
+             */
+            fieldType() {
+                if (this.grouped) return 'is-grouped'
+
+                let renderedNode = 0
+                if (this.$slots.default) {
+                    renderedNode = this.$slots.default
+                                        .reduce((i, node) => node.tag ? i + 1 : i, 0)
+                }
+                if (
+                    renderedNode > 1 &&
+                    this.addons &&
+                    !this.horizontal
+                ) {
+                    return 'has-addons'
+                }
             }
         }
     }

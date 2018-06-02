@@ -79,7 +79,6 @@
                 this.selected = value
                 !this.isValid && this.checkHtml5Validity()
             },
-
             /**
              * When selected:
              *   1. Emit input event to update the user v-model.

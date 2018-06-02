@@ -130,7 +130,28 @@
              * Check mime type of file
              */
             checkType(file) {
-                return !this.accept || (this.accept && file.type.match(this.accept))
+                if (!this.accept) return true
+                const types = this.accept.split(',')
+                if (types.length === 0) return true
+                let valid = false
+                for (let i = 0; i < types.length && !valid; i++) {
+                    const type = types[i].trim()
+                    if (type) {
+                        if (type.substring(0, 1) === '.') {
+                            // check extension
+                            const extIndex = file.name.lastIndexOf('.')
+                            if (extIndex >= 0 && file.name.substring(extIndex) === type) {
+                                valid = true
+                            }
+                        } else {
+                            // check mime type
+                            if (file.type.match(type)) {
+                                valid = true
+                            }
+                        }
+                    }
+                }
+                return valid
             }
         }
     }

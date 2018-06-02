@@ -13,11 +13,13 @@
         <input
             v-model="newValue"
             type="checkbox"
-            :name="name"
+            @click.stop
             :disabled="disabled"
+            :name="name"
+            :value="nativeValue"
             :true-value="trueValue"
             :false-value="falseValue">
-        <span class="check" :class="[{ 'is-elastic': isMouseDown }, type]"/>
+        <span class="check" :class="[{ 'is-elastic': isMouseDown && !disabled }, type]"/>
         <span class="control-label"><slot/></span>
     </label>
 </template>
@@ -54,7 +56,6 @@
             value(value) {
                 this.newValue = value
             },
-
             /**
              * Emit input event to update the user v-model.
              */

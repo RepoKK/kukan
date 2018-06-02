@@ -2,8 +2,8 @@
     <section class="datepicker-table">
         <header class="datepicker-header">
             <div
-                v-for="day in visibleDayNames"
-                :key="day"
+                v-for="(day, index) in visibleDayNames"
+                :key="index"
                 class="datepicker-cell">
                 {{ day }}
             </div>
@@ -20,6 +20,7 @@
                 :disabled="disabled"
                 :unselectable-dates="unselectableDates"
                 :unselectable-days-of-week="unselectableDaysOfWeek"
+                :selectable-dates="selectableDates"
                 :events="eventsInThisWeek(week, index)"
                 :indicators="indicators"
                 @select="updateSelectedDate"/>
@@ -47,7 +48,8 @@
             focused: Object,
             disabled: Boolean,
             unselectableDates: Array,
-            unselectableDaysOfWeek: Array
+            unselectableDaysOfWeek: Array,
+            selectableDates: Array
         },
         computed: {
             visibleDayNames() {
