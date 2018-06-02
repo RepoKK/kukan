@@ -12,13 +12,21 @@
             <div class="title kanji">{{ kanji.kanji }}</div>
         </div>
         <div class="column">
-            <br class="is-hidden-mobile">
-            <table class="table is-fullwidth is-narrow">
-                <tbody>
-                    {% for name, value in kanji.basic_info2 %}
-                        <tr><th>{{name}}</th><td>{{value|safe}}</td></tr>
-                    {% endfor %}
-                </tbody>
+            <table class="table is-fullwidth">
+                <thead><th>読み</th><th>例</th></thead>
+                {% for reading in kanji.reading_set.all %}
+                    <tr>
+                        <td style="white-space: nowrap;">{{reading.get_full|safe}}</td>
+                        <td>{{reading.get_list_ex2|safe}}</td>
+                    </tr>
+                {% endfor %}
+                {% for exmap in kanji.exmap_set.all %}
+                    {% if not exmap.reading %}
+                    <tr>
+                        <td colspan="2"><a href="{% url 'kukan:example_detail' exmap.example.pk %}">{{exmap.example}}</a></td>
+                    </tr>
+                    {% endif %}
+                {% endfor %}
             </table>
         </div>
     </div>
@@ -26,20 +34,12 @@
         <div class="column is-one-third">
             <div>
                 <table class="table is-fullwidth">
-                    <thead><th>読み</th><th>例</th></thead>
-                    {% for reading in kanji.reading_set.all %}
-                        <tr>
-                            <td>{{reading.get_full|safe}}</td>
-                            <td>{{reading.get_list_ex2|safe}}</td>
-                        </tr>
-                    {% endfor %}
-                    {% for exmap in kanji.exmap_set.all %}
-                        {% if not exmap.reading %}
-                        <tr>
-                            <td colspan="2"><a href="{% url 'kukan:example_detail' exmap.example.pk %}">{{exmap.example}}</a></td>
-                        </tr>
-                        {% endif %}
-                    {% endfor %}
+                    <thead><th colspan="2">属性</th></thead>
+                    <tbody>
+                        {% for name, value in kanji.basic_info2 %}
+                            <tr><th>{{name}}</th><td>{{value|safe}}</td></tr>
+                        {% endfor %}
+                    </tbody>
                 </table>
             </div>
         </div>
