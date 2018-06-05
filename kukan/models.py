@@ -33,6 +33,30 @@ class YomiType(models.Model):
 class Kanken(models.Model):
     kyu = models.CharField('漢字検定', max_length=3)
     difficulty = models.IntegerField()
+
+    item_01_name = models.CharField(max_length=20, blank=True)
+    item_01 = models.IntegerField(default=0, verbose_name='一')
+    item_02_name = models.CharField(max_length=20, blank=True)
+    item_02 = models.IntegerField(default=0, verbose_name='二')
+    item_03_name = models.CharField(max_length=20, blank=True)
+    item_03 = models.IntegerField(default=0, verbose_name='三')
+    item_04_name = models.CharField(max_length=20, blank=True)
+    item_04 = models.IntegerField(default=0, verbose_name='四')
+    item_05_name = models.CharField(max_length=20, blank=True)
+    item_05 = models.IntegerField(default=0, verbose_name='五')
+    item_06_name = models.CharField(max_length=20, blank=True)
+    item_06 = models.IntegerField(default=0, verbose_name='六')
+    item_07_name = models.CharField(max_length=20, blank=True)
+    item_07 = models.IntegerField(default=0, verbose_name='七')
+    item_08_name = models.CharField(max_length=20, blank=True)
+    item_08 = models.IntegerField(default=0, verbose_name='八')
+    item_09_name = models.CharField(max_length=20, blank=True)
+    item_09 = models.IntegerField(default=0, verbose_name='九')
+    item_10_name = models.CharField(max_length=20, blank=True)
+    item_10 = models.IntegerField(default=0, verbose_name='十')
+
+    success_line = models.IntegerField(default=0, verbose_name='合格基準')
+
     def __str__(self):
         return self.kyu
     class Meta:
@@ -318,7 +342,7 @@ class Yoji(models.Model):
                                        aggregate(Max('kanken'))['kanken__max'])
         # Only create the cloze pattern once
         if self.anki_cloze == '':
-            idxList = ["11","22"]
+            idxList = ["11", "22"]
             random.shuffle(idxList)
             self.anki_cloze = idxList[0]+idxList[1]
         super().save(*args, **kwargs)
@@ -328,3 +352,46 @@ class Yoji(models.Model):
 
     def reading_as_list(self):
         return re.sub(r'（', '-（', self.reading).split('-')
+
+
+class TestResult(models.Model):
+    NAME_CHOICES = (
+        ('OGU', '大具'),
+        ('COGU', '小具'),
+    )
+    TEST_SOURCE_CHOICES = (
+        ('TEST', '試験'),
+        ('3K1', '漢字検定試験問題集３級－平成２９年版'),
+        ('J2K1', '漢字検定試験問題集準２級－平成２９年版'),
+        ('2K1', '漢字検定試験問題集２級－平成３０年版'),
+        ('2K2', '漢字検定インターネット問題例'),
+        ('2K3', '漢検過去問題集２級－平成３０年度版'),
+    )
+
+    kanken = models.ForeignKey(Kanken, on_delete=models.CASCADE, verbose_name='漢検')
+    date = models.DateField(verbose_name='日付')
+    test_source = models.CharField(max_length=4, choices=TEST_SOURCE_CHOICES, verbose_name='問題集')
+    test_number = models.IntegerField(default=0, verbose_name='問題番号')
+    name = models.CharField(max_length=4, choices=NAME_CHOICES, verbose_name='名前')
+
+    item_01 = models.IntegerField(default=0, verbose_name='一')
+    item_02 = models.IntegerField(default=0, verbose_name='二')
+    item_03 = models.IntegerField(default=0, verbose_name='三')
+    item_04 = models.IntegerField(default=0, verbose_name='四')
+    item_05 = models.IntegerField(default=0, verbose_name='五')
+    item_06 = models.IntegerField(default=0, verbose_name='六')
+    item_07 = models.IntegerField(default=0, verbose_name='七')
+    item_08 = models.IntegerField(default=0, verbose_name='八')
+    item_09 = models.IntegerField(default=0, verbose_name='九')
+    item_10 = models.IntegerField(default=0, verbose_name='十')
+
+    score = models.IntegerField(editable=False, default=0, verbose_name='総合得点')
+
+    def save(self, *args, **kwargs):
+        self.score = 0
+        for i in range(1, 11):
+            self.score += getattr(self, 'item_{:02d}'.format(i))
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return self.name + ' ' + self.kanken.kyu + ' ' + str(self.test_number) + str(self.date)

@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Kanji, Reading, Bushu, Classification, YomiType, YomiJoyo, Example, Kanken, KoukiBushu
+from .models import Kanji, Reading, Bushu, Classification, YomiType, YomiJoyo, Example, Kanken, KoukiBushu, TestResult
 from .models import Bunrui, Yoji
 
 
@@ -29,3 +29,4 @@ admin.site.register(Example)
 admin.site.register(Kanken)
 admin.site.register(Bunrui)
 admin.site.register(Yoji)
+admin.site.register(TestResult)

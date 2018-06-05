@@ -24,5 +24,7 @@ urlpatterns = [
     path('ajax/set_yomi/', views.set_yomi, name='set_yomi'),
     path('ajax/get_goo/', views.get_goo, name='get_goo'),
 
+    path('test_result/list/', views.TestResultList.as_view(), name='test_result_list'),
+
     path('export/', ExportView.as_view(), name='export'),
 ]

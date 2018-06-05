@@ -4,7 +4,7 @@ from django.views import generic
 from django.views.generic.edit import CreateView, UpdateView, DeleteView
 from django.views.generic.base import TemplateView
 from django.urls import reverse_lazy
-from .models import Kanji, YomiType, YomiJoyo, Reading, Example, ExMap, Yoji
+from .models import Kanji, YomiType, YomiJoyo, Reading, Example, ExMap, Yoji, TestResult
 from .forms import SearchForm, ExampleForm, ExportForm
 from django.template.loader import render_to_string
 from django.db.models import Q
@@ -153,6 +153,11 @@ class TableData:
         def format_datetime_min(datetime_var):
             class_date = timezone.localtime(datetime_var)
             return class_date.strftime("%Y.%m.%d %H:%M")
+
+        @staticmethod
+        def format_date(datetime_var):
+            # class_date = timezone.localtime(datetime_var)
+            return datetime_var.strftime("%Y.%m.%d")
 
         @staticmethod
         def link_pk(base):
@@ -326,6 +331,25 @@ class ExampleList(AjaxList):
         {'name': 'word', 'link': TableData.FieldProps.link_pk('example')},
         'yomi', 'sentence', 'kanken', 'is_joyo',
         {'name': 'updated_time', 'format': TableData.FieldProps.format_datetime_min}
+    ])
+
+
+class TestResultList(AjaxList):
+    model = TestResult
+    template_name = 'kukan/test_result_list.html'
+    default_sort = 'date'
+    filters = [
+        FGenericCheckbox('名前', 'name', model),
+        FGenericCheckbox('漢検', 'kanken__kyu', model, order='-kanken__difficulty'),
+        FGenericDateRange('日付', 'date'),
+    ]
+    table_data = TableData(model, [
+        {'name': 'name'},
+        'kanken',
+        'item_01', 'item_02', 'item_03', 'item_04', 'item_05', 'item_06', 'item_07', 'item_08', 'item_09', 'item_10',
+        'score',
+        'test_source', 'test_number',
+        {'name': 'date', 'format': TableData.FieldProps.format_date}
     ])
 
 

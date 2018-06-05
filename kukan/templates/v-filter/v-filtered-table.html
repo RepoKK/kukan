@@ -24,7 +24,7 @@
                     :field="column.field"
                     :label="column.label"
                     :visible="column.visible"
-                    :numeric="column.numeric=='true'"
+                    :numeric="column.type=='numeric'"
                                 :centered="column.type=='bool'"
                     sortable >
                         <slot :name="column.label" v-bind="{'column': column, 'props': props}">
