@@ -192,7 +192,7 @@
                 </div>
                 <div class="column" style="min-width: 180px;">
                     <div class="field">
-                        <label class="label help">[[kj.joyo ? '常用漢字票の読み' : '「'+kj.kanji+'」の読み']]</label>
+                        <label class="label help">[[kj.kyu]], 例:[[kj.example_num]]</label>
                         <div class="control is-expanded">
 
                             <div v-if="kj.joyo" class="">
@@ -239,7 +239,7 @@
                       name="definition"
                       class="textarea"
                       placeholder="単語の意味・説明の文章を入力ください。"
-                      rows="8"></textarea>
+                      rows="12"></textarea>
         </div>
         {% if form.definition.errors %}
             {% for error in form.definition.errors %}

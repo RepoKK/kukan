@@ -429,10 +429,14 @@ def get_yomi(request):
     reading_data = {}
     reading_selected = []
     for idx, kj in enumerate(word):
-        if len(Kanji.objects.filter(kanji=kj)) == 0:
+        try:
+            kanji = Kanji.objects.get(kanji=kj)
+        except Kanji.DoesNotExist:
             continue
         reading_data[kj] = {}
         reading_data[kj]['kanji'] = kj
+        reading_data[kj]['kyu'] = kanji.kanken.kyu
+        reading_data[kj]['example_num'] = kanji.exmap_set.exclude(example__sentence='').count()
         if example is not None:
             linked_ex = ExMap.objects.filter(kanji=kj, example=example)
 
