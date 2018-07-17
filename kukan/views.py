@@ -575,7 +575,7 @@ class ExportView(LoginRequiredMixin, generic.FormView):
         response['Content-Disposition'] = 'attachment; filename="djAnkiKakitori_'+ choice[10:] +'.csv"'
         writer = csv.writer(response, delimiter='\t', quotechar='"')
 
-        q_set = Example.objects.exclude(sentence='').exclude(kanken__difficulty__gt=10)
+        q_set = Example.objects.exclude(sentence='').exclude(kanken__difficulty__gt=11)
         if choice == 'anki_kaki_ayu':
             q_set = q_set.filter(Q(kanken__difficulty__gte=8) | Q(word__endswith='義語）'))
 
