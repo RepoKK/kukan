@@ -39,10 +39,10 @@
                                 読み
                             </th>
                             <th>
-                                常用読み
+                                級
                             </th>
                             <th>
-                                常用例
+                                常用読み
                             </th>
                         </tr>
                     </thead>
@@ -60,13 +60,14 @@
                                 {% endif %}
                             </td>
                             <td>
-                                {% if map.reading.is_joyo %}
-                                    <b-icon icon="check"></b-icon>
-                                {% endif %}
+                                {{ map.kanji.kanken.kyu }}
                             </td>
                             <td>
+                                {% if map.reading.is_joyo %}
+                                    <b-icon icon="check" size="is-small"></b-icon>
+                                {% endif %}
                                 {% if map.in_joyo_list %}
-                                    <b-icon icon="check"></b-icon>
+                                    (例)
                                 {% endif %}
                             </td>
                         </tr>

@@ -91,7 +91,7 @@ class Kanji(models.Model):
     kanji = models.CharField('漢字', max_length=1, primary_key=True)
     bushu = models.ForeignKey(Bushu, on_delete=models.CASCADE, verbose_name='部首',
                               blank=True, null=True)
-    kouki_bushu = models.ForeignKey(KoukiBushu, on_delete=models.CASCADE, verbose_name='部首',
+    kouki_bushu = models.ForeignKey(KoukiBushu, on_delete=models.CASCADE, verbose_name='康煕部首',
                               blank=True, null=True)
     kanken = models.ForeignKey(Kanken, on_delete=models.CASCADE, verbose_name='漢検')
     strokes = models.IntegerField('画数')
@@ -145,19 +145,19 @@ class Kanji(models.Model):
 
 class KanjiDetails(models.Model):
     kanji = models.OneToOneField(Kanji, on_delete=models.CASCADE, verbose_name='漢字')
-    meaning = models.CharField('意味', max_length=1000, blank=True)
+    meaning = models.TextField('意味', max_length=1000, blank=True)
     external_ref = models.CharField('外部辞典', max_length=1000, blank=True)
 
     new_kanji = models.ForeignKey(Kanji, related_name='kyuji', on_delete=models.CASCADE, null=True, blank=True)
 
-    anki_English = models.CharField(max_length=1000)
-    anki_Examples = models.CharField(max_length=1000)
-    anki_Kanji_Radical = models.CharField(max_length=10)
-    anki_Traditional_Form = models.CharField(max_length=10)
-    anki_Traditional_Radical = models.CharField(max_length=10)
-    anki_Reading_Table = models.CharField(max_length=10000)
-    anki_kjBushuMei = models.CharField(max_length=100)
-    anki_kjIjiDoukun = models.CharField(max_length=5000)
+    anki_English = models.CharField(max_length=1000, blank=True)
+    anki_Examples = models.CharField(max_length=1000, blank=True)
+    anki_Kanji_Radical = models.CharField(max_length=10, blank=True)
+    anki_Traditional_Form = models.CharField(max_length=10, blank=True)
+    anki_Traditional_Radical = models.CharField(max_length=10, blank=True)
+    anki_Reading_Table = models.CharField(max_length=10000, blank=True)
+    anki_kjBushuMei = models.CharField(max_length=100, blank=True)
+    anki_kjIjiDoukun = models.CharField(max_length=5000, blank=True)
 
     def meaning_list(self):
         res = ""
@@ -324,12 +324,12 @@ class Bunrui(models.Model):
 class Yoji(models.Model):
     yoji = models.CharField('四字熟語', max_length=4, primary_key=True)
     reading = models.CharField('読み方', max_length=100)
-    meaning = models.CharField('意味', max_length=10000, blank=True)
+    meaning = models.TextField('意味', max_length=10000, blank=True)
     # Ruigigo
     kanken = models.ForeignKey(Kanken, on_delete=models.CASCADE, verbose_name='漢検')
-    bunrui = models.ManyToManyField(Bunrui)
+    bunrui = models.ManyToManyField(Bunrui, blank=True)
     # True if the jitenon site gives a kanken kyu
-    has_jitenon_kyu = models.BooleanField('級記郵務', default=False)
+    has_jitenon_kyu = models.BooleanField('級記有無', default=False)
     external_ref = models.CharField('外部辞典', max_length=1000, blank=True)
     in_anki = models.BooleanField('Anki', default=False)
     anki_cloze = models.CharField('Cloze sequence', max_length=4, blank=True)
