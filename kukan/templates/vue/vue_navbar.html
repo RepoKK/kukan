@@ -58,6 +58,19 @@
                         <a class="navbar-item" href="{% url 'kukan:example-add' %}">
                             例文作成
                         </a>
+                        <div class="navbar-divider"></div>
+                        <a class="navbar-item" href="{% url 'kukan:example_list' %}?意味=kaki">
+                            例文・書き取り未完成
+                        </a>
+                        <a class="navbar-item" href="{% url 'kukan:example_list' %}?意味=yomi">
+                            例文・読み未完成
+                        </a>
+                        <a class="navbar-item" href="{% url 'kukan:example_list' %}?意味=hyogai">
+                            例文・表外読み未完成
+                        </a>
+                        <a class="navbar-item" href="{% url 'kukan:example_list' %}?意味=kotowaza">
+                            例文・諺未完成
+                        </a>
                     </div>
                 </div>
                 <a class="navbar-item" href="{% url 'kukan:test_result_list' %}">
