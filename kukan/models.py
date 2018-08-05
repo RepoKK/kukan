@@ -120,7 +120,18 @@ class Kanji(models.Model):
             lst = []
             for kj in old_kanji:
                 lst.append('<a href="' + reverse('kukan:kanji_detail', kwargs={'pk': kj}) + '">' + kj.kanji + '</a>')
-            list_fld.append(['旧字体',"、 ".join(lst)])
+            list_fld.append(['旧字体', "、 ".join(lst)])
+        if self.kanjidetails.std_kanji is not None:
+            list_fld.append(['標準字体',
+                             '<a href="'
+                             + reverse('kukan:kanji_detail', kwargs={'pk': self.kanjidetails.std_kanji}) + '">'
+                             + self.kanjidetails.std_kanji.kanji + '</a>'])
+        kyoyo_kanji = Kanji.objects.filter(kanjidetails__std_kanji=self)
+        if kyoyo_kanji.count()>0:
+            lst = []
+            for kj in kyoyo_kanji:
+                lst.append('<a href="' + reverse('kukan:kanji_detail', kwargs={'pk': kj}) + '">' + kj.kanji + '</a>')
+            list_fld.append(['許容字体', "、 ".join(lst)])
         return list_fld
 
     def get_jukiji(self):
@@ -151,6 +162,7 @@ class KanjiDetails(models.Model):
     external_ref = models.CharField('外部辞典', max_length=1000, blank=True)
 
     new_kanji = models.ForeignKey(Kanji, related_name='kyuji', on_delete=models.CASCADE, null=True, blank=True)
+    std_kanji = models.ForeignKey(Kanji, related_name='kyoyojitai', on_delete=models.CASCADE, null=True, blank=True)
 
     anki_English = models.CharField(max_length=1000, blank=True)
     anki_Examples = models.CharField(max_length=1000, blank=True)
@@ -304,6 +316,13 @@ class Example(models.Model):
 
     def get_definition_html(self):
         return markdown.markdown(self.definition)
+
+    # @property
+    # def std_version(self):
+    #     ex = Example.objects.get(pk=47717)
+    #     kyo = pd.Series([Kanji.objects.safe_get(kanji=x, default=x) for x in self.word])
+    #     hyo = kyo.apply(lambda x: KanjiDetails.objects.get(kanji=x.kanji).std_kanji if x is Kanji else None).fillna(
+    #         kyo).astype(str).str.cat()
 
 
 class ExMap(models.Model):

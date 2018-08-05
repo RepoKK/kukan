@@ -12,9 +12,11 @@ class KanjiInline(admin.TabularInline):
 class KanjiDetailsInline(admin.StackedInline):
     model = KanjiDetails
     fk_name = "kanji"
+    raw_id_fields = ("new_kanji", "std_kanji")
 
 class KanjiAdmin(admin.ModelAdmin):
     inlines = [KanjiDetailsInline, KanjiInline]
+    raw_id_fields = ("bushu", "kouki_bushu")
 
 class ExampleAdmin(admin.ModelAdmin):
     raw_id_fields = ("readings",)

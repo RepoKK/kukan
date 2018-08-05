@@ -3,7 +3,8 @@ from django.urls import reverse
 from django.views import generic
 from django.views.generic.edit import CreateView, UpdateView, DeleteView
 from django.urls import reverse_lazy
-from kukan.models import Kanji, Kanken, Bushu, YomiType, YomiJoyo, Reading, Example, ExMap, Classification, KoukiBushu, JisClass
+from kukan.models import Kanji, Kanken, Bushu, YomiType, YomiJoyo, Reading, Example, ExMap, Classification, \
+    KoukiBushu, JisClass, KanjiDetails
 from kukan.forms import SearchForm, ExampleForm, ExportForm
 from django.template.loader import render_to_string
 from django.db.models import Q
@@ -101,7 +102,7 @@ def fill_existing():
 
 
 def process_kyuji():
-    importCsvName = r'E:\CloudStorage\Google Drive\Kanji\資料\ref_jiten_kyu0101j.csv'
+    importCsvName = r'E:\CloudStorage\Google Drive\Kanji\資料\ref_jiten_kyu01.csv'
     with open(importCsvName, 'r', encoding='utf-8') as fDeck:
         csvIn = csv.reader(fDeck, delimiter=',', quotechar='"')
         for row in csvIn:
@@ -111,6 +112,9 @@ def process_kyuji():
                 kj = Kanji.objects.get(kanji=row[0])
                 for iji in kanji._jitenonItem['異体字']:
                     if iji is not None:
-                        nj = Kanji.objects.get(external_ref__contains=iji)
-                        kj.new_kanji = nj
-                        kj.save()
+                        nj = Kanji.objects.get(kanjidetails__external_ref__contains=iji[1])
+                        if iji[0]=='新字体':
+                            kj.kanjidetails.new_kanji = nj
+                        elif iji[0] == '標準字体':
+                            kj.kanjidetails.std_kanji = nj
+                        kj.kanjidetails.save()

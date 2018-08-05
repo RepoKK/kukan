@@ -178,10 +178,20 @@ class CKanji:
                         content = subblock[idx].getchildren()[0].text
                 elif blkName in ['異体字']:
                     content = lxml.html.tostring(subblock[idx], encoding='unicode')
+
                     if '新字体' in content:
-                        content = subblock[idx].getchildren()[0].getchildren()[0].attrib['href']
+                        kind = '新字体'
+                    elif '標準字体' in content:
+                        kind = '標準字体'
                     else:
-                        content = None
+                        kind = None
+
+                    content = None
+                    if kind:
+                        link = subblock[idx].getchildren()[0].getchildren()[0].attrib
+                        if 'href' in link:
+                            content = (kind, link['href'])
+
                 elif blkName in ['意味']:
                     content = lxml.html.tostring(subblock[idx], encoding='unicode')
                     h = html2text.HTML2Text()
