@@ -16,6 +16,8 @@ class KanjiDetailsInline(admin.StackedInline):
 class KanjiAdmin(admin.ModelAdmin):
     inlines = [KanjiDetailsInline, KanjiInline]
 
+class ExampleAdmin(admin.ModelAdmin):
+    raw_id_fields = ("readings",)
 
 admin.site.register(Kanji, KanjiAdmin)
 admin.site.register(Bushu)
@@ -24,7 +26,7 @@ admin.site.register(Classification)
 admin.site.register(Reading)
 admin.site.register(YomiType)
 admin.site.register(YomiJoyo)
-admin.site.register(Example)
+admin.site.register(Example, ExampleAdmin)
 admin.site.register(Kanken)
 admin.site.register(Bunrui)
 admin.site.register(Yoji)

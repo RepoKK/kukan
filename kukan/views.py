@@ -29,6 +29,7 @@ from django.views.decorators.csrf import csrf_exempt
 from .filters import *
 import time
 
+
 class Index(LoginRequiredMixin, generic.FormView):
     template_name = 'kukan/index.html'
     form_class = SearchForm
@@ -326,6 +327,7 @@ class ExampleList(AjaxList):
         FGenericYesNo('例文', 'sentence', '', '例文有り', '例文無し', True),
         FGenericDateRange('作成', 'created_time'),
         FGenericDateRange('変更', 'updated_time'),
+        FGenericString('意味', 'definition'),
     ]
     table_data = TableData(model, [
         {'name': 'word', 'link': TableData.FieldProps.link_pk('example')},

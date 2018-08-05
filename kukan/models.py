@@ -10,6 +10,8 @@ import markdown
 from django.db.models import Max
 import kukan.jautils as jau
 import random
+from django.core.exceptions import ValidationError
+
 
 class Classification(models.Model):
     classification = models.CharField('種別', max_length=6)
@@ -252,7 +254,6 @@ class Example(models.Model):
     kanken = models.ForeignKey(Kanken, on_delete=models.CASCADE, verbose_name='漢検')
 
     class Meta:
-        unique_together = ['word', 'yomi']
         indexes = [
             models.Index(fields=['word', 'yomi']),
             models.Index(fields=['word'])
@@ -261,7 +262,17 @@ class Example(models.Model):
     def __str__(self):
         return self.word
 
+    def validate_unique(self, exclude=None):
+        if not self.pk:
+            if self.word[-3:] == '（諺）':
+                if Example.objects.filter(word=self.word, yomi=self.yomi, sentence=self.sentence).exists():
+                    raise ValidationError('この諺は既に登録されている。')
+            else:
+                if Example.objects.filter(word=self.word, yomi=self.yomi).exists():
+                    raise ValidationError('この言葉は既に登録されている。')
+
     def save(self, *args, **kwargs):
+        self.validate_unique()
         self.kanken=Kanken.objects.get(id=Kanji.objects.filter(kanji__in=self.word).
                                        aggregate(Max('kanken'))['kanken__max'])
         super().save(*args, **kwargs)
