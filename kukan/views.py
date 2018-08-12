@@ -509,12 +509,34 @@ def get_similar_word(request):
     return JsonResponse(data)
 
 
-@login_required
-def get_goo(request):
-    word = request.GET.get('word_native', None)
-    if word == '':
-        word = request.GET.get('word', None)
-    link = request.GET.get('link', None)
+def get_def_kanjipedia(word):
+    link = 'http://www.kanjipedia.jp/search?k={}&wt=1&sk=perfect'.format(word)
+    page = requests.get(link)
+
+    try:
+        target = html.fromstring(page.content).xpath('/html/body/div[1]/div[2]/ul[2]/li/a')
+        hr = target[0].get('href')
+        page = requests.get('http://www.kanjipedia.jp/' + hr)
+        tree = html.fromstring(page.content.decode('utf-8'))
+
+        yomi = tree.xpath('/html/body/div[1]/div[2]/div[1]/div/p[2]/text()')[0].translate(jau.hir2kat)
+        definition = ""
+        for p in tree.xpath('//*[@id="kotobaExplanationSection"]/p'):
+            span = p.xpath('span/text()')
+            span = '**【{}】**　'.format(span[0]) if len(span) else ''
+            text = html.tostring(p, encoding='unicode', pretty_print=True)
+            h = html2text.HTML2Text()
+            h.ignore_links = True
+            text = h.handle(re.sub(r'<img.*? alt="(.*?)">', r'**【\1】**　', text, re.MULTILINE))
+            text = span + text.translate({ord('①') + i:  '\n\n{}. '.format(1 + i) for i in range(20)})
+            definition += text
+    except IndexError:
+        definition, yomi = '', ''
+
+    return definition.strip(), yomi
+
+
+def get_def_goo(word, link):
     if link == '':
         link = 'https://dictionary.goo.ne.jp/srch/jn/' + word + '/m1u/'
     else:
@@ -549,7 +571,24 @@ def get_goo(request):
                       text)
         text = re.sub(r'__「(.*)の全ての意味を見る\n\n', '', text)
 
-    data = {'definition': text, 'reading': yomi, 'candidates': candidates if len(candidates) > 0 else ''}
+    return text, yomi, candidates
+
+
+@login_required
+def get_goo(request):
+    word = request.GET.get('word_native', None)
+    if word == '':
+        word = request.GET.get('word', None)
+    link = request.GET.get('link', None)
+
+    if not link:
+        definition, yomi = get_def_kanjipedia(word)
+        candidates = []
+
+    if not definition:
+        definition, yomi, candidates = get_def_goo(word, link)
+
+    data = {'definition': definition, 'reading': yomi, 'candidates': candidates if len(candidates) > 0 else ''}
 
     return JsonResponse(data)
 
