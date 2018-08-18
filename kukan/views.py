@@ -525,8 +525,7 @@ def get_def_kanjipedia(word):
         for p in tree.xpath('//*[@id="kotobaExplanationSection"]/p'):
             span = p.xpath('span/text()')
             span = '**【{}】**　'.format(span[0]) if len(span) else ''
-            text = html.tostring(p, encoding='unicode', pretty_print=True)
-            text = p.xpath('text()')[0]
+            text = html.tostring(p, encoding='unicode')
             h = html2text.HTML2Text()
             h.ignore_links = True
             text = h.handle(re.sub(r'<img.*? alt="(.*?)">', r'**【\1】**　', text, re.MULTILINE))
