@@ -523,13 +523,12 @@ def get_def_kanjipedia(word):
         yomi = yomi.replace('－', '')
         definition = ""
         for p in tree.xpath('//*[@id="kotobaExplanationSection"]/p'):
-            span = p.xpath('span/text()')
-            span = '**【{}】**　'.format(span[0]) if len(span) else ''
             text = html.tostring(p, encoding='unicode')
+            text = re.sub(r'<span>(.*?)</span>', r'**【\1】**　', text, re.MULTILINE)
             h = html2text.HTML2Text()
             h.ignore_links = True
             text = h.handle(re.sub(r'<img.*? alt="(.*?)">', r'**【\1】**　', text, re.MULTILINE))
-            text = span + text.translate({ord('①') + i:  '\n\n{}. '.format(1 + i) for i in range(20)})
+            text = text.translate({ord('①') + i:  '\n\n{}. '.format(1 + i) for i in range(20)})
             definition += text
     except IndexError:
         definition, yomi = '', ''
