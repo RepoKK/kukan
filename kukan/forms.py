@@ -47,7 +47,7 @@ class ExampleForm(ModelForm):
 
     class Meta:
         model = Example
-        fields = ['word', 'word_native', 'yomi', 'yomi_native', 'sentence', 'definition']
+        fields = ['word', 'word_native', 'word_variation', 'yomi', 'yomi_native', 'sentence', 'definition']
         widgets = {
             'sentence': Textarea(attrs={'cols': 80, 'rows': 1}),
             'definition': Textarea(attrs={'cols': 80, 'rows': 5}),

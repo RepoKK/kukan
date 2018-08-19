@@ -110,17 +110,7 @@ class Kanji(models.Model):
         for fld in ['bushu', 'kouki_bushu','strokes', 'classification', 'kanken', 'jis']:
                     list_fld.append([ self._meta.get_field(fld).verbose_name, getattr(self, fld)])
         list_fld.append(['外部辞典', '<a href="' + self.kanjidetails.external_ref + '">漢字辞典オンライン</a>'])
-        if self.kanjidetails.new_kanji is not None:
-            list_fld.append(['新字体',
-                             '<a href="'
-                             + reverse('kukan:kanji_detail', kwargs={'pk': self.kanjidetails.new_kanji}) + '">'
-                             + self.kanjidetails.new_kanji.kanji + '</a>'])
-        old_kanji = Kanji.objects.filter(kanjidetails__new_kanji=self)
-        if old_kanji.count()>0:
-            lst = []
-            for kj in old_kanji:
-                lst.append('<a href="' + reverse('kukan:kanji_detail', kwargs={'pk': kj}) + '">' + kj.kanji + '</a>')
-            list_fld.append(['旧字体', "、 ".join(lst)])
+
         if self.kanjidetails.std_kanji is not None:
             list_fld.append(['標準字体',
                              '<a href="'
@@ -131,7 +121,7 @@ class Kanji(models.Model):
             lst = []
             for kj in kyoyo_kanji:
                 lst.append('<a href="' + reverse('kukan:kanji_detail', kwargs={'pk': kj}) + '">' + kj.kanji + '</a>')
-            list_fld.append(['許容字体', "、 ".join(lst)])
+            list_fld.append(['許容字体' if self.kanken.difficulty > 10 else '旧字体', "、 ".join(lst)])
         return list_fld
 
     def get_jukiji(self):
@@ -161,7 +151,6 @@ class KanjiDetails(models.Model):
     meaning = models.TextField('意味', max_length=1000, blank=True)
     external_ref = models.CharField('外部辞典', max_length=1000, blank=True)
 
-    new_kanji = models.ForeignKey(Kanji, related_name='kyuji', on_delete=models.CASCADE, null=True, blank=True)
     std_kanji = models.ForeignKey(Kanji, related_name='kyoyojitai', on_delete=models.CASCADE, null=True, blank=True)
 
     anki_English = models.CharField(max_length=1000, blank=True)
@@ -260,6 +249,7 @@ class Example(models.Model):
     word_native = models.CharField('単語-例文', max_length=10, blank=True)
     yomi = models.CharField('読み方', max_length=30, blank=True)
     yomi_native = models.CharField('読み方-例文', max_length=30, blank=True)
+    word_variation = models.CharField('他の書き方', max_length=20, blank=True)
     sentence = models.CharField('文章', max_length=300, blank=True)
     definition = models.CharField('定義', max_length=10000, blank=True)
     is_joyo = models.BooleanField('常表例')

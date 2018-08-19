@@ -522,13 +522,15 @@ def get_def_kanjipedia(word):
         yomi = tree.xpath('/html/body/div[1]/div[2]/div[1]/div/p[2]/text()')[0].translate(jau.hir2kat)
         yomi = yomi.replace('－', '')
         definition = ""
-        for p in tree.xpath('//*[@id="kotobaExplanationSection"]/p'):
+        for i, p in enumerate(tree.xpath('//*[@id="kotobaExplanationSection"]/p')):
             text = html.tostring(p, encoding='unicode')
             text = re.sub(r'<span>(.*?)</span>', r'**【\1】**　', text, re.MULTILINE)
             h = html2text.HTML2Text()
             h.ignore_links = True
+            text = re.sub(r'<img.*? alt="">', r'=>　', text, re.MULTILINE)
             text = h.handle(re.sub(r'<img.*? alt="(.*?)">', r'**【\1】**　', text, re.MULTILINE))
-            text = text.translate({ord('①') + i:  '\n\n{}. '.format(1 + i) for i in range(20)})
+            if i == 0:
+                text = text.translate({ord('①') + i:  '\n\n{}. '.format(1 + i) for i in range(20)})
             definition += text
     except IndexError:
         definition, yomi = '', ''
@@ -616,6 +618,15 @@ class ExportView(LoginRequiredMixin, generic.FormView):
         response['Content-Disposition'] = 'attachment; filename="djAnkiKakitori_'+ choice[10:] +'.csv"'
         writer = csv.writer(response, delimiter='\t', quotechar='"')
 
+        q_alt = Kanji.objects.filter(kanjidetails__std_kanji__isnull=False,
+                                     kanjidetails__std_kanji__kanken__difficulty__gte=11
+                                     ).select_related('kanjidetails__std_kanji')
+        std_to_alt = {}
+        alt_to_std = {}
+        for kyo, std in [(k.kanji, k.kanjidetails.std_kanji) for k in q_alt]:
+            std_to_alt.setdefault(std.kanji, []).append(kyo)
+            alt_to_std[kyo] = std.kanji
+
         excl_in_progress = reduce(lambda x, y: x | y,
                                   [Q(definition__contains=x) for x in ['kaki', 'yomi', 'hyogai', 'kotowaza']])
         q_set = Example.objects.exclude(sentence='').exclude(kanken__difficulty__gt=11).exclude(excl_in_progress)
@@ -628,6 +639,16 @@ class ExportView(LoginRequiredMixin, generic.FormView):
             sentence = example.sentence.replace(word,
                                                 '<span class="font-color01">' +
                                                 yomi + '</span>')
+
+            word = ''.join([alt_to_std.get(k, k) for k in word])
+            alt_word = ''.join([alt[0] + ('（{}）'.format('・'.join(alt[1:])) if len(alt) > 1 else '') for alt in
+                                [std_to_alt.get(k, k) for k in word]])
+            if word != alt_word:
+                word = word + '[{}]'.format(alt_word)
+
+            if example.word_variation != '':
+                word += '\n（{}）'.format(example.word_variation)
+
             writer.writerow([example.id,
                              sentence,
                              word,

@@ -124,49 +124,69 @@
         </div>
     </div>
 
-    <div class="columns" v-show="showOptDisp">
-        <div class="column">
+    <div v-show="showOptDisp">
+        <div class="columns">
+            <div class="column">
+                <div class="columns is-mobile">
+                    <div class="column is-narrow">
+                        <div class="field is-narrow">
+                            <input class="input is-static" readonly tabindex="-1" type="submit" style="font-weight: bold;"
+                                   value="単語（例文）　">
+                        </div>
+                    </div>
+                    <div class="column">
+                        <div class="field">
+                            <div class="control">
+                                <input placeholder="（任意）例文中の語形" class="input" type="text" expanded
+                                       v-model="word_native" name="word_native" @blur="onChangeWord">
+                            </div>
+                        </div>
+                        <b-notification v-if='info_similar_word.length > 0' type="is-info">
+                            単語を含む既存の例文：<br>
+                                <div v-for="item in info_similar_word">
+                                    <b-icon icon="__mydumy__" size="is-small"></b-icon>[[ item ]]<br>
+                                </div>
+                        </b-notification>
+                    </div>
+                </div>
+            </div>
+            <div class="column">
+                <div class="columns is-mobile">
+                    <div class="column is-narrow">
+                        <div class="field">
+                            <input class="input is-static" readonly tabindex="-1" type="submit" style="font-weight: bold;"
+                                   value="読み方（例文）">
+                        </div>
+                    </div>
+                    <div class="column">
+                        <div class="field">
+                            <b-input placeholder="（任意）例文中の読み方（カタカナ）" expanded
+                                     v-model="yomi_native" name="yomi_native"></b-input>
+                        </div>
+                        {% if form.yomi_native.errors %}
+                            {% for error in form.yomi_native.errors %}
+                                <p class="help is-danger">{{ error|escape }}</p>
+                            {% endfor %}
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div>
             <div class="columns is-mobile">
                 <div class="column is-narrow">
                     <div class="field is-narrow">
                         <input class="input is-static" readonly tabindex="-1" type="submit" style="font-weight: bold;"
-                               value="単語（例文）　">
+                               value="他の書き方">
                     </div>
                 </div>
                 <div class="column">
                     <div class="field">
                         <div class="control">
-                            <input placeholder="（任意）例文中の語形" class="input" type="text" expanded
-                                   v-model="word_native" name="word_native" @blur="onChangeWord">
+                            <input placeholder="（任意）他の書き方" class="input" type="text" expanded
+                                   v-model="word_variation" name="word_variation" @blur="onChangeWord">
                         </div>
                     </div>
-                    <b-notification v-if='info_similar_word.length > 0' type="is-info">
-                        単語を含む既存の例文：<br>
-                            <div v-for="item in info_similar_word">
-                                <b-icon icon="__mydumy__" size="is-small"></b-icon>[[ item ]]<br>
-                            </div>
-                    </b-notification>
-                </div>
-            </div>
-        </div>
-        <div class="column">
-            <div class="columns is-mobile">
-                <div class="column is-narrow">
-                    <div class="field">
-                        <input class="input is-static" readonly tabindex="-1" type="submit" style="font-weight: bold;"
-                               value="読み方（例文）">
-                    </div>
-                </div>
-                <div class="column">
-                    <div class="field">
-                        <b-input placeholder="（任意）例文中の読み方（カタカナ）" expanded
-                                 v-model="yomi_native" name="yomi_native"></b-input>
-                    </div>
-                    {% if form.yomi_native.errors %}
-                        {% for error in form.yomi_native.errors %}
-                            <p class="help is-danger">{{ error|escape }}</p>
-                        {% endfor %}
-                    {% endif %}
                 </div>
             </div>
         </div>
@@ -251,6 +271,7 @@
             showCandidateDefinition:false,
             word: '{{ form.word.value|default_if_none:'' }}',
             word_native: '{{ form.word_native.value|default_if_none:'' }}',
+            word_variation: '{{ form.word_variation.value|default_if_none:'' }}',
             info_similar_word: [],
             yomi: '{{ form.yomi.value|default_if_none:'' }}',
             yomi_native: '{{ form.yomi_native.value|default_if_none:'' }}',
