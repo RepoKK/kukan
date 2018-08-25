@@ -1,0 +1,90 @@
+<script type="text/x-template" id="fr-kanji-box-template">
+<div>
+<div class="title kanji">[[cur_display ]]</div>
+    <div>
+        <nav class="level is-mobile" v-if="alt_name">
+            <div class="level-item">
+                <div>
+                    <b-icon size="is-small" :icon="'star-outline'" v-show="is_base_std"></b-icon>
+                    <b-tag :class="{'is-info':is_cur_std}">{{ kanji.jitai.std.0 }}</b-tag>
+                    <p><span class="subtitle is-3"><a @click="cur_display='{{ kanji.jitai.std.1 }}'">
+                                                                        {{ kanji.jitai.std.1 }}</a></span></p>
+                </div>
+            </div>
+
+            <div class="level-item">
+                <div>
+                    <b-icon size="is-small" :icon="'star-outline'" v-show="!is_base_std"></b-icon>
+                    <b-tag :class="{'is-info':!is_cur_std}">[[alt_name]]</b-tag>
+                    <p><span class="subtitle is-3"><a v-for="k in alt" @click="cur_display=k">[[k]] </a>
+                    </span></p>
+                </div>
+            </div>
+        </nav>
+
+        <nav class="level is-mobile">
+            <div class="level-item has-text-centered">
+                <div>
+                    <p class="heading">漢検</p>
+                    <p class="title is-6">{{kanji.kanken}}</p>
+                </div>
+            </div>
+            <div class="level-item has-text-centered">
+                <div>
+                    <p class="heading">種別</p>
+                    <p class="title is-6">{{kanji.classification|default_if_none:"－"}}</p>
+                </div>
+            </div>
+            <div class="level-item has-text-centered">
+                <div>
+                    <p class="heading">部首</p>
+                    <p class="title is-6">{% if kanji.bushu %} {{kanji.bushu.bushu }}
+                                                       {% else %} {{kanji.kouki_bushu.bushu}} {% endif %}</p>
+                </div>
+            </div>
+            <div class="level-item">
+                <a class="is-info" :class="{'is-inverted':!isOpen}"
+                       @click="isOpen = !isOpen">
+                        <b-icon :icon="!isOpen ? 'arrow-down-drop-circle-outline' : 'arrow-up-drop-circle'">
+                        </b-icon>
+                </a>
+            </div>
+        </nav>
+
+        <b-collapse :open.sync="isOpen">
+            <div>
+                <table class="table is-fullwidth">
+                    <thead><th colspan="2">属性</th></thead>
+                    <tbody>
+                        {% for name, value in kanji.basic_info2 %}
+                            <tr><th>{{name}}</th><td>{{value|safe}}</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </b-collapse>
+    </div>
+</div>
+</script>
+<script>
+Vue.component('fr-kanji-box', {
+    template: '#fr-kanji-box-template',
+    data() {
+        return {
+            isOpen: false,
+            alt: ['{{ kanji.jitai.alt.1|join:"', '" }}'],
+            alt_name: '{{ kanji.jitai.alt.0|default_if_none:'' }}',
+            base_kanji: '{{kanji.kanji}}',
+            cur_display: '{{kanji.kanji}}',
+        }
+    },
+    computed: {
+        is_cur_std: function() {
+            return this.cur_display == '{{ kanji.jitai.std.1 }}'
+        },
+        is_base_std: function() {
+            return this.base_kanji == '{{ kanji.jitai.std.1 }}'
+        },
+    },
+})
+</script>

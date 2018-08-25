@@ -11,6 +11,7 @@ from django.db.models import Max
 import kukan.jautils as jau
 import random
 from django.core.exceptions import ValidationError
+from django.utils.functional import cached_property
 
 
 class Classification(models.Model):
@@ -111,18 +112,30 @@ class Kanji(models.Model):
                     list_fld.append([ self._meta.get_field(fld).verbose_name, getattr(self, fld)])
         list_fld.append(['外部辞典', '<a href="' + self.kanjidetails.external_ref + '">漢字辞典オンライン</a>'])
 
-        if self.kanjidetails.std_kanji is not None:
-            list_fld.append(['標準字体',
-                             '<a href="'
-                             + reverse('kukan:kanji_detail', kwargs={'pk': self.kanjidetails.std_kanji}) + '">'
-                             + self.kanjidetails.std_kanji.kanji + '</a>'])
-        kyoyo_kanji = Kanji.objects.filter(kanjidetails__std_kanji=self)
-        if kyoyo_kanji.count()>0:
+        if self.jitai['std'][1] == self and self.jitai['alt']:
             lst = []
-            for kj in kyoyo_kanji:
+            for kj in self.jitai['alt'][1]:
                 lst.append('<a href="' + reverse('kukan:kanji_detail', kwargs={'pk': kj}) + '">' + kj.kanji + '</a>')
-            list_fld.append(['許容字体' if self.kanken.difficulty > 10 else '旧字体', "、 ".join(lst)])
+            list_fld.append([self.jitai['alt'][0], "、 ".join(lst)])
+
+        if self.jitai['std'][1] != self:
+            if self.kanjidetails.std_kanji is not None:
+                list_fld.append(['標準字体',
+                                 '<a href="'
+                                 + reverse('kukan:kanji_detail', kwargs={'pk': self.jitai['std'][1]}) + '">'
+                                 + self.jitai['std'][1].kanji + '</a>'])
         return list_fld
+
+    @cached_property
+    def jitai(self):
+        jitai_dict = {}
+        std_kanji = self.kanjidetails.std_kanji or self
+        jitai_dict['std'] = ['標準字体', std_kanji]
+        jitai_dict['alt'] = ['許容字体' if std_kanji.kanken.difficulty > 10 else '旧字体',
+                             list(Kanji.objects.filter(kanjidetails__std_kanji=std_kanji))]
+        if not jitai_dict['alt'][1]:
+            jitai_dict['alt'][0] = None
+        return jitai_dict
 
     def get_jukiji(self):
         list_juku = []
@@ -351,7 +364,7 @@ class Yoji(models.Model):
     # True if the jitenon site gives a kanken kyu
     has_jitenon_kyu = models.BooleanField('級記有無', default=False)
     external_ref = models.CharField('外部辞典', max_length=1000, blank=True)
-    in_anki = models.BooleanField('Anki', default=False)
+    in_anki = models.BooleanField('日課', default=False)
     anki_cloze = models.CharField('Cloze sequence', max_length=4, blank=True)
 
     def __str__(self):

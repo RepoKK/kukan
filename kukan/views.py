@@ -357,16 +357,27 @@ class TestResultList(AjaxList):
 
 class KanjiDetail(LoginRequiredMixin, generic.DetailView):
     model = Kanji
-    table_data = TableData(Example, [
-        {'name': 'word', 'link': TableData.FieldProps.link_pk('example')},
-        'yomi', 'sentence', 'kanken', 'is_joyo',
-        {'name': 'updated_time', 'format': TableData.FieldProps.format_datetime_min}
-    ])
+    table_data = {'例文': TableData(Example, [
+                                    {'name': 'word', 'link': TableData.FieldProps.link_pk('example')},
+                                    'yomi', 'sentence', 'kanken', 'is_joyo']),
+                  '四字熟語': TableData(Yoji, [
+                                    {'name': 'yoji', 'link': TableData.FieldProps.link_pk('yoji')},
+                                    'reading', 'kanken', 'in_anki']),
+                  '諺': TableData(Example, [
+                      {'name': 'word', 'link': TableData.FieldProps.link_pk('example')},
+                      'yomi', 'sentence', 'kanken']),
+                  }
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        qry = Example.objects.filter(word__contains=context['kanji']).exclude(sentence='')
-        context['table_data'] = json.dumps(self.table_data.get_table_full(qry))
+        qry = {'例文': Example.objects.filter(word__contains=context['kanji']
+                                            ).exclude(sentence='').exclude(word__endswith='（諺）'),
+               '四字熟語': Yoji.objects.filter(yoji__contains=context['kanji']),
+               '諺': Example.objects.filter(word__contains=context['kanji'], word__endswith='（諺）')}
+        context['ctx'] = json.dumps(
+            [{'name': k, 'number': qry[k].count(), 'table_data': v.get_table_full(qry[k])}
+             for k, v in self.table_data.items() if qry[k].count() > 0]
+        )
         return context
 
 

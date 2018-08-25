@@ -9,7 +9,7 @@
 {% block content %}
     <div class="columns">
         <div class="column is-one-third is-centered" style="text-align: center;">
-            <div class="title kanji">{{ kanji.kanji }}</div>
+            <fr-kanji-box></fr-kanji-box>
         </div>
         <div class="column">
             <table class="table is-fullwidth">
@@ -31,18 +31,7 @@
         </div>
     </div>
     <div class="columns">
-        <div class="column is-one-third">
-            <div>
-                <table class="table is-fullwidth">
-                    <thead><th colspan="2">属性</th></thead>
-                    <tbody>
-                        {% for name, value in kanji.basic_info2 %}
-                            <tr><th>{{name}}</th><td>{{value|safe}}</td></tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        </div>
+
         <div class="column">
             <div>
                 <table class="table is-fullwidth">
@@ -58,28 +47,42 @@
     </div>
 
 <template>
-    <b-table :data="table_data.data" striped narrowed v-if="table_data.data.length>0">
-        <template slot-scope="props">
-                <b-table-column v-for="(column, index) in table_data.columns"
-                    :key="index"
-                    :field="column.field"
-                    :label="column.label"
-                    :visible="column.visible">
-                        <slot :name="column.label" v-bind="{'column': column, 'props': props}">
-                            <b-icon icon="check" v-if="column.type == 'bool' && props.row[column.field]==true"></b-icon>
-                            <span v-if="column.type != 'bool'" v-html="props.row[column.field]"></span>
-                        </slot>
-                </b-table-column>
-        </template>
-    </b-table>
+    <b-tabs type="is-boxed" animated="true">
+        <b-tab-item v-for="c in ctx">
+            <template slot="header">
+                <span> [[c.name]] <b-tag rounded> [[ c.number ]] </b-tag> </span>
+            </template>
+            <template>
+                <b-table :data="c.table_data.data" striped narrowed
+                         :paginated="c.number > 5" :per-page="5"
+                         v-if="c.table_data.data.length>0">
+                    <template slot-scope="props">
+                            <b-table-column v-for="(column, index) in c.table_data.columns"
+                                :key="index"
+                                :field="column.field"
+                                :label="column.label"
+                                :visible="column.visible">
+                                    <slot :name="column.label" v-bind="{'column': column, 'props': props}">
+                                        <b-icon icon="check" v-if="column.type == 'bool' && props.row[column.field]==true"></b-icon>
+                                        <span v-if="column.type != 'bool'" v-html="props.row[column.field]"></span>
+                                    </slot>
+                            </b-table-column>
+                    </template>
+                </b-table>
+            </template>
+        </b-tab-item>
+    </b-tabs>
 </template>
 {% endblock %}
 
+{% block vue_component %}
+{% include 'vue/kanji_box.html' %}
+{% endblock %}
 
 {% block vue_data %}
     data() {
         return {
-            table_data: {{table_data|safe}},
+            ctx: {{ctx|safe}}
         }
     },
 {% endblock vue_data %}
