@@ -4,8 +4,8 @@ from django.views import generic
 from django.views.generic.edit import CreateView, UpdateView, DeleteView
 from django.views.generic.base import TemplateView
 from django.urls import reverse_lazy
-from .models import Kanji, YomiType, YomiJoyo, Reading, Example, ExMap, Yoji, TestResult
-from .forms import SearchForm, ExampleForm, ExportForm
+from .models import Kanji, YomiType, YomiJoyo, Reading, Example, ExMap, Yoji, TestResult, Kotowaza
+from .forms import SearchForm, ExampleForm, ExportForm, KotowazaForm
 from django.template.loader import render_to_string
 from django.db.models import Q
 from django.http import JsonResponse
@@ -40,6 +40,10 @@ class Index(LoginRequiredMixin, generic.FormView):
             self.success_url = reverse('kukan:yoji_list')
             if search != '':
                 self.success_url += '?漢字=' + search + '&Anki=Anki'
+        if 'kotowaza' in self.request.POST:
+            self.success_url = reverse('kukan:kotowaza_list')
+            if search != '':
+                self.success_url += '?諺=' + search
         elif 'example' in self.request.POST:
             self.success_url = reverse('kukan:example_list')
             if search != '':
@@ -190,6 +194,8 @@ class AjaxList(LoginRequiredMixin, generic.TemplateView):
     table_data = None
     default_sort = None
     filters = None
+    list_title = 'LIST_TITLE'
+    is_mobile_card = True
 
     def __init__(self):
         super().__init__()
@@ -265,13 +271,18 @@ class AjaxList(LoginRequiredMixin, generic.TemplateView):
         sort_by = self.request.GET.get('sort_by', self.default_sort)
         context['table_data'] = json.dumps({'page': int(page), 'sort_by': sort_by, 'columns': '', 'data': []})
 
+        context['list_title'] = self.list_title
+        context['is_mobile_card'] = self.is_mobile_card
+
         return context
 
 
 class KanjiListFilter(AjaxList):
     model = Kanji
-    template_name = 'kukan/kanji_list.html'
+    template_name = 'kukan/default_list.html'
     default_sort = 'kanken'
+    list_title = '漢字'
+    is_mobile_card = False
     filters = [
         FGenericString('漢字', 'kanji', 'kanji__in', list),
         FYomi(),
@@ -319,8 +330,9 @@ class YojiList(AjaxList):
 
 class ExampleList(AjaxList):
     model = Example
-    template_name = 'kukan/example_list.html'
+    template_name = 'kukan/default_list.html'
     default_sort = 'kanken'
+    list_title = '例文'
     filters = [
         FGenericString('単語', 'word'),
         FGenericCheckbox('漢検', 'kanken__kyu', model, is_two_column=True, order='-kanken__difficulty'),
@@ -333,6 +345,20 @@ class ExampleList(AjaxList):
         {'name': 'word', 'link': TableData.FieldProps.link_pk('example')},
         'yomi', 'sentence', 'kanken', 'is_joyo',
         {'name': 'updated_time', 'format': TableData.FieldProps.format_datetime_min}
+    ])
+
+
+class KotowazaList(AjaxList):
+    model = Kotowaza
+    template_name = 'kukan/default_list.html'
+    default_sort = 'kotowaza'
+    list_title = '諺'
+    filters = [
+        FGenericString('諺', 'kotowaza'),
+    ]
+    table_data = TableData(model, [
+        {'name': 'kotowaza', 'link': TableData.FieldProps.link_pk('kotowaza')},
+        'yomi'
     ])
 
 
@@ -383,6 +409,24 @@ class KanjiDetail(LoginRequiredMixin, generic.DetailView):
 
 class YojiDetail(LoginRequiredMixin, generic.DetailView):
     model = Yoji
+
+
+class KotowazaDetail(LoginRequiredMixin, generic.DetailView):
+    model = Kotowaza
+
+
+class KotowazaCreate(LoginRequiredMixin, CreateView):
+    template_name = 'kukan/example_update.html'
+    model = Kotowaza
+    form_class = KotowazaForm
+    context_object_name = 'kotowaza'
+
+
+class KotowazaUpdate(LoginRequiredMixin, UpdateView):
+    template_name = 'kukan/kotowaza_update.html'
+    model = Kotowaza
+    form_class = KotowazaForm
+    context_object_name = 'kotowaza'
 
 
 class ExampleDetail(LoginRequiredMixin, generic.DetailView):

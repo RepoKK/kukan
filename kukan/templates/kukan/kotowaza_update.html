@@ -1,0 +1,192 @@
+{% extends 'kukan/base_ext.html' %}
+{% load widget_tweaks %}
+
+{% block title %}
+例文の訂正
+{% endblock %}
+
+{% block banner %}
+    <section class="hero is-link is-hidden-mobile">
+      <div class="hero-body">
+        <div class="container">
+          <h2 class="title">
+            諺の訂正
+          </h2>
+        </div>
+      </div>
+    </section>
+
+<div class="container">
+  <div class="notification is-primary is-hidden-tablet">
+    <strong>諺の訂正</strong>
+  </div>
+</div>
+{% endblock %}
+
+{% block content %}
+
+<form action="." method="post">
+{% csrf_token %}
+    <nav class="level is-mobile">
+        <div class="level-left">
+            <div class="level-item">
+                <input type="submit" class="button is-link" value="保存" />
+            </div>
+        </div>
+        <div class="level-right">
+            <div class="buttons">
+                    <a class="button is-info" @click="getDefinition('')" :disabled="word==''">意味</a>
+                    <a class="button is-info" @click="onGuessReadings" :disabled="yomi==''">読み</a>
+                    <a class="button is-info is-rounded" :class="{'is-inverted':!showOptDisp}"
+                       @click="btnShowOptDisp = !showOptDisp" :disabled="hasOptInput">
+                        <b-icon :icon="!showOptDisp?'message-bulleted-off':'message-bulleted'"></b-icon>
+                        </a>
+            </div>
+        </div>
+    </nav>
+
+{% if form.errors %}
+    {% for error in form.non_field_errors %}
+        <div class="alert alert-danger">
+            <strong>{{ error|escape }}</strong>
+        </div>
+    {% endfor %}
+{% endif %}
+
+    <div class="columns is-mobile">
+        <div class="column is-narrow">
+            <div class="field is-narrow">
+                <input class="input is-static" readonly tabindex="-1" type="submit" style="font-weight: bold;"
+                value="単語　" >
+            </div>
+        </div>
+        <div class="column">
+            <div class="field">
+                <div class="control">
+                    <input placeholder="諺" class="input" type="text" expanded required
+                            v-model="kotowaza" name="kotowaza">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="columns is-mobile">
+        <div class="column is-narrow">
+            <div class="field">
+                <input class="input is-static" readonly tabindex="-1" type="submit" style="font-weight: bold;"
+                       value="読み方">
+            </div>
+        </div>
+        <div class="column">
+            <div class="field">
+                <b-input v-model="yomi" name="yomi" placeholder="読み方（カタカナ）" expanded required></b-input>
+            </div>
+            {% if form.yomi.errors %}
+                {% for error in form.yomi.errors %}
+                    <p class="help is-danger">{{ error|escape }}</p>
+                {% endfor %}
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="field">
+        <label class="label">諺の意味</label>
+        <div class="control">
+            <textarea v-model="definition"
+                      name="definition"
+                      class="textarea"
+                      placeholder="諺の意味・説明の文章を入力ください。"
+                      rows="12"></textarea>
+        </div>
+        {% if form.definition.errors %}
+            {% for error in form.definition.errors %}
+                <p class="help is-danger">{{ error|escape }}</p>
+            {% endfor %}
+        {% endif %}
+    </div>
+</form>
+{% endblock %}
+
+{% block extra_script %}
+<script>
+    const example_id = '{{example.id|default_if_none:'None'}}'
+</script>
+{% endblock %}
+
+{% block vue_data %}
+    data() {
+        return {
+            showNavBar: false,
+            kotowaza: '{{ form.kotowaza.value|default_if_none:'' }}',
+            yomi: '{{ form.yomi.value|default_if_none:'' }}',
+            definition: '{{ form.definition.value|default_if_none:''|escapejs }}',
+        }
+    },
+    methods: {
+        onChangeWord() {
+            this.loadReadings()
+            this.findSimilarWords()
+        },
+        onGuessReadings() {
+            const params = [
+                `ex_id=${example_id}`,
+                `word=${this.word}`,
+                `word_native=${this.word_native}`,
+                `yomi=${this.yomi}`
+            ].join('&')
+            axios.get(`/ajax/set_yomi/?${params}`)
+                .then(({ data }) => {
+                    if (data.candidate) {
+                        this.reading_selected = data.candidate
+                    } else {
+                        this.$toast.open({
+                            message: `読み方の自動設定失敗`,
+                            type: 'is-warning'
+                        })
+                    }
+                })
+                .catch((error) => {
+                        this.$toast.open({
+                            message: `読み方の自動設定失敗`,
+                            type: 'is-danger'
+                        })
+                })
+        },
+        getDefinition(link='') {
+            this.showCandidateDefinition=false
+            const params = [
+                `word=${this.word}`,
+                `word_native=${this.word_native}`,
+                `link=${link}`
+            ].join('&')
+            axios.get(`/ajax/get_goo/?${params}`)
+                .then(({ data }) => {
+                    if (data.definition) {
+                        this.definition = data.definition
+                        this.candidates = data.definition
+                        if (this.yomi=='') {
+                            this.yomi = data.reading
+                        }
+                    } else if (data.candidates) {
+                        this.candidates = data.candidates
+                        this.showCandidateDefinition=true
+                    } else {
+                        this.$toast.open({
+                            message: `定義獲得失敗`,
+                            type: 'is-warning'
+                        })
+                    }
+                })
+                .catch((error) => {
+                        this.$toast.open({
+                            message: `定義獲得失敗`,
+                            type: 'is-danger'
+                        })
+                })
+        },
+    },
+    mounted() {
+       this.loadReadings()
+    }
+{% endblock vue_data %}
+

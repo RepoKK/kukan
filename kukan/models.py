@@ -12,6 +12,7 @@ import kukan.jautils as jau
 import random
 from django.core.exceptions import ValidationError
 from django.utils.functional import cached_property
+from enum import Enum
 
 
 class Classification(models.Model):
@@ -250,7 +251,32 @@ class Reading(models.Model):
         return self.joyo.yomi_joyo != '表外'
 
 
+class Kotowaza(models.Model):
+    kotowaza = models.CharField('諺', max_length=100, blank=True)
+    yomi = models.CharField('読み方', max_length=100, blank=True)
+    definition = models.CharField('意味', max_length=10000, blank=True)
+
+    def get_absolute_url(self):
+        return reverse('kukan:kotowaza_detail', kwargs={'pk': self.pk})
+
+    def get_definition_html(self):
+        return markdown.markdown(self.definition)
+
+
 class Example(models.Model):
+
+    class TypeChoice(Enum):
+        KAKI = '書き取り'
+        TAIGI = '対義語'
+        RUIGI = '類義語'
+        KOTOWAZA = '諺'
+
+        @classmethod
+        def choices(cls):
+            return [(tag.name, tag.value) for tag in cls]
+
+    # ex_type = models.CharField(max_length=8, choices=TypeChoice.choices(), default=TypeChoice.KAKI.name)
+    # kotowaza = models.ForeignKey(Kotowaza, on_delete=models.CASCADE, verbose_name='諺', null=True, blank=True)
 
     created_time = models.DateTimeField('作成日付', auto_now_add=True)
     updated_time = models.DateTimeField('変更日付', auto_now=True)

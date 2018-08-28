@@ -1,13 +1,13 @@
 from django.forms import Form, ModelForm, Textarea, CharField, TextInput, ChoiceField, Select, ValidationError
-from .models import Kanji, Bushu, YomiType, YomiJoyo, Reading, Example, ExMap
+from .models import Kanji, Bushu, YomiType, YomiJoyo, Reading, Example, ExMap, Kotowaza
 from django.utils.translation import gettext_lazy as _
 import kukan.jautils as jau
 from django.db import transaction
 
+
 class SearchForm(Form):
     search = CharField(required=False,
                        widget=TextInput(attrs={'class': 'input is-medium', 'placeholder':'漢字・四字熟語・単語'}))
-
 
 
 class Katakana(CharField):
@@ -40,6 +40,20 @@ class ReadingSelect(CharField):
                             _('未設定の読みがあります'),
                             code='invalid',
                         )
+
+
+class KotowazaForm(ModelForm):
+
+    class Meta:
+        model = Kotowaza
+        fields = ['kotowaza', 'yomi', 'definition']
+        widgets = {
+            'kotowaza': Textarea(attrs={'cols': 80, 'rows': 1}),
+            'yomi': Textarea(attrs={'cols': 80, 'rows': 5}),
+        }
+        field_classes = {
+            'yomi': Katakana,
+        }
 
 
 class ExampleForm(ModelForm):

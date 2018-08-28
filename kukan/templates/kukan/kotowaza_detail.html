@@ -1,0 +1,23 @@
+{% extends 'kukan/base_ext.html' %}
+
+{% block title %}
+{{ kotowaza.kotowaza }}
+{% endblock %}
+
+{% block content %}
+    <div class="columns is-mobile">
+        <div class="column">
+            <h1 class="title is-4">{{ kotowaza.kotowaza }}</h1>
+            <h2 class="subtitle is-5">{{ kotowaza.yomi }}</h2>
+        </div>
+        <div class="column is-narrow">
+            <a class="button is-link" href="{% url 'kukan:kotowaza_update' kotowaza.id %}">編集</a>
+        </div>
+    </div>
+    <div class="columns">
+        <div class="column is-three-fifths">
+            <div class="content">
+                <h2>意味</h2></div>
+            <div class="content">{{ kotowaza.get_definition_html|safe  }}</div>
+        </div>
+{% endblock %}

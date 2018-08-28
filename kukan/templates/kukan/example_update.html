@@ -286,7 +286,7 @@
     },
     computed: {
         hasOptInput: function() {
-            return this.word_native != "" || this.yomi_native != ""
+            return this.word_native != "" || this.yomi_native != "" || this.word_variation != ""
         },
         showOptDisp: function() {
             return this.btnShowOptDisp || this.hasOptInput

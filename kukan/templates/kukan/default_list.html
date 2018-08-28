@@ -1,7 +1,7 @@
 {% extends 'kukan/base_ext.html' %}
 
 {% block content %}
-    <v-filtered-table top_title="漢字"></v-filtered-table>
+    <v-filtered-table top_title="{{list_title}}" :mobile-cards="'{{is_mobile_card}}'=='True'"></v-filtered-table>
 {% endblock %}
 
 {% block vue_data %}

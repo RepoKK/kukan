@@ -26,6 +26,7 @@
                             <div class="field is-grouped">
                                 <input type="submit" class="button" :class="color" name="kanji" value="漢字" />
                                 <input type="submit" class="button" :class="color" name="yoji" value="四字熟語" />
+                                <input type="submit" class="button" :class="color" name="kotowaza" value="諺" />
                                 <input type="submit" class="button" :class="color" name="example" value="例文" />
                             </div>
                         </div>
@@ -46,6 +47,9 @@
                 </a>
                 <a class="navbar-item" href="{% url 'kukan:yoji_list' %}">
                     四字熟語
+                </a>
+                <a class="navbar-item" href="{% url 'kukan:kotowaza_list' %}">
+                    諺
                 </a>
                 <div class="navbar-item has-dropdown is-hoverable">
                     <a class="navbar-item">
