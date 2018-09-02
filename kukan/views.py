@@ -40,7 +40,7 @@ class Index(LoginRequiredMixin, generic.FormView):
             self.success_url = reverse('kukan:yoji_list')
             if search != '':
                 self.success_url += '?漢字=' + search + '&Anki=Anki'
-        if 'kotowaza' in self.request.POST:
+        elif 'kotowaza' in self.request.POST:
             self.success_url = reverse('kukan:kotowaza_list')
             if search != '':
                 self.success_url += '?諺=' + search
@@ -320,7 +320,7 @@ class YojiList(AjaxList):
         FGenericString('分類', 'bunrui__bunrui'),
         FYomiSimple('reading'),
         FGenericCheckbox('漢検', 'kanken__kyu', model, is_two_column=True, order='-kanken__difficulty'),
-        FGenericYesNo('Anki', 'in_anki', True, 'Anki', '非Anki'),
+        FGenericYesNo('日課', 'in_anki', True, '日課に出る', '日課に出ない'),
     ]
     table_data = TableData(model, [
         {'name': 'yoji', 'link': TableData.FieldProps.link_pk('yoji')},

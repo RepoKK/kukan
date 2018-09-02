@@ -31,8 +31,8 @@ Vue.component('fr-addrem-anki', {
         toggleConfirm: function () {
             if (this.in_anki) {
                 this.$dialog.confirm({
-                    title: 'Ankiから外す',
-                    message: '本当にAnkiの四字熟語の問題から外しますか。',
+                    title: '日課から外す',
+                    message: '本当に日課の四字熟語の問題から外しますか。',
                     cancelText: '取消',
                     confirmText: '削除',
                     type: 'is-danger',
@@ -41,7 +41,7 @@ Vue.component('fr-addrem-anki', {
                 })
             } else {
                 this.$dialog.confirm({
-                    message: 'Ankiに追加しますか。',
+                    message: '日課に追加しますか。',
                     cancelText: '取消',
                     confirmText: '追加',
                     onConfirm: () => this.toggle('add')
@@ -59,14 +59,14 @@ Vue.component('fr-addrem-anki', {
                         this.in_anki = ('true' == data.in_anki)
                     } else {
                         this.$toast.open({
-                            message: `Ankiに追加・削除の失敗`,
+                            message: `日課に追加・削除の失敗`,
                             type: 'is-warning'
                         })
                     }
                 })
                .catch((error) => {
                     this.$toast.open({
-                        message: `Ankiに追加・削除の失敗`,
+                        message: `日課に追加・削除の失敗`,
                         type: 'is-danger'
                     })
                })
