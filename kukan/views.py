@@ -558,8 +558,9 @@ def set_yomi(request):
 @login_required
 def get_similar_word(request):
     word = request.GET.get('word', None)
+    ex_id = request.GET.get('ex_id', None)
     sim_word = [x.word + ('（' + x.yomi + '）' if x.yomi != '' else '')
-                for x in Example.objects.filter(word__contains=word)]
+                for x in Example.objects.filter(word__contains=word).exclude(id=ex_id)]
     data = {'info_similar_word': sim_word}
     return JsonResponse(data)
 
@@ -582,7 +583,7 @@ def get_def_kanjipedia(word):
             text = re.sub(r'<span>(.*?)</span>', r'**【\1】**　', text, re.MULTILINE)
             h = html2text.HTML2Text()
             h.ignore_links = True
-            text = re.sub(r'<img.*? alt="">', r'=>　', text, re.MULTILINE)
+            text = re.sub(r'<img.[^,>]+ alt="">', r'=>　', text, re.MULTILINE)
             text = h.handle(re.sub(r'<img.*? alt="(.*?)">', r'**【\1】**　', text, re.MULTILINE))
             if i == 0:
                 text = text.translate({ord('①') + i:  '\n\n{}. '.format(1 + i) for i in range(20)})
@@ -634,6 +635,7 @@ def get_def_goo(word, link):
 @login_required
 def get_goo(request):
     word = request.GET.get('word_native', None)
+    definition = None
     if word == '':
         word = request.GET.get('word', None)
     link = request.GET.get('link', None)
@@ -656,23 +658,30 @@ class ExportView(LoginRequiredMixin, generic.FormView):
     success_url = reverse_lazy('kukan:export')
 
     def render_to_response(self, context, **response_kwargs):
-        # Look for a 'format=json' GET argument
         if self.request.method == 'POST':
             choice = self.request.POST.get('choice', None)
+
+            response = HttpResponse(content_type='text/csv')
+            response['Content-Disposition'] = 'attachment; filename="dj_' + choice + '.csv"'
+            writer = csv.writer(response, delimiter='\t', quotechar='"')
+
             if choice[0:9] == 'anki_kaki':
-                return self.export_anki_kakitori(choice)
+                self.export_anki_kakitori(writer, choice)
             elif choice == 'anki_yoji':
-                return self.export_anki_yoji()
+                self.export_anki_yoji(writer)
             elif choice == 'anki_kanji':
-                return self.export_anki_kanji()
+                self.export_anki_kanji(writer)
+            elif choice == 'anki_yomi':
+                self.export_anki_yomi(writer)
+            elif choice == 'anki_kotowaza':
+                self.export_anki_kotowaza(writer)
+
+            return response
         else:
             return super().render_to_response(context)
 
-    def export_anki_kakitori(self, choice):
-        response = HttpResponse(content_type='text/csv')
-        response['Content-Disposition'] = 'attachment; filename="djAnkiKakitori_'+ choice[10:] +'.csv"'
-        writer = csv.writer(response, delimiter='\t', quotechar='"')
-
+    @staticmethod
+    def std_alt_maps():
         q_alt = Kanji.objects.filter(kanjidetails__std_kanji__isnull=False,
                                      kanjidetails__std_kanji__kanken__difficulty__gte=11
                                      ).select_related('kanjidetails__std_kanji')
@@ -681,6 +690,12 @@ class ExportView(LoginRequiredMixin, generic.FormView):
         for kyo, std in [(k.kanji, k.kanjidetails.std_kanji) for k in q_alt]:
             std_to_alt.setdefault(std.kanji, []).append(kyo)
             alt_to_std[kyo] = std.kanji
+
+        return std_to_alt, alt_to_std
+
+    @staticmethod
+    def export_anki_kakitori(writer, choice):
+        std_to_alt, alt_to_std = ExportView.std_alt_maps()
 
         excl_in_progress = reduce(lambda x, y: x | y,
                                   [Q(definition__contains=x) for x in ['kaki', 'yomi', 'hyogai', 'kotowaza']])
@@ -708,16 +723,58 @@ class ExportView(LoginRequiredMixin, generic.FormView):
                              sentence,
                              word,
                              example.kanken])
-        return response
+
+    @staticmethod
+    def export_anki_yomi(writer):
+        std_to_alt, alt_to_std = ExportView.std_alt_maps()
+
+        excl_in_progress = reduce(lambda x, y: x | y,
+                                  [Q(definition__contains=x) for x in ['kaki', 'yomi', 'hyogai', 'kotowaza']])
+        q_set = Example.objects.exclude(sentence='').exclude(kanken__difficulty__gt=11).exclude(excl_in_progress)
+        q_set = q_set.filter(
+            Q(kanken__difficulty__gte=11) | Q(ex_type=Example.TypeChoice.YOMI.name)
+        ).exclude(ex_type=Example.TypeChoice.KOTOWAZA.name)
+
+        for example in q_set:
+            word = example.word_native if example.word_native != "" else example.word
+            yomi = example.yomi_native if example.yomi_native != "" else example.yomi
+            sentence = example.sentence.replace(word,
+                                                '<span class="font-color01">' +
+                                                word + '</span>')
+
+            word = ''.join([alt_to_std.get(k, k) for k in word])
+            alt_word = ''.join([alt[0] + ('（{}）'.format('・'.join(alt[1:])) if len(alt) > 1 else '') for alt in
+                                [std_to_alt.get(k, k) for k in word]])
+            if word != alt_word:
+                word = word + '[{}]'.format(alt_word)
+
+            if example.word_variation != '':
+                word += '\n（{}）'.format(example.word_variation)
+
+            writer.writerow([example.id,
+                             sentence,
+                             yomi,
+                             example.get_definition_html()])
+
+    @staticmethod
+    def export_anki_kotowaza(writer):
+
+        q_set = Example.objects.filter(ex_type=Example.TypeChoice.KOTOWAZA.name).exclude(kotowaza__yomi='')
+
+        for example in q_set:
+            word = example.word_native if example.word_native != "" else example.word
+            yomi = example.yomi_native if example.yomi_native != "" else example.yomi
+            sentence = example.sentence.replace(word, '<span class="font-color01">' + yomi + '</span>')
+
+            writer.writerow([example.id,
+                             sentence,
+                             word,
+                             example.kotowaza.get_definition_html()])
 
     # noinspection PyUnusedLocal
     @staticmethod
-    def export_anki_kanji():
-        # Create the HttpResponse object with the appropriate CSV header.
-        response = HttpResponse(content_type='text/csv')
-        response['Content-Disposition'] = 'attachment; filename="djAnkiKanji.csv"'
+    def export_anki_kanji(writer):
 
-        writer = csv.writer(response, delimiter='\t', quotechar='"')
         for kj in Kanji.objects.exclude(kanken__difficulty__gt=10):
             anki_read_table = render_to_string('kukan/AnkiReadTable.html', {'kanji': kj})
             writer.writerow([kj.kanji,
@@ -732,14 +789,10 @@ class ExportView(LoginRequiredMixin, generic.FormView):
                              kj.kanken.kyu,
                              kj.classification,
                              kj.anki_kjIjiDoukun])
-        return response
 
     # noinspection PyUnusedLocal
     @staticmethod
-    def export_anki_yoji():
-        # Create the HttpResponse object with the appropriate CSV header.
-        response = HttpResponse(content_type='text/csv')
-        response['Content-Disposition'] = 'attachment; filename="djAnkiYoji.csv"'
+    def export_anki_yoji(writer):
 
         test_start = defaultdict(list)
         test_end = defaultdict(list)
@@ -747,7 +800,6 @@ class ExportView(LoginRequiredMixin, generic.FormView):
             test_start[yoji.yoji[0:2]].append(yoji.yoji[2:4])
             test_end[yoji.yoji[2:4]].append(yoji.yoji[0:2])
 
-        writer = csv.writer(response, delimiter='\t', quotechar='"')
         for yoji in Yoji.objects.filter(in_anki=True):
             cloze = "{{{{c{0}::{1}::{2}}}}}{{{{c{3}::{4}::{5}}}}}".format(
                 yoji.anki_cloze[0],
@@ -762,7 +814,6 @@ class ExportView(LoginRequiredMixin, generic.FormView):
                              yoji.reading,
                              yoji.get_definition_html()[3:-4],
                              ])
-        return response
 
 # TODO
 # def read_from_bin():

@@ -14,10 +14,19 @@
             <a class="button is-link" href="{% url 'kukan:kotowaza_update' kotowaza.id %}">編集</a>
         </div>
     </div>
-    <div class="columns">
+    <div class="columns is-variable is-8">
         <div class="column is-three-fifths">
             <div class="content">
                 <h2>意味</h2></div>
             <div class="content">{{ kotowaza.get_definition_html|safe  }}</div>
         </div>
+        <div class="column">
+            <div class="content"><h2>例文の単語</h2></div>
+            <ul>
+                {% for ex in kotowaza.example_set.all %}
+                    <li><a href="{% url 'kukan:example_detail' ex.id %}">{{ ex.word }}</a> - {{ ex.yomi }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
 {% endblock %}

@@ -256,6 +256,9 @@ class Kotowaza(models.Model):
     yomi = models.CharField('読み方', max_length=100, blank=True)
     definition = models.CharField('意味', max_length=10000, blank=True)
 
+    def __str__(self):
+        return '{1} - {0}'.format(self.kotowaza, self.id)
+
     def get_absolute_url(self):
         return reverse('kukan:kotowaza_detail', kwargs={'pk': self.pk})
 
@@ -263,20 +266,27 @@ class Kotowaza(models.Model):
         return markdown.markdown(self.definition)
 
 
+def modelChoice(cls):
+    cls.do_not_call_in_templates = True
+    return cls
+
 class Example(models.Model):
 
+    @modelChoice
     class TypeChoice(Enum):
         KAKI = '書き取り'
+        YOMI = '読み'
+        HYOGAI = '表外読み'
         TAIGI = '対義語'
         RUIGI = '類義語'
-        KOTOWAZA = '諺'
+        KOTOWAZA = '故事・諺'
 
         @classmethod
         def choices(cls):
             return [(tag.name, tag.value) for tag in cls]
 
-    # ex_type = models.CharField(max_length=8, choices=TypeChoice.choices(), default=TypeChoice.KAKI.name)
-    # kotowaza = models.ForeignKey(Kotowaza, on_delete=models.CASCADE, verbose_name='諺', null=True, blank=True)
+    ex_type = models.CharField(max_length=8, choices=TypeChoice.choices(), default=TypeChoice.KAKI.name)
+    kotowaza = models.ForeignKey(Kotowaza, on_delete=models.CASCADE, verbose_name='諺', null=True, blank=True)
 
     created_time = models.DateTimeField('作成日付', auto_now_add=True)
     updated_time = models.DateTimeField('変更日付', auto_now=True)

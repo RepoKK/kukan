@@ -177,5 +177,7 @@ class ExportForm(Form):
                                 ('anki_kaki_ayu','Anki deck: 書き取り（あゆみ）'),
                                 ('anki_kaki_fred', 'Anki deck: 書き取り（フレッド）'),
                                 ('anki_yoji', 'Anki deck: 四字熟語'),
+                                ('anki_yomi', 'Anki deck: 読み'),
+                                ('anki_kotowaza', 'Anki deck: 諺'),
                                 ],
                        widget=Select(attrs={'class': 'select'}))
