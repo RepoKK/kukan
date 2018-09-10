@@ -8,8 +8,9 @@ from kukan.exporting import Exporter
 
 sys.path.append(os.path.join(settings.TOP_DIR, r'anki', r'anki-2.1.4'))
 from anki import Collection
-from anki.sync import RemoteServer, Syncer
+from anki.sync import RemoteServer, Syncer, FullSyncer
 from anki.importing.csvfile import TextImporter
+from anki.utils import ids2str
 
 Deck = namedtuple('Deck', ['name', 'model', 'file_name'])
 
@@ -23,7 +24,7 @@ def create_user_deck_list(suffix):
 deck_list = [
     ('四字熟語', 'Cloze Yoji', 'dj_anki_yoji'),
     ('書き取り', 'Kakitori', 'dj_anki_kaki'),
-    ('漢字', 'Japanese Kanji', 'dj_anki_kanji'),
+    #('漢字', 'Japanese Kanji', 'dj_anki_kanji'),
     ('読み', 'Yomi', 'dj_anki_yomi'),
     #('諺', 'Kotowaza', 'dj_anki_kotowaza'),
 ]
@@ -50,14 +51,16 @@ def import_file(col, deck, file_name):
 
     # import into the collection
     ti = TextImporter(col, file_name)
+    ti.allowHTML = True
     ti.initMapping()
     ti.run()
     if ti.log:
-        print(ti.log)
+        print(ti.log[0])
 
 
-def delete_missing_notes(col, file_name):
-    lst_db_notes = pd.DataFrame(list(col.db.execute("select id, flds from notes")))
+def delete_missing_notes(col, deck, file_name):
+    lst_db_notes = pd.DataFrame(list(col.db.execute("select id, flds from notes where id in " + 
+        ids2str(col.findNotes("deck:" + deck.name)))))
     lst_db_notes.iloc[:,1] = lst_db_notes.iloc[:,1].str.split('\x1f').str.get(0)
     lst_db_notes.columns = ['db_key', 'anki_key']
     lst_db_notes.set_index('anki_key', inplace=True)
@@ -86,6 +89,12 @@ def sync_server(profile, col):
     client = Syncer(col, server)
     res = client.sync()
     print('Sync result: ', res)
+    if res in ['success', 'noChanges']:
+        pass
+    elif res == 'fullSync':
+        print('FULL SYNC')
+        client = FullSyncer(col, profiles[profile]['syncKey'], server.client, profiles[profile]['hostNum'])
+        client.download()
 
 
 def sync_profile(profile):
@@ -98,9 +107,10 @@ def sync_profile(profile):
         # Apply the changes
         for deck in profiles[profile]['decks']:
             file_name = os.path.join(settings.TOP_DIR, r'anki/import', deck.file_name)
-            if os.path.exists(file_name):
+            if os.path.exists(file_name) and deck.name in col.decks.allNames():
+                print('Imp', deck.name)
                 import_file(col, deck, file_name)
-                delete_missing_notes(col, file_name)
+                delete_missing_notes(col, deck, file_name)
 
         # Sync the change back
         sync_server(profile, col)
