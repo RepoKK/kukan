@@ -1,13 +1,15 @@
-from django.core.management.base import BaseCommand
-from django.conf import settings
 import sys, os
-sys.path.append(os.path.join(TOP_DIR, r'anki-2.1.4'))
-from anki import Collection
-from anki.sync import RemoteServer, Syncer
-from anki.importing.csvfile import TextImporter
 import pandas as pd
 from collections import namedtuple
 
+from django.core.management.base import BaseCommand
+from django.conf import settings
+from kukan.exporting import Exporter
+
+sys.path.append(os.path.join(settings.TOP_DIR, r'anki', r'anki-2.1.4'))
+from anki import Collection
+from anki.sync import RemoteServer, Syncer
+from anki.importing.csvfile import TextImporter
 
 Deck = namedtuple('Deck', ['name', 'file_name'])
 
@@ -87,7 +89,7 @@ def sync_server(profile, col):
 
 
 def sync_profile(profile):
-    col = Collection(r'/home/fred/.local/share/Anki2/' + profile + '/collection.anki2')
+    col = Collection(os.path.join(settings.TOP_DIR, r'.local/share/Anki2', profile, r'collection.anki2'))
 
     try:
         # Sync from the server
@@ -95,7 +97,7 @@ def sync_profile(profile):
 
         # Apply the changes
         for deck in profiles[profile]['decks']:
-            file_name = r'/home/fred/' + deck.file_name
+            file_name = os.path.join(settings.TOP_DIR, r'anki/import', deck.file_name)
             if os.path.exists(file_name):
                 import_file(col, file_name)
                 delete_missing_notes(col, file_name)
@@ -114,5 +116,6 @@ class Command(BaseCommand):
         pass
 
     def handle(self, *args, **options):
+        Exporter('all').export()
         for prof in profiles.keys():
             sync_profile(prof)

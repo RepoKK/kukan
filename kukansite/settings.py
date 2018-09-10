@@ -128,6 +128,10 @@ CERT_URL = '/.well-known/'
 
 TOP_DIR = os.path.dirname(BASE_DIR)
 
+ANKI_DIR = os.path.join(TOP_DIR, r'anki')
+ANKI_SRC = os.path.join(TOP_DIR, r'anki-v2.1.4')
+ANKI_IMPORT_DIR = os.path.join(ANKI_DIR, r'import')
+
 X_FRAME_OPTIONS='DENY'
 
 # Redirect to home URL after login (Default redirects to /accounts/profile/)
