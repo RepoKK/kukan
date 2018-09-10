@@ -11,21 +11,21 @@ from anki import Collection
 from anki.sync import RemoteServer, Syncer
 from anki.importing.csvfile import TextImporter
 
-Deck = namedtuple('Deck', ['name', 'file_name'])
+Deck = namedtuple('Deck', ['name', 'model', 'file_name'])
 
 
 def create_user_deck_list(suffix):
     deck_with_suffix = ['書き取り']
-    return [Deck(x, y + '.csv') if x not in deck_with_suffix else Deck(x, y + '_' + suffix +'.csv')
-            for x, y in deck_list]
+    return [Deck(x, m, y + '.csv') if x not in deck_with_suffix else Deck(x, m, y + '_' + suffix +'.csv')
+            for x, m, y in deck_list]
 
 
 deck_list = [
-    ('四字熟語', 'dj_anki_yoji'),
-    ('書き取り', 'dj_anki_kaki'),
-    ('漢字', 'dj_anki_kanji'),
-    ('読み', 'dj_anki_yomi'),
-    ('諺', 'dj_anki_kotowaza'),
+    ('四字熟語', 'Cloze Yoji', 'dj_anki_yoji'),
+    ('書き取り', 'Kakitori', 'dj_anki_kaki'),
+    ('漢字', 'Japanese Kanji', 'dj_anki_kanji'),
+    ('読み', 'Yomi', 'dj_anki_yomi'),
+    #('諺', 'Kotowaza', 'dj_anki_kotowaza'),
 ]
 
 
@@ -36,12 +36,12 @@ profiles = {
 }
 
 
-def import_file(col, file):
-    did = col.decks.id("書き取り")
+def import_file(col, deck, file_name):
+    did = col.decks.id(deck.name)
     col.decks.select(did)
 
     # anki defaults to the last note type used in the selected deck
-    m = col.models.byName("Kakitori")
+    m = col.models.byName(deck.model)
     deck = col.decks.get(did)
     deck['mid'] = m['id']
     col.decks.save(deck)
@@ -49,7 +49,7 @@ def import_file(col, file):
     m['did'] = did
 
     # import into the collection
-    ti = TextImporter(col, file)
+    ti = TextImporter(col, file_name)
     ti.initMapping()
     ti.run()
     if ti.log:
@@ -99,7 +99,7 @@ def sync_profile(profile):
         for deck in profiles[profile]['decks']:
             file_name = os.path.join(settings.TOP_DIR, r'anki/import', deck.file_name)
             if os.path.exists(file_name):
-                import_file(col, file_name)
+                import_file(col, deck, file_name)
                 delete_missing_notes(col, file_name)
 
         # Sync the change back
