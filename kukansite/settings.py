@@ -126,6 +126,8 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'static')
 CERT_ROOT = os.path.join(BASE_DIR, '.well-known')
 CERT_URL = '/.well-known/'
 
+TOP_DIR = os.path.dirname(BASE_DIR)
+
 X_FRAME_OPTIONS='DENY'
 
 # Redirect to home URL after login (Default redirects to /accounts/profile/)
