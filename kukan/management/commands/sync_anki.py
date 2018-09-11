@@ -1,4 +1,4 @@
-import sys, os
+import sys, os, re
 import pandas as pd
 from collections import namedtuple
 
@@ -54,8 +54,13 @@ def import_file(col, deck, file_name):
     ti.allowHTML = True
     ti.initMapping()
     ti.run()
+    res = ('N/A', 'N/A', 'N/A')
     if ti.log:
         print(ti.log[0])
+        m = re.match(r'(\d+) notes added, (\d+) notes updated, (\d+) notes unchanged.', ti.log[0])
+        if m:
+            res = (m[1], m[2], m[3])
+    return res
 
 
 def delete_missing_notes(col, deck, file_name):
@@ -63,12 +68,12 @@ def delete_missing_notes(col, deck, file_name):
         ids2str(col.findNotes("deck:" + deck.name)))))
     lst_db_notes.iloc[:,1] = lst_db_notes.iloc[:,1].str.split('\x1f').str.get(0)
     lst_db_notes.columns = ['db_key', 'anki_key']
-    lst_db_notes.set_index('anki_key', inplace=True)
+    lst_db_notes = lst_db_notes.set_index('anki_key').sort_index()
     #print(lst_db_notes)
 
     lst_new_keys = pd.read_csv(file_name, sep='\t', header=None, usecols=[0], dtype=str)
     lst_new_keys['csv'] = 'csv'
-    lst_new_keys.set_index(0, inplace=True)
+    lst_new_keys = lst_new_keys.set_index(0).sort_index()
     #print(lst_new_keys)
 
     lst_db_notes['csv'] = lst_new_keys['csv']
@@ -78,10 +83,12 @@ def delete_missing_notes(col, deck, file_name):
     if len_del == 0:
         print('No card to delete')
     elif len_del > 5:
+        len_del = 'Too many cards to delete ({})'.format(len_del)
         print('Too many cards to delete ({})'.format(len_del))
     else:
         print('Delete {} card(s)'.format(len_del))
         col.remNotes(ids_to_del)
+    return len_del
 
 
 def sync_server(profile, col):
@@ -105,13 +112,14 @@ def sync_profile(profile):
         sync_server(profile, col)
 
         # Apply the changes
+        res_df = pd.DataFrame('-', [p.name for p in profiles['Test2']['decks']], ['added', 'updated', 'deleted', 'unchanged'])
         for deck in profiles[profile]['decks']:
             file_name = os.path.join(settings.TOP_DIR, r'anki/import', deck.file_name)
             if os.path.exists(file_name) and deck.name in col.decks.allNames():
                 print('Imp', deck.name)
-                import_file(col, deck, file_name)
-                delete_missing_notes(col, deck, file_name)
-
+                res_df.loc[deck.name, ['added', 'updated', 'unchanged']] = import_file(col, deck, file_name)
+                res_df.loc[deck.name, 'deleted'] = delete_missing_notes(col, deck, file_name)
+        print(res_df.as_html())
         # Sync the change back
         sync_server(profile, col)
 
@@ -128,4 +136,5 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         Exporter('all').export()
         for prof in profiles.keys():
+            print('*** Sync profile {} ***'.format(prof))
             sync_profile(prof)
