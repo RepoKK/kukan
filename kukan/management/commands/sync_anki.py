@@ -23,7 +23,7 @@ deck_list = [Deck(x, m, y + '.csv') for x, m, y in [
 ]]
 
 profiles = {
-    #'Fred': {'syncKey': r'5cewjKL7Ji0bxmEI', 'hostNum': '3', 'decks': deck_list},
+    'Fred': {'syncKey': r'5cewjKL7Ji0bxmEI', 'hostNum': '3', 'decks': deck_list},
     #'Ayumi': {'syncKey': r'AKkTW8E20gyPnhXB', 'hostNum': '3', 'decks': deck_list},
     'Test2': {'syncKey': r'B41alyqIHCZPnWsO', 'hostNum': '2', 'decks': deck_list},
 }
@@ -101,18 +101,23 @@ def sync_profile(profile):
     col = Collection(os.path.join(settings.TOP_DIR, r'.local/share/Anki2', profile, r'collection.anki2'))
 
     try:
+        # Dataframe holding the result for the log
+        res_df = pd.DataFrame('-',
+                              [p.name for p in profiles['Test2']['decks']],
+                              ['added', 'updated', 'deleted', 'unchanged'])
+
         # Sync from the server
         sync_server(profile, col)
 
         # Apply the changes
-        res_df = pd.DataFrame('-', [p.name for p in profiles['Test2']['decks']], ['added', 'updated', 'deleted', 'unchanged'])
         for deck in profiles[profile]['decks']:
-            file_name = os.path.join(settings.TOP_DIR, r'anki/import', deck.file_name)
+            file_name = os.path.join(settings.ANKI_IMPORT_DIR, deck.file_name)
             if os.path.exists(file_name) and deck.name in col.decks.allNames():
                 print('Imp', deck.name)
                 res_df.loc[deck.name, ['added', 'updated', 'unchanged']] = import_file(col, deck, file_name)
                 res_df.loc[deck.name, 'deleted'] = delete_missing_notes(col, deck, file_name)
         print(res_df.to_html())
+
         # Sync the change back
         sync_server(profile, col)
 
@@ -128,5 +133,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         for profile in profiles.keys():
+            dir_to_clear = settings.ANKI_IMPORT_DIR
+            list(map(os.unlink, (os.path.join(dir_to_clear, f) for f in os.listdir(dir_to_clear))))
             Exporter('all', profile).export()
             sync_profile(profile)
