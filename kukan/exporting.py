@@ -8,29 +8,29 @@ from django.conf import settings
 
 
 class Exporter:
-    type_list = ['anki_yoji', 'anki_kaki_ayu', 'anki_kaki_fred',
-                 'anki_kanji', 'anki_yomi', 'anki_kotowaza']
+    kind_list = ['anki_yoji', 'anki_kaki', 'anki_kanji', 'anki_yomi', 'anki_kotowaza']
 
-    def __init__(self, type, out_dir=settings.ANKI_IMPORT_DIR):
-        self.type = type
+    def __init__(self, kind, profile, out_dir=settings.ANKI_IMPORT_DIR):
+        self.kind = kind
+        self.profile = profile
         self.out_dir = out_dir
 
     def export(self):
-        if self.type == 'all':
+        if self.kind == 'all':
             self._export_all()
         else:
-            self._export_type(self.type)
+            self._export_kind(self.kind)
 
     def _export_all(self):
-        for type in self.type_list:
-            self._export_type(type)
+        for kind in self.kind_list:
+            self._export_kind(kind)
 
-    def _export_type(self, choice):
+    def _export_kind(self, choice):
         with open(os.path.join(self.out_dir, 'dj_' + choice + '.csv'), 'w', newline='', encoding="utf-8") as csvfile:
             writer = csv.writer(csvfile, delimiter='\t', quotechar='"')
 
-            if choice[0:9] == 'anki_kaki':
-                self.export_anki_kakitori(writer, choice)
+            if choice == 'anki_kaki':
+                self.export_anki_kakitori(writer)
             elif choice == 'anki_yoji':
                 self.export_anki_yoji(writer)
             elif choice == 'anki_kanji':
@@ -54,15 +54,13 @@ class Exporter:
 
         return std_to_alt, alt_to_std
 
-
-    @staticmethod
-    def export_anki_kakitori(writer, choice):
+    def export_anki_kakitori(self, writer):
         std_to_alt, alt_to_std = Exporter.std_alt_maps()
 
         excl_in_progress = reduce(lambda x, y: x | y,
                                   [Q(definition__contains=x) for x in ['kaki', 'yomi', 'hyogai', 'kotowaza']])
         q_set = Example.objects.exclude(sentence='').exclude(kanken__difficulty__gt=11).exclude(excl_in_progress)
-        if choice == 'anki_kaki_ayu':
+        if self.profile == 'Ayumi':
             q_set = q_set.filter(Q(kanken__difficulty__gte=8) | Q(word__endswith='義語）'))
 
         for example in q_set:

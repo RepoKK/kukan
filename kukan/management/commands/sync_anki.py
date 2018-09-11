@@ -14,26 +14,18 @@ from anki.utils import ids2str
 
 Deck = namedtuple('Deck', ['name', 'model', 'file_name'])
 
-
-def create_user_deck_list(suffix):
-    deck_with_suffix = ['書き取り']
-    return [Deck(x, m, y + '.csv') if x not in deck_with_suffix else Deck(x, m, y + '_' + suffix +'.csv')
-            for x, m, y in deck_list]
-
-
-deck_list = [
+deck_list = [Deck(x, m, y + '.csv') for x, m, y in [
     ('四字熟語', 'Cloze Yoji', 'dj_anki_yoji'),
     ('書き取り', 'Kakitori', 'dj_anki_kaki'),
     #('漢字', 'Japanese Kanji', 'dj_anki_kanji'),
     ('読み', 'Yomi', 'dj_anki_yomi'),
     #('諺', 'Kotowaza', 'dj_anki_kotowaza'),
-]
-
+]]
 
 profiles = {
-    #'Fred': {'syncKey': r'5cewjKL7Ji0bxmEI', 'hostNum': '3', 'decks': create_user_deck_list('fred')},
-    #'Ayumi': {'syncKey': r'AKkTW8E20gyPnhXB', 'hostNum': '3', 'decks': create_user_deck_list('ayu')},
-    'Test2': {'syncKey': r'B41alyqIHCZPnWsO', 'hostNum': '2', 'decks': create_user_deck_list('fred')},
+    #'Fred': {'syncKey': r'5cewjKL7Ji0bxmEI', 'hostNum': '3', 'decks': deck_list},
+    #'Ayumi': {'syncKey': r'AKkTW8E20gyPnhXB', 'hostNum': '3', 'decks': deck_list},
+    'Test2': {'syncKey': r'B41alyqIHCZPnWsO', 'hostNum': '2', 'decks': deck_list},
 }
 
 
@@ -105,6 +97,7 @@ def sync_server(profile, col):
 
 
 def sync_profile(profile):
+    print('*** Sync profile {} ***'.format(profile))
     col = Collection(os.path.join(settings.TOP_DIR, r'.local/share/Anki2', profile, r'collection.anki2'))
 
     try:
@@ -119,7 +112,7 @@ def sync_profile(profile):
                 print('Imp', deck.name)
                 res_df.loc[deck.name, ['added', 'updated', 'unchanged']] = import_file(col, deck, file_name)
                 res_df.loc[deck.name, 'deleted'] = delete_missing_notes(col, deck, file_name)
-        print(res_df.as_html())
+        print(res_df.to_html())
         # Sync the change back
         sync_server(profile, col)
 
@@ -134,7 +127,6 @@ class Command(BaseCommand):
         pass
 
     def handle(self, *args, **options):
-        Exporter('all').export()
-        for prof in profiles.keys():
-            print('*** Sync profile {} ***'.format(prof))
-            sync_profile(prof)
+        for profile in profiles.keys():
+            Exporter('all', profile).export()
+            sync_profile(profile)
