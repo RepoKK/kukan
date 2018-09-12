@@ -4,6 +4,7 @@ from collections import namedtuple
 
 from django.core.management.base import BaseCommand
 from django.conf import settings
+from django.core.mail import send_mail
 from kukan.exporting import Exporter
 
 sys.path.append(os.path.join(settings.TOP_DIR, r'anki', r'anki-2.1.4'))
@@ -99,13 +100,10 @@ def sync_server(profile, col):
 def sync_profile(profile):
     print('*** Sync profile {} ***'.format(profile))
     col = Collection(os.path.join(settings.TOP_DIR, r'.local/share/Anki2', profile, r'collection.anki2'))
-
+    res_df = pd.DataFrame('-',
+                          [p.name for p in profiles['Test2']['decks']],
+                          ['added', 'updated', 'deleted', 'unchanged'])
     try:
-        # Dataframe holding the result for the log
-        res_df = pd.DataFrame('-',
-                              [p.name for p in profiles['Test2']['decks']],
-                              ['added', 'updated', 'deleted', 'unchanged'])
-
         # Sync from the server
         sync_server(profile, col)
 
@@ -124,6 +122,8 @@ def sync_profile(profile):
     finally:
         col.close()
 
+    return res_df
+
 
 class Command(BaseCommand):
     help = 'Sync Anki'
@@ -132,8 +132,11 @@ class Command(BaseCommand):
         pass
 
     def handle(self, *args, **options):
+        res_dfs = {}
         for profile in profiles.keys():
             dir_to_clear = settings.ANKI_IMPORT_DIR
             list(map(os.unlink, (os.path.join(dir_to_clear, f) for f in os.listdir(dir_to_clear))))
             Exporter('all', profile).export()
-            sync_profile(profile)
+            res_dfs[profile] = sync_profile(profile)
+        send_mail('Anki sync results', '', 'kukanjiten', ['fr_yjp-div@yahoo.co.jp'], fail_silently=False,
+                  html_message=pd.concat(res_dfs).to_html())
