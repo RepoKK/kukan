@@ -3,8 +3,15 @@
 <section class="section">
         <form action="{% url 'kukan:export' %}" method="post">
             {% csrf_token %}
+            <b-field label="{{ form.profile.label }}">
+                <b-select placeholder="{{ form.profile.label }}"　name="profile">
+                    {% for x,y in form.fields.profile.choices %}
+                        <option value="{{ x }}"{% if form.fields.gender.value == x %} selected{% endif %}>{{ y }}</option>
+                    {% endfor %}
+                </b-select>
+            </b-field>
             <b-field label="{{ form.type.label }}">
-                <b-select placeholder="Select a name"　name="choice">
+                <b-select placeholder="{{ form.type.label }}"　name="choice">
                     {% for x,y in form.fields.type.choices %}
                         <option value="{{ x }}"{% if form.fields.gender.value == x %} selected{% endif %}>{{ y }}</option>
                     {% endfor %}

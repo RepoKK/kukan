@@ -173,11 +173,15 @@ class ExampleForm(ModelForm):
 
 
 class ExportForm(Form):
-    type = ChoiceField(choices=[('anki_kanji', 'Anki deck: 漢字'),
-                                ('anki_kaki_ayu','Anki deck: 書き取り（あゆみ）'),
-                                ('anki_kaki_fred', 'Anki deck: 書き取り（フレッド）'),
-                                ('anki_yoji', 'Anki deck: 四字熟語'),
-                                ('anki_yomi', 'Anki deck: 読み'),
-                                ('anki_kotowaza', 'Anki deck: 諺'),
+    profile = ChoiceField(choices=[('Ayumi', 'Ayumi'), ('Fred', 'Fred')],
+                          widget=Select(attrs={'class': 'select'}),
+                          label='プロフィール')
+
+    type = ChoiceField(choices=[('anki_kanji', '漢字'),
+                                ('anki_kaki','書き取り'),
+                                ('anki_yoji', '四字熟語'),
+                                ('anki_yomi', '読み'),
+                                ('anki_kotowaza', '諺'),
                                 ],
-                       widget=Select(attrs={'class': 'select'}))
+                       widget=Select(attrs={'class': 'select'}),
+                       label='ファイル')

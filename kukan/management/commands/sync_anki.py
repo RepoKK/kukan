@@ -50,7 +50,7 @@ def import_file(col, deck, file_name):
     res = ('N/A', 'N/A', 'N/A')
     if ti.log:
         print(ti.log[0])
-        m = re.match(r'(\d+) notes added, (\d+) notes updated, (\d+) notes unchanged.', ti.log[0])
+        m = re.match(r'(\d+) notes? added, (\d+) notes? updated, (\d+) notes? unchanged.', ti.log[0])
         if m:
             res = (m[1], m[2], m[3])
     return res
@@ -101,7 +101,7 @@ def sync_profile(profile):
     print('*** Sync profile {} ***'.format(profile))
     col = Collection(os.path.join(settings.TOP_DIR, r'.local/share/Anki2', profile, r'collection.anki2'))
     res_df = pd.DataFrame('-',
-                          [p.name for p in profiles['Test2']['decks']],
+                          [p.name for p in profiles[profile]['decks']],
                           ['added', 'updated', 'deleted', 'unchanged'])
     try:
         # Sync from the server

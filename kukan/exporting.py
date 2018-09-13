@@ -5,6 +5,7 @@ from .models import Kanji, YomiType, YomiJoyo, Reading, Example, ExMap, Yoji, Te
 from django.db.models import Q
 from django.template.loader import render_to_string
 from django.conf import settings
+from django.http import HttpResponse
 
 
 class Exporter:
@@ -28,18 +29,7 @@ class Exporter:
     def _export_kind(self, choice):
         with open(os.path.join(self.out_dir, 'dj_' + choice + '.csv'), 'w', newline='', encoding="utf-8") as csvfile:
             writer = csv.writer(csvfile, delimiter='\t', quotechar='"')
-
-            if choice == 'anki_kaki':
-                self.export_anki_kakitori(writer)
-            elif choice == 'anki_yoji':
-                self.export_anki_yoji(writer)
-            elif choice == 'anki_kanji':
-                self.export_anki_kanji(writer)
-            elif choice == 'anki_yomi':
-                self.export_anki_yomi(writer)
-            elif choice == 'anki_kotowaza':
-                self.export_anki_kotowaza(writer)
-
+            getattr(self, 'export_' + choice)(writer)
 
     @staticmethod
     def std_alt_maps():
@@ -54,7 +44,7 @@ class Exporter:
 
         return std_to_alt, alt_to_std
 
-    def export_anki_kakitori(self, writer):
+    def export_anki_kaki(self, writer):
         std_to_alt, alt_to_std = Exporter.std_alt_maps()
 
         excl_in_progress = reduce(lambda x, y: x | y,
@@ -175,3 +165,17 @@ class Exporter:
                              yoji.reading,
                              yoji.get_definition_html()[3:-4],
                              ])
+
+
+class ExporterAsResp(Exporter):
+    def __init__(self, kind, profile):
+        super().__init__(kind, profile)
+
+    def export(self):
+        choice = self.kind
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = 'attachment; filename="dj_' + choice + '.csv"'
+        writer = csv.writer(response, delimiter='\t', quotechar='"')
+        getattr(self, 'export_' + choice)(writer)
+
+        return response
