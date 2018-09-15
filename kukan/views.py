@@ -1,4 +1,3 @@
-from django.http import HttpResponse
 from django.urls import reverse
 from django.views import generic
 from django.views.generic.edit import CreateView, UpdateView, DeleteView
@@ -6,30 +5,20 @@ from django.views.generic.base import TemplateView
 from django.urls import reverse_lazy
 from .models import Kanji, YomiType, YomiJoyo, Reading, Example, ExMap, Yoji, TestResult, Kotowaza
 from .forms import SearchForm, ExampleForm, ExportForm, KotowazaForm
-from django.template.loader import render_to_string
-from django.db.models import Q
 from django.http import JsonResponse
 from functools import reduce
 from django.core.paginator import Paginator, EmptyPage
-import csv
-import re
 import kukan.jautils as jau
-import json
 from django.db.models import Count
-import html2text
-from collections import defaultdict
-
-from lxml import html
-import requests
 
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.decorators import login_required
-from django.views.decorators.csrf import csrf_exempt
 
 from .filters import *
 import time
 
 from kukan.exporting import ExporterAsResp
+from kukan.onlinepedia import DefinitionWordBase
 
 
 class Index(LoginRequiredMixin, generic.FormView):
@@ -387,7 +376,7 @@ class KanjiDetail(LoginRequiredMixin, generic.DetailView):
     model = Kanji
     table_data = {'例文': TableData(Example, [
                                     {'name': 'word', 'link': TableData.FieldProps.link_pk('example')},
-                                    'yomi', 'sentence', 'kanken', 'is_joyo']),
+                                    'yomi', 'sentence', 'kanken', 'ex_type', 'is_joyo']),
                   '四字熟語': TableData(Yoji, [
                                     {'name': 'yoji', 'link': TableData.FieldProps.link_pk('yoji')},
                                     'reading', 'kanken', 'in_anki']),
@@ -567,87 +556,17 @@ def get_similar_word(request):
     return JsonResponse(data)
 
 
-def get_def_kanjipedia(word):
-    link = 'http://www.kanjipedia.jp/search?k={}&wt=1&sk=perfect'.format(word)
-    page = requests.get(link)
-
-    try:
-        target = html.fromstring(page.content).xpath('/html/body/div[1]/div[2]/ul[2]/li/a')
-        hr = target[0].get('href')
-        page = requests.get('http://www.kanjipedia.jp/' + hr)
-        tree = html.fromstring(page.content.decode('utf-8'))
-
-        yomi = tree.xpath('/html/body/div[1]/div[2]/div[1]/div/p[2]/text()')[0].translate(jau.hir2kat)
-        yomi = yomi.replace('－', '')
-        definition = ""
-        for i, p in enumerate(tree.xpath('//*[@id="kotobaExplanationSection"]/p')):
-            text = html.tostring(p, encoding='unicode')
-            text = re.sub(r'<span>(.*?)</span>', r'**【\1】**　', text, re.MULTILINE)
-            h = html2text.HTML2Text()
-            h.ignore_links = True
-            text = re.sub(r'<img.[^,>]+ alt="">', r'=>　', text, re.MULTILINE)
-            text = h.handle(re.sub(r'<img.*? alt="(.*?)">', r'**【\1】**　', text, re.MULTILINE))
-            if i == 0:
-                text = text.translate({ord('①') + i:  '\n\n{}. '.format(1 + i) for i in range(20)})
-            definition += text
-    except IndexError:
-        definition, yomi = '', ''
-
-    return definition.strip(), yomi
-
-
-def get_def_goo(word, link):
-    if link == '':
-        link = 'https://dictionary.goo.ne.jp/srch/jn/' + word + '/m1u/'
-    else:
-        link = 'https://dictionary.goo.ne.jp' + link
-    page = requests.get(link)
-    tree = html.fromstring(page.content)
-    text = ""
-    candidates = []
-    yomi = ""
-    try:
-        block = tree.xpath('//*[@id="NR-main-in"]/section/div/div[2]/div')
-        text = html.tostring(block[0], encoding='unicode')
-        yomi = tree.xpath('//*[@id="NR-main-in"]/section/div/div[1]/h1/text()')[0]
-        yomi = yomi[0:yomi.index('【')].replace('‐', '')
-        yomi = yomi.translate(jau.hir2kat)
-        yomi = yomi.replace('・', '')
-        yomi = re.sub('〔.*〕', '', yomi)
-    except IndexError:
-        for block in tree.xpath('//dt[@class="title search-ttl-a"]'):
-            if block.getparent().getparent().get('href')[0:3] == '/jn':
-                candidates.append({'word': block.text, 'link': block.getparent().getparent().get('href')})
-
-    if text != '':
-        h = html2text.HTML2Text()
-        h.ignore_links = True
-        text = text.replace('<ol', '<ul')
-        # text = text.replace('<li', '<ul')
-        text = h.handle(text)
-        # text = text.replace('\n\n', '\n')
-        text = re.sub(r'  \* \*\*(\d*)\*\*',
-                      lambda match: match.group(1).translate(jau.digit_ful2half) + '. ',
-                      text)
-        text = re.sub(r'__「(.*)の全ての意味を見る\n\n', '', text)
-
-    return text, yomi, candidates
-
-
 @login_required
 def get_goo(request):
     word = request.GET.get('word_native', None)
-    definition = None
     if word == '':
         word = request.GET.get('word', None)
     link = request.GET.get('link', None)
 
-    if not link:
-        definition, yomi = get_def_kanjipedia(word)
-        candidates = []
-
-    if not definition:
-        definition, yomi, candidates = get_def_goo(word, link)
+    if link:
+        definition, yomi, candidates = DefinitionWordBase.from_link(link).get_definition()
+    else:
+        definition, yomi, candidates = DefinitionWordBase.from_word(word).get_definition()
 
     data = {'definition': definition, 'reading': yomi, 'candidates': candidates if len(candidates) > 0 else ''}
 
