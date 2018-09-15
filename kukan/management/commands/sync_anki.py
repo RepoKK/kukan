@@ -21,7 +21,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         res_dfs = {}
-        for profile in options['profile'] or AnkiProfile.profile_list():
+        for profile in options['profile'].split() or AnkiProfile.profile_list():
             dir_to_clear = settings.ANKI_IMPORT_DIR
             list(map(os.unlink, (os.path.join(dir_to_clear, f) for f in os.listdir(dir_to_clear))))
 
