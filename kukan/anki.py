@@ -1,6 +1,7 @@
 import sys, os, re
 import pandas as pd
 from collections import namedtuple
+import weakref
 
 from django.conf import settings
 
@@ -36,6 +37,7 @@ class AnkiProfile:
                                            r'.local/share/Anki2',
                                            self.name,
                                            r'collection.anki2'))
+        self._finalizer = weakref.finalize(self, self.col.close)
 
     @classmethod
     def profile_list(cls):
@@ -115,23 +117,20 @@ class AnkiProfile:
         res_df = pd.DataFrame('-',
                               [p.name for p in self.profile['decks']],
                               ['added', 'updated', 'deleted', 'unchanged'])
-        try:
-            # Sync from the server
-            self.sync_server()
 
-            # Apply the changes
-            for deck in self.profile['decks']:
-                file_name = os.path.join(settings.ANKI_IMPORT_DIR, deck.file_name)
-                if os.path.exists(file_name) and deck.name in self.col.decks.allNames():
-                    print('Imp', deck.name)
-                    res_df.loc[deck.name, ['added', 'updated', 'unchanged']] = self.import_file(deck, file_name)
-                    res_df.loc[deck.name, 'deleted'] = self.delete_missing_notes(deck, file_name)
-            print(res_df.to_html())
+        # Sync from the server
+        self.sync_server()
 
-            # Sync the change back
-            self.sync_server()
+        # Apply the changes
+        for deck in self.profile['decks']:
+            file_name = os.path.join(settings.ANKI_IMPORT_DIR, deck.file_name)
+            if os.path.exists(file_name) and deck.name in self.col.decks.allNames():
+                print('Imp', deck.name)
+                res_df.loc[deck.name, ['added', 'updated', 'unchanged']] = self.import_file(deck, file_name)
+                res_df.loc[deck.name, 'deleted'] = self.delete_missing_notes(deck, file_name)
+        print(res_df.to_html())
 
-        finally:
-            self.col.close()
+        # Sync the change back
+        self.sync_server()
 
         return res_df
