@@ -1,19 +1,21 @@
 import os, csv
 from functools import reduce
 from collections import defaultdict
-from .models import Kanji, YomiType, YomiJoyo, Reading, Example, ExMap, Yoji, TestResult, Kotowaza
 from django.db.models import Q
 from django.template.loader import render_to_string
 from django.conf import settings
 from django.http import HttpResponse
 
+from kukan.anki import AnkiProfile
+from .models import Kanji, Example, Yoji
+
 
 class Exporter:
     kind_list = ['anki_yoji', 'anki_kaki', 'anki_kanji', 'anki_yomi', 'anki_kotowaza']
 
-    def __init__(self, kind, profile, out_dir=settings.ANKI_IMPORT_DIR):
+    def __init__(self, kind, profile_name, out_dir=settings.ANKI_IMPORT_DIR):
         self.kind = kind
-        self.profile = profile
+        self.profile = AnkiProfile(profile_name)
         self.out_dir = out_dir
 
     def export(self):
@@ -23,11 +25,12 @@ class Exporter:
             self._export_kind(self.kind)
 
     def _export_all(self):
-        for kind in self.kind_list:
+        for kind in self.profile.kind_list:
             self._export_kind(kind)
 
     def _export_kind(self, choice):
-        with open(os.path.join(self.out_dir, 'dj_' + choice + '.csv'), 'w', newline='', encoding="utf-8") as csvfile:
+        with open(os.path.join(self.out_dir, 'dj_' + choice + '.csv'),
+                  'w', newline='', encoding="utf-8") as csvfile:
             writer = csv.writer(csvfile, delimiter='\t', quotechar='"')
             getattr(self, 'export_' + choice)(writer)
 
@@ -50,7 +53,7 @@ class Exporter:
         excl_in_progress = reduce(lambda x, y: x | y,
                                   [Q(definition__contains=x) for x in ['kaki', 'yomi', 'hyogai', 'kotowaza']])
         q_set = Example.objects.exclude(sentence='').exclude(kanken__difficulty__gt=11).exclude(excl_in_progress)
-        if self.profile == 'Ayumi':
+        if self.profile.name == 'Ayumi':
             q_set = q_set.filter(Q(kanken__difficulty__gte=8) | Q(word__endswith='義語）'))
 
         for example in q_set:
@@ -73,7 +76,6 @@ class Exporter:
                              sentence,
                              word,
                              example.kanken])
-
 
     @staticmethod
     def export_anki_yomi(writer):
@@ -107,7 +109,6 @@ class Exporter:
                              yomi,
                              example.get_definition_html()])
 
-
     @staticmethod
     def export_anki_kotowaza(writer):
         q_set = Example.objects.filter(ex_type=Example.TypeChoice.KOTOWAZA.name).exclude(kotowaza__yomi='')
@@ -121,7 +122,6 @@ class Exporter:
                              sentence,
                              word,
                              example.kotowaza.get_definition_html()])
-
 
     # noinspection PyUnusedLocal
     @staticmethod
@@ -140,7 +140,6 @@ class Exporter:
                              kj.kanken.kyu,
                              kj.classification,
                              kj.kanjidetails.anki_kjIjiDoukun])
-
 
     # noinspection PyUnusedLocal
     @staticmethod
@@ -168,8 +167,8 @@ class Exporter:
 
 
 class ExporterAsResp(Exporter):
-    def __init__(self, kind, profile):
-        super().__init__(kind, profile)
+    def __init__(self, kind, profile_name):
+        super().__init__(kind, profile_name)
 
     def export(self):
         choice = self.kind
