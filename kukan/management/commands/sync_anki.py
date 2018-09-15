@@ -13,11 +13,15 @@ class Command(BaseCommand):
     help = 'Sync Anki'
 
     def add_arguments(self, parser):
-        pass
+        parser.add_argument(
+            '--profile',
+            dest='profile',
+            help='Only sync this profile (all defined profiles are sync by default)',
+        )
 
     def handle(self, *args, **options):
         res_dfs = {}
-        for profile in AnkiProfile.profile_list():
+        for profile in options['profile'] or AnkiProfile.profile_list():
             dir_to_clear = settings.ANKI_IMPORT_DIR
             list(map(os.unlink, (os.path.join(dir_to_clear, f) for f in os.listdir(dir_to_clear))))
 
