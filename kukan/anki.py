@@ -25,19 +25,26 @@ class AnkiProfile:
     ]]
 
     profiles = {
-        'Fred': {'syncKey': r'5cewjKL7Ji0bxmEI', 'hostNum': '3', 'decks': deck_list},
         'Ayumi': {'syncKey': r'AKkTW8E20gyPnhXB', 'hostNum': '3', 'decks': deck_list},
+        'Fred': {'syncKey': r'5cewjKL7Ji0bxmEI', 'hostNum': '3', 'decks': deck_list},
         'Test2': {'syncKey': r'B41alyqIHCZPnWsO', 'hostNum': '2', 'decks': deck_list},
     }
 
     def __init__(self, profile):
         self.name = profile
         self.profile = self.profiles[profile]
+        self.col = None
+        self._finalizer = weakref.finalize(self, self.close_collection)
+
+    def open_collection(self):
         self.col = Collection(os.path.join(settings.TOP_DIR,
                                            r'.local/share/Anki2',
                                            self.name,
                                            r'collection.anki2'))
-        self._finalizer = weakref.finalize(self, self.col.close)
+
+    def close_collection(self):
+        if self.col:
+            self.col.close()
 
     @classmethod
     def profile_list(cls):
@@ -47,6 +54,7 @@ class AnkiProfile:
     def kind_list(self):
         return [d.file_name[3:-4] for d in self.profile['decks']]
 
+    # Below functions require opening the Anki DB
     def import_file(self, deck, file_name):
         did = self.col.decks.id(deck.name)
         self.col.decks.select(did)
@@ -114,6 +122,7 @@ class AnkiProfile:
     def sync(self):
         print('*** Sync profile {} ***'.format(self.name))
 
+        self.open_collection()
         res_df = pd.DataFrame('-',
                               [p.name for p in self.profile['decks']],
                               ['added', 'updated', 'deleted', 'unchanged'])

@@ -3,6 +3,7 @@ from .models import Kanji, Bushu, YomiType, YomiJoyo, Reading, Example, ExMap, K
 from django.utils.translation import gettext_lazy as _
 import kukan.jautils as jau
 from django.db import transaction
+from kukan.anki import AnkiProfile
 
 
 class SearchForm(Form):
@@ -173,7 +174,7 @@ class ExampleForm(ModelForm):
 
 
 class ExportForm(Form):
-    profile = ChoiceField(choices=[('Ayumi', 'Ayumi'), ('Fred', 'Fred')],
+    profile = ChoiceField(choices=[(p, p) for p in AnkiProfile.profile_list()],
                           widget=Select(attrs={'class': 'select'}),
                           label='プロフィール')
 
