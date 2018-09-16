@@ -4,9 +4,9 @@
   "description": "NPM installed JS dependencies",
   "main": "index.js",
   "dependencies": {
+    "@mdi/font": "^2.7.94",
     "axios": "^0.18.0",
     "buefy": "^0.6.6",
-    "mdi": "^2.1.19",
     "vue": "^2.5.13"
   },
   "devDependencies": {},
