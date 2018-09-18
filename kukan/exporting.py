@@ -13,6 +13,9 @@ from .models import Kanji, Example, Yoji
 class Exporter:
     kind_list = ['anki_yoji', 'anki_kaki', 'anki_kanji', 'anki_yomi', 'anki_kotowaza']
 
+    excl_in_progress = reduce(lambda x, y: x | y,
+                              [Q(definition__contains=x) for x in ['kaki', 'yomi', 'hyogai', 'kotowaza']])
+
     def __init__(self, kind, profile_name, out_dir=settings.ANKI_IMPORT_DIR):
         self.kind = kind
         self.profile = AnkiProfile(profile_name)
@@ -50,9 +53,10 @@ class Exporter:
     def export_anki_kaki(self, writer):
         std_to_alt, alt_to_std = Exporter.std_alt_maps()
 
-        excl_in_progress = reduce(lambda x, y: x | y,
-                                  [Q(definition__contains=x) for x in ['kaki', 'yomi', 'hyogai', 'kotowaza']])
-        q_set = Example.objects.exclude(sentence='').exclude(kanken__difficulty__gt=11).exclude(excl_in_progress)
+        q_set = Example.objects.exclude(sentence='')\
+            .exclude(kanken__difficulty__gt=11)\
+            .exclude(ex_kind=Example.KOTOWAZA)\
+            .exclude(self.excl_in_progress)
         if self.profile.name == 'Ayumi':
             q_set = q_set.filter(Q(kanken__difficulty__gte=8) | Q(word__endswith='義語）'))
 
@@ -77,16 +81,13 @@ class Exporter:
                              word,
                              example.kanken])
 
-    @staticmethod
-    def export_anki_yomi(writer):
+    def export_anki_yomi(self, writer):
         std_to_alt, alt_to_std = Exporter.std_alt_maps()
 
-        excl_in_progress = reduce(lambda x, y: x | y,
-                                  [Q(definition__contains=x) for x in ['kaki', 'yomi', 'hyogai', 'kotowaza']])
-        q_set = Example.objects.exclude(sentence='').exclude(kanken__difficulty__gt=11).exclude(excl_in_progress)
+        q_set = Example.objects.exclude(sentence='').exclude(kanken__difficulty__gt=11).exclude(self.excl_in_progress)
         q_set = q_set.filter(
-            Q(kanken__difficulty__gte=11) | Q(ex_type=Example.TypeChoice.YOMI.name)
-        ).exclude(ex_type=Example.TypeChoice.KOTOWAZA.name)
+            Q(kanken__difficulty__gte=11) | Q(ex_kind=Example.YOMI)
+        ).exclude(ex_kind=Example.KOTOWAZA)
 
         for example in q_set:
             word = example.word_native if example.word_native != "" else example.word
@@ -111,7 +112,7 @@ class Exporter:
 
     @staticmethod
     def export_anki_kotowaza(writer):
-        q_set = Example.objects.filter(ex_type=Example.TypeChoice.KOTOWAZA.name).exclude(kotowaza__yomi='')
+        q_set = Example.objects.filter(ex_kind=Example.KOTOWAZA).exclude(kotowaza__yomi='')
 
         for example in q_set:
             word = example.word_native if example.word_native != "" else example.word

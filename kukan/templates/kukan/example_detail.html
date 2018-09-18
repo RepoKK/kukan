@@ -9,7 +9,7 @@
         <div class="column">
             <h1 class="title">{{ example.word }}{% if example.word_variation %}（{{ example.word_variation }}）{% endif %}</h1>
             <h2 class="subtitle is-5">{{ example.yomi }}</h2>
-            {% if example.ex_type == example.TypeChoice.KOTOWAZA.name %}
+            {% if example.ex_kind == example.KOTOWAZA %}
                 <p></p>
                 <h1 class="title is-4"><a href="{% url 'kukan:kotowaza_detail' example.kotowaza.id %}">
                         {{example.kotowaza.kotowaza}}</a></h1>
@@ -22,7 +22,7 @@
     </div>
     <div class="columns is-variable is-8">
         <div class="column is-three-fifths">
-            {% if example.ex_type == example.TypeChoice.KOTOWAZA.name %}
+            {% if example.ex_kind == example.KOTOWAZA %}
                 <div class="content"><h2>諺の意味</h2></div>
                 <div class="content">{{ example.kotowaza.get_definition_html|safe  }}</div>
             {% endif %}
@@ -38,7 +38,7 @@
                 <li><strong>例文：</strong>{{example.sentence}}</li>
                 <li><strong>作成：</strong>{{example.created_time}}</li>
                 <li><strong>更新：</strong>{{example.updated_time}}</li>
-                <li><strong>種類：</strong>{{example.get_ex_type_display}}</li>
+                <li><strong>種類：</strong>{{example.get_ex_kind_display}}</li>
             </ul>
             <div>
                 <table class="table is-striped">

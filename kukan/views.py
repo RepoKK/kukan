@@ -13,6 +13,7 @@ from django.db.models import Count
 
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.decorators import login_required
+from django.utils import timezone
 
 from .filters import *
 import time
@@ -105,6 +106,7 @@ class TableData:
                 'format': self.std_str,
                 'visible': True
             }
+            self.get_choice_display = None
             if in_props['name'] in [x.name for x in model._meta.get_fields()]:
                 fld = model._meta.get_field(in_props['name'])
                 if self.props['type'] == '':
@@ -114,6 +116,10 @@ class TableData:
                     elif fld.get_internal_type() in 'IntegerField FloatField':
                         var_type = 'numeric'
                     self.props.update({'type': var_type})
+
+                choices_list = getattr(fld, 'choices', None)
+                if choices_list is not None:
+                    self.get_choice_display = {x: y for x, y in choices_list}
 
                 self.props.update({
                     'label': fld.verbose_name if fld.verbose_name != '' else fld.name,
@@ -130,6 +136,8 @@ class TableData:
         def format(self, obj):
             value = reduce(lambda x, y: getattr(x, y), self.props['field'].split('__'), obj)
             value = self.format_fld(value)
+            if self.get_choice_display:
+                value = self.get_choice_display[value]
             if self.link_fn is not None:
                 value = '<a href="' + self.link_fn(obj) + '/">' + str(value) + '</a>'
             return self.props['field'], value
@@ -376,7 +384,7 @@ class KanjiDetail(LoginRequiredMixin, generic.DetailView):
     model = Kanji
     table_data = {'例文': TableData(Example, [
                                     {'name': 'word', 'link': TableData.FieldProps.link_pk('example')},
-                                    'yomi', 'sentence', 'kanken', 'ex_type', 'is_joyo']),
+                                    'yomi', 'sentence', 'kanken', 'ex_kind', 'is_joyo']),
                   '四字熟語': TableData(Yoji, [
                                     {'name': 'yoji', 'link': TableData.FieldProps.link_pk('yoji')},
                                     'reading', 'kanken', 'in_anki']),

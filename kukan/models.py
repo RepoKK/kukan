@@ -266,26 +266,23 @@ class Kotowaza(models.Model):
         return markdown.markdown(self.definition)
 
 
-def modelChoice(cls):
-    cls.do_not_call_in_templates = True
-    return cls
-
 class Example(models.Model):
+    KAKI = 'KAKI'
+    YOMI = 'YOMI'
+    HYOGAI = 'HYOGAI'
+    TAIGI = 'TAIGI'
+    RUIGI = 'RUIGI'
+    KOTOWAZA = 'KOTOWAZA'
+    EX_KIND_CHOICES = (
+        (KAKI, '書き取り'),
+        (YOMI, '読み'),
+        (HYOGAI, '表外読み'),
+        (TAIGI, '対義語'),
+        (RUIGI, '類義語'),
+        (KOTOWAZA, '故事・諺'),
+    )
 
-    @modelChoice
-    class TypeChoice(Enum):
-        KAKI = '書き取り'
-        YOMI = '読み'
-        HYOGAI = '表外読み'
-        TAIGI = '対義語'
-        RUIGI = '類義語'
-        KOTOWAZA = '故事・諺'
-
-        @classmethod
-        def choices(cls):
-            return [(tag.name, tag.value) for tag in cls]
-
-    ex_type = models.CharField(max_length=8, choices=TypeChoice.choices(), default=TypeChoice.KAKI.name)
+    ex_kind = models.CharField(max_length=8, verbose_name='種類', choices=EX_KIND_CHOICES, default=KAKI)
     kotowaza = models.ForeignKey(Kotowaza, on_delete=models.CASCADE, verbose_name='諺', null=True, blank=True)
 
     created_time = models.DateTimeField('作成日付', auto_now_add=True)
