@@ -16,6 +16,7 @@ class Command(BaseCommand):
         parser.add_argument(
             '--profile',
             dest='profile',
+            default='',
             help='Only sync this profile (all defined profiles are sync by default)',
         )
 
