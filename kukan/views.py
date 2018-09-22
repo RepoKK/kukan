@@ -335,6 +335,7 @@ class ExampleList(AjaxList):
     filters = [
         FGenericString('単語', 'word'),
         FGenericCheckbox('漢検', 'kanken__kyu', model, is_two_column=True, order='-kanken__difficulty'),
+        FGenericCheckbox('種類', 'ex_kind', model),
         FGenericYesNo('例文', 'sentence', '', '例文有り', '例文無し', True),
         FGenericDateRange('作成', 'created_time'),
         FGenericDateRange('変更', 'updated_time'),
@@ -342,7 +343,7 @@ class ExampleList(AjaxList):
     ]
     table_data = TableData(model, [
         {'name': 'word', 'link': TableData.FieldProps.link_pk('example')},
-        'yomi', 'sentence', 'kanken', 'is_joyo',
+        'yomi', 'sentence', 'kanken', 'is_joyo', 'ex_kind',
         {'name': 'updated_time', 'format': TableData.FieldProps.format_datetime_min}
     ])
 

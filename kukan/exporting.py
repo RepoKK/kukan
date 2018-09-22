@@ -122,7 +122,8 @@ class Exporter:
             writer.writerow([example.id,
                              sentence,
                              word,
-                             example.kotowaza.get_definition_html()])
+                             example.kotowaza.get_definition_html(),
+                             example.kotowaza.yomi])
 
     # noinspection PyUnusedLocal
     @staticmethod

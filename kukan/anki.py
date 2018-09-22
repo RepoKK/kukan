@@ -21,7 +21,7 @@ class AnkiProfile:
         ('書き取り', 'Kakitori', 'dj_anki_kaki'),
         # ('漢字', 'Japanese Kanji', 'dj_anki_kanji'),
         ('読み', 'Yomi', 'dj_anki_yomi'),
-        # ('諺', 'Kotowaza', 'dj_anki_kotowaza'),
+        ('諺', 'Kotowaza', 'dj_anki_kotowaza'),
     ]]
 
     profiles = {
