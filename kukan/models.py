@@ -70,6 +70,7 @@ class Kanken(models.Model):
 class Bushu(models.Model):
     bushu = models.CharField('BUSHU', max_length=1, primary_key=True)
     reading = models.CharField('READING', max_length=3)
+
     def __str__(self):
         return self.bushu + '　(' + self.reading + ')'
 
@@ -312,7 +313,7 @@ class Example(models.Model):
 
     def validate_unique(self, exclude=None):
         if not self.pk:
-            if self.word[-3:] == '（諺）':
+            if self.ex_kind == Example.KOTOWAZA:
                 if Example.objects.filter(word=self.word, yomi=self.yomi, sentence=self.sentence).exists():
                     raise ValidationError('この諺は既に登録されている。')
             else:

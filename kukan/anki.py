@@ -118,6 +118,7 @@ class AnkiProfile:
             print('FULL SYNC')
             client = FullSyncer(self.col, self.profile['syncKey'], server.client, self.profile['hostNum'])
             client.download()
+            self.col.reopen()
 
     def sync(self):
         print('*** Sync profile {} ***'.format(self.name))

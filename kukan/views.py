@@ -397,9 +397,9 @@ class KanjiDetail(LoginRequiredMixin, generic.DetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         qry = {'例文': Example.objects.filter(word__contains=context['kanji']
-                                            ).exclude(sentence='').exclude(word__endswith='（諺）'),
+                                            ).exclude(sentence='').exclude(ex_kind=Example.KOTOWAZA),
                '四字熟語': Yoji.objects.filter(yoji__contains=context['kanji']),
-               '諺': Example.objects.filter(word__contains=context['kanji'], word__endswith='（諺）')}
+               '諺': Example.objects.filter(word__contains=context['kanji'], ex_kind=Example.KOTOWAZA)}
         context['ctx'] = json.dumps(
             [{'name': k, 'number': qry[k].count(), 'table_data': v.get_table_full(qry[k])}
              for k, v in self.table_data.items() if qry[k].count() > 0]
