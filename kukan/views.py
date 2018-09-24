@@ -9,6 +9,7 @@ from django.http import JsonResponse
 from functools import reduce
 from django.core.paginator import Paginator, EmptyPage
 import kukan.jautils as jau
+from kukan.jautils import JpText
 from django.db.models import Count
 
 from django.contrib.auth.mixins import LoginRequiredMixin
@@ -580,6 +581,15 @@ def get_goo(request):
     data = {'definition': definition, 'reading': yomi, 'candidates': candidates if len(candidates) > 0 else ''}
 
     return JsonResponse(data)
+
+
+@login_required
+def get_furigana(request):
+    text = JpText(request.GET.get('word', None), request.GET.get('yomi', None))
+    return JsonResponse({
+        'furigana': text.guess_furigana(),
+        'furigana_errors': text.get_furigana_errors(),
+    })
 
 
 class ExportView(LoginRequiredMixin, generic.FormView):

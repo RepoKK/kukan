@@ -1,4 +1,5 @@
 {% extends 'kukan/base_ext.html' %}
+{% load ja_tags %}
 
 {% block title %}
 {{ example.word }}
@@ -12,8 +13,8 @@
             {% if example.ex_kind == example.KOTOWAZA %}
                 <p></p>
                 <h1 class="title is-4"><a href="{% url 'kukan:kotowaza_detail' example.kotowaza.id %}">
-                        {{example.kotowaza.kotowaza}}</a></h1>
-                <h2 class="subtitle is-5">{{ example.kotowaza.yomi }}</h2>
+                    {{ example.kotowaza.furigana|furigana_simple_to_html }}
+                </a></h1>
             {% endif %}
         </div>
         <div class="column is-narrow">

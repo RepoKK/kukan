@@ -4,6 +4,7 @@ from django.utils.translation import gettext_lazy as _
 import kukan.jautils as jau
 from django.db import transaction
 from kukan.anki import AnkiProfile
+from kukan.jautils import JpText
 
 
 class SearchForm(Form):
@@ -11,24 +12,48 @@ class SearchForm(Form):
                        widget=TextInput(attrs={'class': 'input is-medium', 'placeholder':'漢字・四字熟語・単語'}))
 
 
-class Katakana(CharField):
+class Kana(CharField):
+    translate_function = None
+    kana_chart = None
+    kana_type = None
 
     def to_python(self, value):
         """Normalize to Katakana."""
         if value:
-            value = value.translate(jau.hir2kat).strip()
+            value = value.translate(self.translate_function).strip()
         return value
 
     def validate(self, value):
-        """Check if value consists only of Katakana."""
+        """Check if value consists only of Kana."""
         super().validate(value)
         for char in value:
-            if char not in jau.katakana_chart:
+            if char not in self.kana_chart:
                 raise ValidationError(
-                            _('入力は片仮名以外: %(value)s'),
+                            _('入力は%(type)s以外: %(value)s'),
                             code='invalid',
-                            params={'value': value},
+                            params={'type': self.kana_type, 'value': value},
                         )
+
+
+class Katakana(Kana):
+    translate_function = jau.hir2kat
+    kana_chart = jau.katakana_chart
+    kana_type = '片仮名'
+
+
+class Hiragana(Kana):
+    translate_function = jau.kat2hir
+    kana_chart = jau.hiragana_chart
+    kana_type = '平仮名'
+
+
+class HiraganaPlus(Kana):
+    translate_function = jau.kat2hir
+    kana_chart = jau.hiragana_chart + jau.punctuation_chart \
+                 + jau.fullwidth_digit_chart + jau.halfwidth_digit_chart \
+                 + jau.alphabet_lower_chart + jau.alphabet_upper_chart
+    kana_type = '平仮名'
+
 
 class ReadingSelect(CharField):
 
@@ -47,14 +72,26 @@ class KotowazaForm(ModelForm):
 
     class Meta:
         model = Kotowaza
-        fields = ['kotowaza', 'yomi', 'definition']
+        fields = ['kotowaza', 'yomi', 'definition', 'furigana']
         widgets = {
             'kotowaza': Textarea(attrs={'cols': 80, 'rows': 1}),
             'yomi': Textarea(attrs={'cols': 80, 'rows': 5}),
+            'furigana': Textarea(attrs={'cols': 80, 'rows': 5}),
         }
         field_classes = {
-            'yomi': Katakana,
+            'yomi': HiraganaPlus,
         }
+
+    def clean(self):
+        cleaned_data=super().clean()
+        kotowaza = cleaned_data.get('kotowaza')
+        yomi = cleaned_data.get('yomi')
+        furigana = cleaned_data.get('furigana')
+        for error in JpText(kotowaza, yomi, furigana).get_furigana_errors():
+            self.add_error('furigana',
+                           ValidationError(_('%(error)s'),
+                                           code='invalid',
+                                           params={'error': error}))
 
 
 class ExampleForm(ModelForm):

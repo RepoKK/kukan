@@ -8,6 +8,7 @@ from django.http import HttpResponse
 
 from kukan.anki import AnkiProfile
 from .models import Kanji, Example, Yoji
+from kukan.jautils import JpText
 
 
 class Exporter:
@@ -117,7 +118,8 @@ class Exporter:
         for example in q_set:
             word = example.word_native if example.word_native != "" else example.word
             yomi = example.yomi_native if example.yomi_native != "" else example.yomi
-            sentence = example.sentence.replace(word, '<span class="font-color01">' + yomi + '</span>')
+            furigana = JpText(word, yomi, example.kotowaza.furigana).get_furigana_simple(word)
+            sentence = furigana.replace(word, '<span class="font-color01">' + yomi + '</span>')
 
             writer.writerow([example.id,
                              sentence,
