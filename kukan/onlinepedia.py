@@ -84,7 +84,7 @@ class DefinitionKanjipedia(DefinitionWordBase):
         try:
             target = html.fromstring(page.content.decode('utf-8')).xpath('/html/body/div[1]/div[2]/ul[2]/li/a')
             if len(target) > 1:
-                self.candidates = [{'word': t.text + ' ' + t.getchildren()[2].text,
+                self.candidates = [{'word': self.word + ' ' + t.getchildren()[-1].text,
                                     'link': t.get('href')} for t in target]
             else:
                 self.link = target[0].get('href')

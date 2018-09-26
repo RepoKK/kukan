@@ -559,7 +559,7 @@ def set_yomi(request):
 @login_required
 def get_similar_word(request):
     word = request.GET.get('word', None)
-    ex_id = request.GET.get('ex_id', None)
+    ex_id = request.GET.get('ex_id', None) or None
     sim_word = [x.word + ('（' + x.yomi + '）' if x.yomi != '' else '')
                 for x in Example.objects.filter(word__contains=word).exclude(id=ex_id)]
     data = {'info_similar_word': sim_word}
