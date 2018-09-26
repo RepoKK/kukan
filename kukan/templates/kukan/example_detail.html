@@ -13,7 +13,7 @@
             {% if example.ex_kind == example.KOTOWAZA %}
                 <p></p>
                 <h1 class="title is-4"><a href="{% url 'kukan:kotowaza_detail' example.kotowaza.id %}">
-                    {{ example.kotowaza.furigana|furigana_simple_to_html }}
+                    {{ example.kotowaza.furigana|furigana_html:example.kotowaza.kotowaza }}
                 </a></h1>
             {% endif %}
         </div>
