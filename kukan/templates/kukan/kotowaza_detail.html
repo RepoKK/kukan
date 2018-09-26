@@ -8,7 +8,7 @@
 {% block content %}
     <div class="columns is-mobile">
         <div class="column">
-            <h1 class="title is-4">{{ kotowaza.furigana|furigana_simple_to_html }}</h1>
+            <h1 class="title is-4">{{ kotowaza.kotowaza|furigana_html:kotowaza.furigana }}</h1>
         </div>
         <div class="column is-narrow">
             <a class="button is-link" href="{% url 'kukan:kotowaza_update' kotowaza.id %}">編集</a>
