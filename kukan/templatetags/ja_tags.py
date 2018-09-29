@@ -15,3 +15,13 @@ def furigana_html(plain_text, furigana_text):
     else:
         res = plain_text
     return res
+
+
+@register.inclusion_tag('inclusion/single_field.html')
+def render_single_field(field):
+    return {'field': field}
+
+
+@register.inclusion_tag('inclusion/single_field_horizontal.html')
+def render_single_field_horizontal(field):
+    return {'field': field}

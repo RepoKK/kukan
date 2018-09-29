@@ -1,25 +1,49 @@
 {% extends 'kukan/base.html' %}
+{% load util_tags %}
 
-{% block title %}Login{% endblock %}
+{% block title %}ログイン{% endblock %}
 
 {% block body %}
-<body>
-    <section class="hero">
-        <div class="hero-body">
-            <h2>Login</h2>
-            <form method="post">
-                {% csrf_token %}
-                <div>
-                  <td>{{ form.username.label_tag }}</td>
-                  <td>{{ form.username }}</td>
+<section class="section">
+    <div class="container">
+        <form method="post">
+            {% csrf_token %}
+            <nav class="level">
+                <div class="level-item">
+                    <h1 class="title">ログイン</h1>
                 </div>
-                <div>
-                  <td>{{ form.password.label_tag }}</td>
-                  <td>{{ form.password }}</td>
+            </nav>
+            <nav class="level">
+                <div class="level-item">
+                    <div class="field">
+                        <label class="label">{{ form.username.label_tag }}</label>
+                        <div class="control">
+                            {{ form.username|add_class:"input is-rounded" }}
+                        </div>
+                    </div>
                 </div>
-                <button class="button is-primary" type="submit">Login</button>
-            </form>
+            </nav>
+            <nav class="level">
+                <div class="level-item">
+                    <div class="field">
+                        <label class="label">{{ form.password.label_tag }}</label>
+                        <div class="control">
+                            {{ form.password|add_class:"input is-rounded" }}
+                        </div>
+                    </div>
+                </div>
+            </nav>
+            <nav class="level">
+                <div class="level-item">
+                    <div class="field">
+                        <div class="control">
+                            <button class="button is-primary is-centered" type="submit">ログイン</button>
+                        </div>
+                    </div>
+                </div>
+            </nav>
+        </form>
         </div>
-    </section>
-</body>
+    </div>
+</section>
 {% endblock %}

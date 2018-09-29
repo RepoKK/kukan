@@ -1,0 +1,12 @@
+<div class="columns is-mobile">
+    <div class="column">
+        <b-field label="{{field.label}}" {% if field.errors %} type="is-danger" {% endif %}>
+            {{field}}
+        </b-field>
+        {% if field.errors %}
+            {% for error in field.errors %}
+                <p class="help is-danger">{{ error|escape }}</p>
+            {% endfor %}
+        {% endif %}
+    </div>
+</div>

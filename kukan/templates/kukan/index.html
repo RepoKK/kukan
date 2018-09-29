@@ -9,7 +9,7 @@
             <vue-navbar :has_search="false" :fix_navbar="false"></vue-navbar>
             <div class="container">
                 <div class="columns is-centered">
-                    <div class="column is-half">
+                    <div class="column is-two-thirds">
                         <div class="columns is-mobile">
                             <div class="column is-narrow">
                                 <img src="{% static 'images/favicon/ms-icon-310x310.png' %}" width="60" height="60">
@@ -30,7 +30,7 @@
                     </div>
                 </div>
                 <div class="columns is-centered">
-                    <div class="column is-half">
+                    <div class="column is-two-thirds">
                         <div class="field">
                             <div class="control">
                                 {{ form.search }}
@@ -39,12 +39,12 @@
                     </div>
                 </div>
                 <div class="columns is-centered">
-                    <div class="column is-half">
-                        <div class="columns">
+                    <div class="column is-two-thirds">
+                        <div class="columns is-desktop">
                             <div class="column">
                                 <input type="submit" name="kanji" class="button is-primary is-fullwidth" value="漢字" />
                             </div>
-                            <div class="column is-half">
+                            <div class="column is-half-desktop">
                                 <div class="columns is-mobile">
                                     <div class="column">
                                         <input type="submit" name="yoji" class="button is-fullwidth" value="四字熟語" />

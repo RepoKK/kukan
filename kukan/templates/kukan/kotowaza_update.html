@@ -1,5 +1,5 @@
 {% extends 'kukan/base_ext.html' %}
-{% load widget_tweaks %}
+{% load ja_tags %}
 
 {% block title %}
 例文の訂正
@@ -48,79 +48,14 @@
     {% endfor %}
 {% endif %}
 
-    <div class="columns is-mobile">
-        <div class="column is-narrow">
-            <div class="field is-narrow">
-                <input class="input is-static" readonly tabindex="-1" type="submit" style="font-weight: bold;"
-                value="諺　　　" >
-            </div>
-        </div>
-        <div class="column">
-            <div class="field">
-                <div class="control">
-                    <input placeholder="諺" class="input" type="text" expanded required
-                            v-model="kotowaza" name="kotowaza">
-                </div>
-            </div>
-        </div>
-    </div>
+{% render_single_field form.kotowaza %}
+{% render_single_field form.yomi %}
+{% render_single_field form.furigana %}
+<b-notification v-if='furigana_errors.length > 0' type="is-warning">
+    <div v-for="item in furigana_errors">[[ item ]]</div>
+</b-notification>
+{% render_single_field form.definition %}
 
-    <div class="columns is-mobile">
-        <div class="column is-narrow">
-            <div class="field">
-                <input class="input is-static" readonly tabindex="-1" type="submit" style="font-weight: bold;"
-                       value="読み方　">
-            </div>
-        </div>
-        <div class="column">
-            <div class="field">
-                <b-input v-model="yomi" name="yomi" placeholder="読み方（カタカナ）" expanded required></b-input>
-            </div>
-            {% if form.yomi.errors %}
-                {% for error in form.yomi.errors %}
-                    <p class="help is-danger">{{ error|escape }}</p>
-                {% endfor %}
-            {% endif %}
-        </div>
-    </div>
-
-    <div class="columns is-mobile">
-        <div class="column is-narrow">
-            <div class="field">
-                <input class="input is-static" readonly tabindex="-1" type="submit" style="font-weight: bold;"
-                       value="振り仮名">
-            </div>
-        </div>
-        <div class="column">
-            <div class="field">
-                <b-input v-model="furigana" name="furigana" placeholder="振り仮名" expanded required></b-input>
-            </div>
-            {% if form.furigana.errors %}
-                {% for error in form.furigana.errors %}
-                    <p class="help is-danger">{{ error|escape }}</p>
-                {% endfor %}
-            {% endif %}
-        </div>
-    </div>
-    <b-notification v-if='furigana_errors.length > 0' type="is-warning">
-        <div v-for="item in furigana_errors">[[ item ]]</div>
-    </b-notification>
-
-    <div class="field">
-        <label class="label">諺の意味</label>
-        <div class="control">
-            <textarea v-model="definition"
-                      name="definition"
-                      class="textarea"
-                      placeholder="諺の意味・説明の文章を入力ください。"
-                      rows="12"></textarea>
-        </div>
-        {% if form.definition.errors %}
-            {% for error in form.definition.errors %}
-                <p class="help is-danger">{{ error|escape }}</p>
-            {% endfor %}
-        {% endif %}
-    </div>
 </form>
 {% endblock %}
 

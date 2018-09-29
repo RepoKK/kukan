@@ -3,6 +3,8 @@ from .models import Kanji, Bushu, YomiType, YomiJoyo, Reading, Example, ExMap, K
 from django.utils.translation import gettext_lazy as _
 import kukan.jautils as jau
 from django.db import transaction
+from django.forms import widgets
+from django.db import models
 from kukan.anki import AnkiProfile
 from kukan.jautils import JpText
 
@@ -68,15 +70,39 @@ class ReadingSelect(CharField):
                         )
 
 
-class KotowazaForm(ModelForm):
+class BTextInput(widgets.TextInput):
+    template_name = 'widgets/input.html'
+
+
+class BuefyForm(ModelForm):
+
+    class Meta:
+        @staticmethod
+        def set_widget(f, **kwargs):
+            formfield = f.formfield()
+            if isinstance(f, models.CharField) and not kwargs:
+                formfield.widget = BTextInput(kwargs)
+            else:
+                formfield.widget = kwargs['widget']
+            return formfield
+
+        formfield_callback = set_widget
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for name, fld in self.fields.items():
+            optional = '（任意）' if fld.required == False else ''
+            fld.widget.attrs['placeholder'] = optional + fld.widget.attrs.get('placeholder', fld.label)
+
+
+class KotowazaForm(BuefyForm):
 
     class Meta:
         model = Kotowaza
-        fields = ['kotowaza', 'yomi', 'definition', 'furigana']
+        fields = ['kotowaza', 'yomi', 'furigana', 'definition']
         widgets = {
-            'kotowaza': Textarea(attrs={'cols': 80, 'rows': 1}),
-            'yomi': Textarea(attrs={'cols': 80, 'rows': 5}),
-            'furigana': Textarea(attrs={'cols': 80, 'rows': 5}),
+            'yomi': BTextInput(attrs={'placeholder': '読み方（カタカナ）'}),
+            'definition': BTextInput(attrs={'type': 'textarea', 'rows': '8'}),
         }
         field_classes = {
             'yomi': HiraganaPlus,

@@ -253,10 +253,10 @@ class Reading(models.Model):
 
 
 class Kotowaza(models.Model):
-    kotowaza = models.CharField('諺', max_length=100, blank=True)
+    kotowaza = models.CharField('諺', max_length=100)
     yomi = models.CharField('読み方', max_length=100, blank=True)
-    furigana = models.CharField('読み方', max_length=200, blank=True)
-    definition = models.CharField('意味', max_length=10000, blank=True)
+    furigana = models.CharField('振り仮名', max_length=200, blank=True)
+    definition = models.CharField('諺の意味', max_length=10000, blank=True)
 
     def __str__(self):
         return '{1} - {0}'.format(self.kotowaza, self.id)
