@@ -1,3 +1,5 @@
-<b-input type="{{ widget.type }}" name="{{ widget.name }}" :has-counter="false"
-         {% if widget.value != None %} value="{{ widget.value|stringformat:'s' }}"{% endif %}
-         {% include "django/forms/widgets/attrs.html" %} />
+<b-field {% if widget.attrs.readonly %} type="is-static" {% endif %}>
+    <b-input type="{{ widget.type }}" name="{{ widget.name }}" :has-counter="false"
+             {% if widget.value != None %} value="{{ widget.value|stringformat:'s' }}"{% endif %}
+             {% include "django/forms/widgets/attrs.html" %} />
+</b-field>

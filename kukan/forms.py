@@ -74,16 +74,17 @@ class BTextInput(widgets.TextInput):
     template_name = 'widgets/input.html'
 
 
-class BuefyForm(ModelForm):
+class BForm(ModelForm):
 
     class Meta:
         @staticmethod
         def set_widget(f, **kwargs):
             formfield = f.formfield()
-            if isinstance(f, models.CharField) and not kwargs:
-                formfield.widget = BTextInput(kwargs)
-            else:
-                formfield.widget = kwargs['widget']
+            if isinstance(f, models.CharField):
+                if 'widget' not in kwargs:
+                    formfield.widget = BTextInput(kwargs)
+                else:
+                    formfield.widget = kwargs['widget']
             return formfield
 
         formfield_callback = set_widget
@@ -93,9 +94,15 @@ class BuefyForm(ModelForm):
         for name, fld in self.fields.items():
             optional = '（任意）' if fld.required == False else ''
             fld.widget.attrs['placeholder'] = optional + fld.widget.attrs.get('placeholder', fld.label)
+            fld.widget.attrs['v-model'] = name
+
+        for group in getattr(self.Meta, 'label_length_groups', []):
+            label_length = max([len(self.fields[x].label) if x in self.fields else 0 for x in group])
+            for x in group:
+                self.fields[x].label = self.fields[x].label.ljust(label_length, '　')
 
 
-class KotowazaForm(BuefyForm):
+class KotowazaForm(BForm):
 
     class Meta:
         model = Kotowaza
@@ -120,34 +127,33 @@ class KotowazaForm(BuefyForm):
                                            params={'error': error}))
 
 
-class ExampleForm(ModelForm):
+class ExampleForm(BForm):
     reading_selected = CharField(label='reading_selected', max_length=100)
 
     class Meta:
         model = Example
         fields = ['word', 'word_native', 'word_variation', 'yomi', 'yomi_native', 'sentence', 'definition']
         widgets = {
-            'sentence': Textarea(attrs={'cols': 80, 'rows': 1}),
-            'definition': Textarea(attrs={'cols': 80, 'rows': 5}),
+            'word': BTextInput(attrs={'placeholder': '単語（漢字・仮名）', '@blur': 'onChangeWord'}),
+            'word_native': BTextInput(attrs={'placeholder': '例文中の語形'}),
+            'yomi': BTextInput(attrs={'placeholder': '読み方（カタカナ）'}),
+            'yomi_native': BTextInput(attrs={'placeholder': '例文中の読み方（カタカナ）'}),
+            'sentence': BTextInput(attrs={'placeholder': '単語を含む例文を入力ください。'}),
+            'definition': BTextInput(attrs={'type': 'textarea', 'rows': '12',
+                                            'placeholder': '単語の意味・説明の文章を入力ください。'}),
         }
         field_classes = {
             'yomi': Katakana,
             'yomi_native': Katakana,
         }
+        label_length_groups = [['word', 'yomi'],
+                               ['word_native', 'yomi_native', 'word_variation']]
 
     def __init__(self, *args, **kwargs):
-        super(ExampleForm, self).__init__(*args, **kwargs)
-        ex = kwargs.pop('instance')
-        if not ex is None:
-            self.fields['word'].disabled=ex.is_joyo
-
-        # for kj_map in ex.exmap_set.all():
-        #     if not kj_map.reading is None:
-        #         lst_rd = [['None', '--未定--']]
-        #         for rd in Reading.objects.filter(kanji=kj_map.kanji):
-        #             lst_rd.append([rd.reading, rd.reading])
-        #         self.fields[kj_map.kanji.kanji] = ChoiceField(choices=lst_rd,
-        #                                                initial=kj_map.reading.reading)
+        super().__init__(*args, **kwargs)
+        ex = kwargs['instance']
+        if ex and ex.is_joyo:
+            self.fields['word'].widget.attrs['readonly'] = True
 
     def clean(self):
         cleaned_data=super(ExampleForm, self).clean()

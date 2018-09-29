@@ -294,12 +294,12 @@ class Example(models.Model):
     # The 'display' version of the word - for instance the infinitive for verb, extra info, etc...
     word = models.CharField('単語', max_length=20)
     # The word as per the sentence - optional
-    word_native = models.CharField('単語-例文', max_length=10, blank=True)
+    word_native = models.CharField('単語（例文）', max_length=10, blank=True)
     yomi = models.CharField('読み方', max_length=30, blank=True)
-    yomi_native = models.CharField('読み方-例文', max_length=30, blank=True)
+    yomi_native = models.CharField('読み方（例文）', max_length=30, blank=True)
     word_variation = models.CharField('他の書き方', max_length=20, blank=True)
-    sentence = models.CharField('文章', max_length=300, blank=True)
-    definition = models.CharField('定義', max_length=10000, blank=True)
+    sentence = models.CharField('例文', max_length=300, blank=True)
+    definition = models.CharField('意味', max_length=10000, blank=True)
     is_joyo = models.BooleanField('常表例')
     kanken = models.ForeignKey(Kanken, on_delete=models.CASCADE, verbose_name='漢検')
 
