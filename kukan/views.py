@@ -560,9 +560,18 @@ def set_yomi(request):
 def get_similar_word(request):
     word = request.GET.get('word', None)
     ex_id = request.GET.get('ex_id', None) or None
-    sim_word = [x.word + ('（' + x.yomi + '）' if x.yomi != '' else '')
-                for x in Example.objects.filter(word__contains=word).exclude(id=ex_id)]
-    data = {'info_similar_word': sim_word}
+    qry_sim = Example.objects.filter(word__contains=word).exclude(id=ex_id)
+    sim_count = qry_sim.count()
+    if sim_count > 0:
+        str_more = '、...' if sim_count > 5 else ''
+        sim_word = ['単語を含む既存の例文（{}件）：'.format(sim_count ),
+                    '、'.join([x.word + ('（' + x.yomi + '）' if x.yomi != '' else '')
+                               for x in qry_sim[:5]]) + str_more]
+    else:
+        sim_word = []
+
+    data = {'word_notifications': {'items': sim_word, 'type': 'is-info'},
+            'info_similar_word': sim_word}
     return JsonResponse(data)
 
 
@@ -588,7 +597,7 @@ def get_furigana(request):
     text = JpText(request.GET.get('word', None), request.GET.get('yomi', None))
     return JsonResponse({
         'furigana': text.guess_furigana(),
-        'furigana_errors': text.get_furigana_errors(),
+        'furigana_notifications': {'items': text.get_furigana_errors(), 'type': 'is-warning'},
     })
 
 

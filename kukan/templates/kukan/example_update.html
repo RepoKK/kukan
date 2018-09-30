@@ -76,38 +76,25 @@
         </div>
     {% endfor %}
 {% endif %}
-
     <div class="columns">
         <div class="column">
-                {% render_single_field_horizontal form.word %}
-                <b-notification v-if='info_similar_word.length > 0' type="is-info">
-                    単語を含む既存の例文：<br>
-                        <div v-for="item in info_similar_word">
-                            <b-icon icon="__mydumy__" size="is-small"></b-icon>[[ item ]]<br>
-                        </div>
-                </b-notification>
+                {% render_single_field form.word True %}
         </div>
         <div class="column">
-            {% render_single_field_horizontal form.yomi %}
+            {% render_single_field form.yomi True %}
         </div>
     </div>
 
     <div v-show="showOptDisp">
         <div class="columns" v-show="showOptDisp">
             <div class="column">
-                    {% render_single_field_horizontal form.word_native %}
-                    <b-notification v-if='info_similar_word.length > 0' type="is-info">
-                        単語を含む既存の例文：<br>
-                            <div v-for="item in info_similar_word">
-                                <b-icon icon="__mydumy__" size="is-small"></b-icon>[[ item ]]<br>
-                            </div>
-                    </b-notification>
+                    {% render_single_field form.word_native True %}
             </div>
             <div class="column">
-                {% render_single_field_horizontal form.yomi_native %}
+                {% render_single_field form.yomi_native True %}
             </div>
         </div>
-        {% render_single_field_horizontal form.word_variation %}
+        {% render_single_field form.word_variation True %}
     </div>
 
     <div class="columns is-multiline is-centered">
@@ -160,17 +147,10 @@
         return {
             showNavBar: false,
             showCandidateDefinition:false,
-            word: '{{ form.word.value|default_if_none:'' }}',
-            word_native: '{{ form.word_native.value|default_if_none:'' }}',
-            word_variation: '{{ form.word_variation.value|default_if_none:'' }}',
+            {% add_vuejs_field_properties form %}
             info_similar_word: [],
-            yomi: '{{ form.yomi.value|default_if_none:'' }}',
-            yomi_native: '{{ form.yomi_native.value|default_if_none:'' }}',
-            sentence: '{{ form.sentence.value|default_if_none:'' }}',
-            definition: '{{ form.definition.value|default_if_none:''|escapejs }}',
             is_joyo: {{ example.is_joyo|yesno:"true,false" }},
             reading_data: [],
-            reading_selected: [{{form.reading_selected.value|default_if_none:''}}],
             candidates: '',
             btnShowOptDisp: false,
         }
@@ -209,6 +189,7 @@
                 axios.get(`/ajax/get_similar_word?${params}`)
                     .then(({ data }) => {
                         this.info_similar_word = data.info_similar_word
+                        this.word_notifications = data.word_notifications
                     })
                     .catch((error) => {
                         this.$toast.open({

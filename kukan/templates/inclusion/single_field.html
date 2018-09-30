@@ -1,6 +1,17 @@
 <div class="columns is-mobile">
+    {% if is_horizontal == True  %}
+        <div class="column is-narrow">
+            <div class="field">
+                <input class="input is-static" readonly tabindex="-1" style="font-weight: bold;"
+                       type="button" value="{{field.label}}">
+            </div>
+        </div>
+    {% endif %}
     <div class="column">
-        <b-field label="{{field.label}}" {% if field.errors %} type="is-danger" {% endif %}>
+        <b-field {% if is_horizontal == False  %} label="{{field.label}}" {% endif %}
+                  {% if field.field.widget.attrs.readonly %} type="is-static"
+                  {% elif field.errors %} type="is-danger"
+                  {% endif %}>
             {{field}}
         </b-field>
         {% if field.errors %}
@@ -10,3 +21,7 @@
         {% endif %}
     </div>
 </div>
+<b-notification v-if='{{field.name}}_notifications.items.length > 0'
+                  :type="{{field.name}}_notifications.type">
+    <div v-for="item in {{field.name}}_notifications.items">[[ item ]]</div>
+</b-notification>

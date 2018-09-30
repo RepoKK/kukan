@@ -51,9 +51,6 @@
 {% render_single_field form.kotowaza %}
 {% render_single_field form.yomi %}
 {% render_single_field form.furigana %}
-<b-notification v-if='furigana_errors.length > 0' type="is-warning">
-    <div v-for="item in furigana_errors">[[ item ]]</div>
-</b-notification>
 {% render_single_field form.definition %}
 
 </form>
@@ -69,11 +66,7 @@
     data() {
         return {
             showNavBar: false,
-            kotowaza: '{{ form.kotowaza.value|default_if_none:'' }}',
-            yomi: '{{ form.yomi.value|default_if_none:'' }}',
-            furigana: '{{ form.furigana.value|default_if_none:'' }}',
-            furigana_errors: [],
-            definition: '{{ form.definition.value|default_if_none:''|escapejs }}',
+            {% add_vuejs_field_properties form %}
         }
     },
     methods: {
@@ -86,7 +79,7 @@
                 .then(({ data }) => {
                     if (data.furigana) {
                         this.furigana = data.furigana
-                        this.furigana_errors = data.furigana_errors
+                        this.furigana_notifications = data.furigana_notifications
                     } else {
                         this.$toast.open({
                             message: `振り仮名推測失敗`,

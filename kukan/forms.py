@@ -154,6 +154,7 @@ class ExampleForm(BForm):
         ex = kwargs['instance']
         if ex and ex.is_joyo:
             self.fields['word'].widget.attrs['readonly'] = True
+        self['reading_selected'].initial = []
 
     def clean(self):
         cleaned_data=super(ExampleForm, self).clean()
