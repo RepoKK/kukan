@@ -74,17 +74,28 @@ class BTextInput(widgets.TextInput):
     template_name = 'widgets/input.html'
 
 
+class BSelect(widgets.Select):
+    template_name = 'widgets/bselect.html'
+    test = 1
+
 class BForm(ModelForm):
 
     class Meta:
         @staticmethod
         def set_widget(f, **kwargs):
             formfield = f.formfield()
-            if isinstance(f, models.CharField):
-                if 'widget' not in kwargs:
-                    formfield.widget = BTextInput(kwargs)
+            replacement_widgets = {widgets.TextInput: BTextInput,
+                                   widgets.Select: BSelect}
+            widget_type = type(formfield.widget)
+
+            if 'widget' in kwargs:
+                formfield.widget = kwargs['widget']
+            elif widget_type in replacement_widgets.keys():
+                if widget_type == widgets.Select:
+                    formfield.widget = replacement_widgets[widget_type](**kwargs, choices=formfield.choices)
                 else:
-                    formfield.widget = kwargs['widget']
+                    formfield.widget = replacement_widgets[widget_type](kwargs)
+
             return formfield
 
         formfield_callback = set_widget
@@ -132,7 +143,8 @@ class ExampleForm(BForm):
 
     class Meta:
         model = Example
-        fields = ['word', 'word_native', 'word_variation', 'yomi', 'yomi_native', 'sentence', 'definition']
+        fields = ['word', 'word_native', 'word_variation', 'yomi', 'yomi_native', 'sentence', 'definition',
+                  'ex_kind']
         widgets = {
             'word': BTextInput(attrs={'placeholder': '単語（漢字・仮名）', '@blur': 'onChangeWord'}),
             'word_native': BTextInput(attrs={'placeholder': '例文中の語形'}),
