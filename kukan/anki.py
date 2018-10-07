@@ -74,7 +74,6 @@ class AnkiProfile:
         ti.run()
         res = ('N/A', 'N/A', 'N/A')
         if ti.log:
-            print(ti.log[0])
             m = re.match(r'(\d+) notes? added, (\d+) notes? updated, (\d+) notes? unchanged.', ti.log[0])
             if m:
                 res = (m[1], m[2], m[3])
@@ -86,19 +85,16 @@ class AnkiProfile:
         lst_db_notes.iloc[:, 1] = lst_db_notes.iloc[:, 1].str.split('\x1f').str.get(0)
         lst_db_notes.columns = ['db_key', 'anki_key']
         lst_db_notes = lst_db_notes.set_index('anki_key').sort_index()
-        # print(lst_db_notes)
 
         lst_new_keys = pd.read_csv(file_name, sep='\t', header=None, usecols=[0], dtype=str)
         lst_new_keys['csv'] = 'csv'
         lst_new_keys = lst_new_keys.set_index(0).sort_index()
-        # print(lst_new_keys)
 
         lst_db_notes['csv'] = lst_new_keys['csv']
         ids_to_del = lst_db_notes[lst_db_notes['csv'] != 'csv']['db_key'].tolist()
-        # print(len(ids_to_del))
         len_del = len(ids_to_del)
         if len_del == 0:
-            print('No card to delete')
+            pass
         elif len_del > 5:
             len_del = 'Too many cards to delete ({})'.format(len_del)
             print('Too many cards to delete ({})'.format(len_del))
@@ -111,7 +107,6 @@ class AnkiProfile:
         server = RemoteServer(self.profile['syncKey'], self.profile['hostNum'])
         client = Syncer(self.col, server)
         res = client.sync()
-        print('Sync result: ', res)
         if res in ['success', 'noChanges']:
             pass
         elif res == 'fullSync':
@@ -121,7 +116,6 @@ class AnkiProfile:
             self.col.reopen()
 
     def sync(self):
-        print('*** Sync profile {} ***'.format(self.name))
 
         self.open_collection()
         res_df = pd.DataFrame('-',
@@ -135,10 +129,8 @@ class AnkiProfile:
         for deck in self.profile['decks']:
             file_name = os.path.join(settings.ANKI_IMPORT_DIR, deck.file_name)
             if os.path.exists(file_name) and deck.name in self.col.decks.allNames():
-                print('Imp', deck.name)
                 res_df.loc[deck.name, ['added', 'updated', 'unchanged']] = self.import_file(deck, file_name)
                 res_df.loc[deck.name, 'deleted'] = self.delete_missing_notes(deck, file_name)
-        print(res_df.to_html())
 
         # Sync the change back
         self.sync_server()
