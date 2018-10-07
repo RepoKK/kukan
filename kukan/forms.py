@@ -130,7 +130,7 @@ class ExampleForm(BForm):
     class Meta:
         model = Example
         fields = ['word', 'word_native', 'word_variation', 'yomi', 'yomi_native', 'sentence', 'definition',
-                  'ex_kind']
+                  'ex_kind', 'kotowaza']
         widgets = {
             'word': TextInput(attrs={'placeholder': '単語（漢字・仮名）', '@blur': 'onChangeWord'}),
             'word_native': TextInput(attrs={'placeholder': '例文中の語形'}),
@@ -139,6 +139,7 @@ class ExampleForm(BForm):
             'sentence': TextInput(attrs={'placeholder': '単語を含む例文を入力ください。'}),
             'definition': TextInput(attrs={'type': 'textarea', 'rows': '12',
                                            'placeholder': '単語の意味・説明の文章を入力ください。'}),
+            'kotowaza': Select(attrs={'expanded': 'true'}),
         }
         field_classes = {
             'yomi': Katakana,
@@ -152,6 +153,8 @@ class ExampleForm(BForm):
         ex = kwargs['instance']
         if ex and ex.is_joyo:
             self.fields['word'].widget.attrs['readonly'] = True
+
+
 
     def clean(self):
         cleaned_data = super(ExampleForm, self).clean()

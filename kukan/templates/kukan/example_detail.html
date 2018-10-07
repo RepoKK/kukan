@@ -8,32 +8,34 @@
 {% block content %}
     <div class="columns is-mobile">
         <div class="column">
-            <h1 class="title">{{ example.word }}{% if example.word_variation %}（{{ example.word_variation }}）{% endif %}</h1>
-            <h2 class="subtitle is-5">{{ example.yomi }}</h2>
-            {% if example.ex_kind == example.KOTOWAZA %}
-                <p></p>
-                <h1 class="title is-4"><a href="{% url 'kukan:kotowaza_detail' example.kotowaza.id %}">
-                    {{ example.kotowaza.furigana|furigana_html:example.kotowaza.kotowaza }}
-                </a></h1>
-            {% endif %}
+            <h1 class="title">{{ example.word|add_furigana:example.yomi }}{% if example.word_variation %}（{{ example.word_variation }}）{% endif %}</h1>
         </div>
         <div class="column is-narrow">
             <a class="button is-link" href="{% url 'kukan:example_update' example.id %}">編集</a>
         </div>
     </div>
+    {% if example.ex_kind == example.KOTOWAZA %}
+        <p></p>
+        <h1 class="title is-4"><a href="{% url 'kukan:kotowaza_detail' example.kotowaza.id %}">
+            {{ example.kotowaza.kotowaza|furigana_html:example.kotowaza.furigana }}
+        </a></h1>
+    {% endif %}
     <div class="columns is-variable is-8">
         <div class="column is-three-fifths">
             {% if example.ex_kind == example.KOTOWAZA %}
-                <div class="content"><h2>諺の意味</h2></div>
-                <div class="content">{{ example.kotowaza.get_definition_html|safe  }}</div>
+                <div class="content">
+                    <h2 class="title is-5">諺の意味</h2>
+                    {{ example.kotowaza.get_definition_html|safe  }}
+                </div>
             {% endif %}
             <div class="content">
-                <h2>単語の意味</h2></div>
-            <div class="content">{{ example.get_definition_html|safe  }}</div>
+                <h2 class="title is-5">単語の意味</h2>
+                {{ example.get_definition_html|safe  }}
+            </div>
             {{ example.goo_link_exact|safe}}
         </div>
         <div class="column">
-            <div class="content"><h2>情報</h2></div>
+            <div class="content"><h2 class="title is-5">情報</h2></div>
             <ul>
                 <li><strong>漢検：</strong>{{example.kanken}}</li>
                 <li><strong>例文：</strong>{{example.sentence}}</li>
