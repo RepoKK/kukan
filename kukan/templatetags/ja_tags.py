@@ -28,6 +28,6 @@ def render_single_field(field, is_horizontal=False):
 def add_vuejs_field_properties(context, form):
     list_vuejs_prop = []
     for name, field in form.fields.items():
-        list_vuejs_prop.append("{}: {},".format(name, json.dumps(form[name].initial)))
+        list_vuejs_prop.append("{}: {},".format(name, json.dumps(form[name].value() or '')))
         list_vuejs_prop.append("{}_notifications: {{ items: [], type: 'is-info' }},".format(name))
     return mark_safe('\n'.join(list_vuejs_prop))

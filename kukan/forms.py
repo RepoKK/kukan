@@ -1,17 +1,16 @@
-from django.forms import Form, ModelForm, Textarea, CharField, TextInput, ChoiceField, Select, ValidationError
-from .models import Kanji, Bushu, YomiType, YomiJoyo, Reading, Example, ExMap, Kotowaza
+from django.forms import Form, ModelForm, CharField, TextInput, ChoiceField, Select, ValidationError
+from .models import Kanji, Reading, Example, ExMap, Kotowaza
 from django.utils.translation import gettext_lazy as _
 import kukan.jautils as jau
 from django.db import transaction
-from django.forms import widgets
-from django.db import models
 from kukan.anki import AnkiProfile
 from kukan.jautils import JpText
 
 
 class SearchForm(Form):
     search = CharField(required=False,
-                       widget=TextInput(attrs={'class': 'input is-medium', 'placeholder':'漢字・四字熟語・単語'}))
+                       widget=TextInput(attrs={'class': 'input is-medium',
+                                               'placeholder': '漢字・四字熟語・単語'}))
 
 
 class Kana(CharField):
@@ -51,9 +50,9 @@ class Hiragana(Kana):
 
 class HiraganaPlus(Kana):
     translate_function = jau.kat2hir
-    kana_chart = jau.hiragana_chart + jau.punctuation_chart \
-                 + jau.fullwidth_digit_chart + jau.halfwidth_digit_chart \
-                 + jau.alphabet_lower_chart + jau.alphabet_upper_chart
+    kana_chart = (jau.hiragana_chart + jau.punctuation_chart
+                  + jau.fullwidth_digit_chart + jau.halfwidth_digit_chart
+                  + jau.alphabet_lower_chart + jau.alphabet_upper_chart)
     kana_type = '平仮名'
 
 
@@ -70,40 +69,27 @@ class ReadingSelect(CharField):
                         )
 
 
-class BTextInput(widgets.TextInput):
-    template_name = 'widgets/input.html'
-
-
-class BSelect(widgets.Select):
-    template_name = 'widgets/bselect.html'
-    test = 1
-
 class BForm(ModelForm):
 
     class Meta:
+
+        # Override of standard templates with custom ones using Buefy
+        override = {TextInput: 'widgets/binput.html',
+                    Select: 'widgets/bselect.html'}
+
         @staticmethod
-        def set_widget(f, **kwargs):
-            formfield = f.formfield()
-            replacement_widgets = {widgets.TextInput: BTextInput,
-                                   widgets.Select: BSelect}
-            widget_type = type(formfield.widget)
-
-            if 'widget' in kwargs:
-                formfield.widget = kwargs['widget']
-            elif widget_type in replacement_widgets.keys():
-                if widget_type == widgets.Select:
-                    formfield.widget = replacement_widgets[widget_type](**kwargs, choices=formfield.choices)
-                else:
-                    formfield.widget = replacement_widgets[widget_type](kwargs)
-
+        def override_widget_template(f, **kwargs):
+            formfield = f.formfield(**kwargs)
+            if type(formfield.widget) in BForm.Meta.override.keys():
+                formfield.widget.template_name = BForm.Meta.override[type(formfield.widget)]
             return formfield
 
-        formfield_callback = set_widget
+        formfield_callback = override_widget_template
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         for name, fld in self.fields.items():
-            optional = '（任意）' if fld.required == False else ''
+            optional = '（任意）' if fld.required is False else ''
             fld.widget.attrs['placeholder'] = optional + fld.widget.attrs.get('placeholder', fld.label)
             fld.widget.attrs['v-model'] = name
 
@@ -119,15 +105,15 @@ class KotowazaForm(BForm):
         model = Kotowaza
         fields = ['kotowaza', 'yomi', 'furigana', 'definition']
         widgets = {
-            'yomi': BTextInput(attrs={'placeholder': '読み方（カタカナ）'}),
-            'definition': BTextInput(attrs={'type': 'textarea', 'rows': '8'}),
+            'yomi': TextInput(attrs={'placeholder': '読み方（カタカナ）'}),
+            'definition': TextInput(attrs={'type': 'textarea', 'rows': '8'}),
         }
         field_classes = {
             'yomi': HiraganaPlus,
         }
 
     def clean(self):
-        cleaned_data=super().clean()
+        cleaned_data = super().clean()
         kotowaza = cleaned_data.get('kotowaza')
         yomi = cleaned_data.get('yomi')
         furigana = cleaned_data.get('furigana')
@@ -146,13 +132,13 @@ class ExampleForm(BForm):
         fields = ['word', 'word_native', 'word_variation', 'yomi', 'yomi_native', 'sentence', 'definition',
                   'ex_kind']
         widgets = {
-            'word': BTextInput(attrs={'placeholder': '単語（漢字・仮名）', '@blur': 'onChangeWord'}),
-            'word_native': BTextInput(attrs={'placeholder': '例文中の語形'}),
-            'yomi': BTextInput(attrs={'placeholder': '読み方（カタカナ）'}),
-            'yomi_native': BTextInput(attrs={'placeholder': '例文中の読み方（カタカナ）'}),
-            'sentence': BTextInput(attrs={'placeholder': '単語を含む例文を入力ください。'}),
-            'definition': BTextInput(attrs={'type': 'textarea', 'rows': '12',
-                                            'placeholder': '単語の意味・説明の文章を入力ください。'}),
+            'word': TextInput(attrs={'placeholder': '単語（漢字・仮名）', '@blur': 'onChangeWord'}),
+            'word_native': TextInput(attrs={'placeholder': '例文中の語形'}),
+            'yomi': TextInput(attrs={'placeholder': '読み方（カタカナ）'}),
+            'yomi_native': TextInput(attrs={'placeholder': '例文中の読み方（カタカナ）'}),
+            'sentence': TextInput(attrs={'placeholder': '単語を含む例文を入力ください。'}),
+            'definition': TextInput(attrs={'type': 'textarea', 'rows': '12',
+                                           'placeholder': '単語の意味・説明の文章を入力ください。'}),
         }
         field_classes = {
             'yomi': Katakana,
@@ -166,10 +152,9 @@ class ExampleForm(BForm):
         ex = kwargs['instance']
         if ex and ex.is_joyo:
             self.fields['word'].widget.attrs['readonly'] = True
-        self['reading_selected'].initial = []
 
     def clean(self):
-        cleaned_data=super(ExampleForm, self).clean()
+        cleaned_data = super(ExampleForm, self).clean()
         sentence = cleaned_data.get('sentence')
         word = cleaned_data.get('word_native')
         if word == '':
@@ -192,15 +177,15 @@ class ExampleForm(BForm):
                                ValidationError(_('例文は単語「%(word)s」を含んでない。'),
                                                code='invalid',
                                                params={'word': word}))
-            no_word_sentence=sentence.replace(word, '')
+            no_word_sentence = sentence.replace(word, '')
             for kj in word:
                 if Kanji.objects.filter(kanji=kj).count() > 0:
                     if kj in no_word_sentence:
                         self.add_error('sentence',
-                                   ValidationError(
-                                       _('漢字「%(kj)s」は単語「%(word)s」以外では使えない。'),
-                                       code = 'invalid',
-                                       params = {'kj': kj, 'word':word}))
+                                       ValidationError(
+                                           _('漢字「%(kj)s」は単語「%(word)s」以外では使えない。'),
+                                           code='invalid',
+                                           params={'kj': kj, 'word': word}))
             if sentence.count(word) > 1:
                 self.add_error('sentence',
                                ValidationError(
@@ -224,10 +209,10 @@ class ExampleForm(BForm):
                     kanji = Kanji.objects.get(kanji=kj)
                     # check if the reading is a Joyo one - in which case it can't be changed
                     try:
-                        map = example.exmap_set.get(kanji = kanji,
-                                                             example = example,
-                                                             map_order = idx,
-                                                             in_joyo_list = True)
+                        map = example.exmap_set.get(kanji=kanji,
+                                                    example=example,
+                                                    map_order=idx,
+                                                    in_joyo_list=True)
                     except ExMap.DoesNotExist:
                         if reading_selected[idx] == '0':
                             map, create = example.exmap_set.get_or_create(kanji=kanji,
@@ -237,19 +222,19 @@ class ExampleForm(BForm):
                                                                           in_joyo_list=False)
                         else:
                             reading = Reading.objects.get(kanji=kj, id=reading_selected[idx])
-                            map, create = example.exmap_set.get_or_create(kanji = kanji,
-                                                                      reading = reading,
-                                                                      example = example,
-                                                                      map_order = idx,
-                                                                      is_ateji=False,
-                                                                      in_joyo_list = False)
+                            map, create = example.exmap_set.get_or_create(kanji=kanji,
+                                                                          reading=reading,
+                                                                          example=example,
+                                                                          map_order=idx,
+                                                                          is_ateji=False,
+                                                                          in_joyo_list=False)
                     map_list.append(map.id)
                     idx += 1
                 except Kanji.DoesNotExist:
                     # Not a Kanji (kana, or kanji not in the list)
                     pass
             # Delete the maps not relevant anymore
-            extra_maps = ExMap.objects.filter(example = example).exclude(id__in=map_list)
+            extra_maps = ExMap.objects.filter(example=example).exclude(id__in=map_list)
             extra_maps.delete()
 
         return example
@@ -261,7 +246,7 @@ class ExportForm(Form):
                           label='プロフィール')
 
     type = ChoiceField(choices=[('anki_kanji', '漢字'),
-                                ('anki_kaki','書き取り'),
+                                ('anki_kaki', '書き取り'),
                                 ('anki_yoji', '四字熟語'),
                                 ('anki_yomi', '読み'),
                                 ('anki_kotowaza', '諺'),

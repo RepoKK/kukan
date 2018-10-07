@@ -133,13 +133,7 @@
     <input readonly="readonly" name="reading_selected" class="input is-static" type="hidden" v-model="reading_selected">
     {% render_single_field form.sentence %}
     {% render_single_field form.definition %}
-    <section class="section">
-        <div class="columns">
-            <div class="column">
-                {% render_single_field form.ex_kind %}
-            </div>
-        </div>
-    </section>
+    {% render_single_field form.ex_kind %}
 </form>
 {% endblock %}
 

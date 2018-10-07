@@ -583,9 +583,14 @@ def get_goo(request):
     link = request.GET.get('link', None)
 
     if link:
-        definition, yomi, candidates = DefinitionWordBase.from_link(link).get_definition()
+        definition_word = DefinitionWordBase.from_link(link)
     else:
-        definition, yomi, candidates = DefinitionWordBase.from_word(word).get_definition()
+        definition_word = DefinitionWordBase.from_word(word)
+
+    if definition_word:
+        definition, yomi, candidates = definition_word.get_definition()
+    else:
+        definition, yomi, candidates = None, None, []
 
     data = {'definition': definition, 'reading': yomi, 'candidates': candidates if len(candidates) > 0 else ''}
 
