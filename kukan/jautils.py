@@ -25,7 +25,7 @@ class JpText:
 
     class TextToken:
         tok_regex = re.compile(r'([一-龥].*?\]| .*?\])')
-        kanji_tok_regex = re.compile(r'(^[一-龥]+)\[(.*)\]')
+        kanji_tok_regex = re.compile(r'(^[一-龥].*?)\[(.*)\]')
 
         def __init__(self, origin, kana=None, is_kanji=False):
             self.origin = origin
