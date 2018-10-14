@@ -59,12 +59,14 @@
         </div>
         <div class="level-right">
             <div class="buttons">
-                    <a class="button is-info" @click="getDefinition('')" :disabled="word==''">意味</a>
-                    <a class="button is-info" @click="onGuessReadings" :disabled="yomi==''">読み</a>
-                    <a class="button is-info is-rounded" :class="{'is-inverted':!showOptDisp}"
+                    <button type="button" class="button is-info"
+                            @click="getDefinition('')" :disabled="word==''">意味</button>
+                    <button type="button" class="button is-info"
+                            @click="onGuessReadings" :disabled="yomi==''">読み</button>
+                    <button type="button" class="button is-info is-rounded" :class="{'is-inverted':!showOptDisp}"
                        @click="btnShowOptDisp = !showOptDisp" :disabled="hasOptInput">
                         <b-icon :icon="!showOptDisp?'message-bulleted-off':'message-bulleted'"></b-icon>
-                        </a>
+                        </button>
             </div>
         </div>
     </nav>
@@ -138,7 +140,13 @@
     </template>
 
     {% render_single_field form.definition %}
+    <div class="buttons is-centered">
+        <span class="button is-small is-info"　@click="insertBreak"><b-icon icon="format-page-break"></b-icon>　分離線</span>
+        <span class="button is-small is-info" @click="insertElem"><b-icon icon="code-brackets"></b-icon>　項目</span>
+        <span class="button is-small is-info" @click="insertExampleMeaning"><b-icon icon="information-variant"></b-icon>　例文の意味</span>
+    </div>
     {% render_single_field form.ex_kind %}
+    <button type="button" class="button is-danger" @click="deleteConfirm('')" :disabled="is_joyo">例文削除</button>
 </form>
 {% endblock %}
 
@@ -267,6 +275,78 @@
                             type: 'is-danger'
                         })
                 })
+        },
+        deleteConfirm: function () {
+            this.$dialog.confirm({
+                title: '例文削除',
+                message: '例文を本当に削除しますか。',
+                cancelText: '取消',
+                confirmText: '削除',
+                type: 'is-danger',
+                hasIcon: true,
+                onConfirm: () => this.post(`/example/delete/` + {{form.instance.pk}} + '/', {csrfmiddlewaretoken: '{{ csrf_token }}'})
+            })
+        },
+        deleteExample: function() {
+            var form = document.createElement("form");
+            form.setAttribute("method", 'post');
+            form.setAttribute("csrfmiddlewaretoken", '{{ csrf_token }}');
+            form.setAttribute("action", `/example/delete/` + {{form.instance.pk}} + '/');
+            document.body.appendChild(form);
+            form.submit();
+        },
+        post: function(path, params, method) {
+            method = method || "post"; // Set method to post by default if not specified.
+
+            // The rest of this code assumes you are not using a library.
+            // It can be made less wordy if you use one.
+            var form = document.createElement("form");
+            form.setAttribute("method", method);
+            form.setAttribute("action", path);
+
+            for(var key in params) {
+                if(params.hasOwnProperty(key)) {
+                    var hiddenField = document.createElement("input");
+                    hiddenField.setAttribute("type", "hidden");
+                    hiddenField.setAttribute("name", key);
+                    hiddenField.setAttribute("value", params[key]);
+
+                    form.appendChild(hiddenField);
+                }
+            }
+
+            document.body.appendChild(form);
+            form.submit();
+        },
+        insertBreak: function() {
+            this.insertText('id_definition', '\n----\n\n')
+        },
+        insertElem: function() {
+            this.insertText('id_definition', '**【】**')
+        },
+        insertExampleMeaning: function() {
+            this.insertText('id_definition', '\n----\n\n**' + this.sentence + '**\n\n')
+        },
+        insertText: function(elem_id, value) {
+            var textArea = document.getElementById(elem_id);
+            var startPos = textArea.selectionStart,
+                // get cursor's position:
+                endPos = textArea.selectionEnd,
+                cursorPos = startPos,
+                tmpStr = textArea.value;
+
+            if (value === null) {
+                return;
+            }
+
+            // insert:
+            this.definition = tmpStr.substring(0, startPos) + value + tmpStr.substring(endPos, tmpStr.length);
+
+            // move cursor:
+            setTimeout(() => {
+                cursorPos += value.length;
+                textArea.selectionStart = textArea.selectionEnd = cursorPos;
+            }, 10);
         },
     },
     mounted() {

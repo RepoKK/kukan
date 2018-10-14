@@ -59,7 +59,7 @@ class Exporter:
             .exclude(ex_kind=Example.KOTOWAZA)\
             .exclude(self.excl_in_progress)
         if self.profile.name == 'Ayumi':
-            q_set = q_set.filter(Q(kanken__difficulty__gte=8) | Q(word__endswith='義語）'))
+            q_set = q_set.filter(Q(kanken__difficulty__gte=8) | Q(ex_kind__in=[Example.TAIGI, Example.RUIGI]))
 
         for example in q_set:
             word = example.word_native if example.word_native != "" else example.word

@@ -64,7 +64,7 @@ class DefinitionWordBase(ABC):
         else:
             self._get_page_from_link()
 
-        if self.definition_page:
+        if self.definition_page is not None:
             self.parse_def()
             res = self.definition, self.yomi, []
         elif self.candidates:

@@ -318,7 +318,7 @@ class Example(models.Model):
                 if Example.objects.filter(word=self.word, yomi=self.yomi, sentence=self.sentence).exists():
                     raise ValidationError('この諺は既に登録されている。')
             else:
-                if Example.objects.filter(word=self.word, yomi=self.yomi).exists():
+                if Example.objects.filter(word=self.word, yomi=self.yomi, ex_kind=self.ex_kind).exists():
                     raise ValidationError('この言葉は既に登録されている。')
 
     def save(self, *args, **kwargs):

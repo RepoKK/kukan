@@ -448,6 +448,11 @@ class ExampleUpdate(LoginRequiredMixin, UpdateView):
     context_object_name = 'example'
 
 
+class ExampleDelete(LoginRequiredMixin, DeleteView):
+    model = Example
+    success_url = reverse_lazy('kukan:example_list')
+
+
 @login_required
 def yoji_anki(request):
     operation = request.POST.get('op', None)

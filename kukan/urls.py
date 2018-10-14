@@ -18,6 +18,7 @@ urlpatterns = [
     path('example/<int:pk>/', views.ExampleDetail.as_view(), name='example_detail'),
     path('example/add/', views.ExampleCreate.as_view(), name='example-add'),
     path('example/update/<int:pk>/', views.ExampleUpdate.as_view(), name='example_update'),
+    path('example/delete/<int:pk>/', views.ExampleDelete.as_view(), name='example_delete'),
 
     path('kotowaza/list/', views.KotowazaList.as_view(), name='kotowaza_list'),
     path('kotowaza/<int:pk>/', views.KotowazaDetail.as_view(), name='kotowaza_detail'),
