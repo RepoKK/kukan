@@ -1,5 +1,8 @@
 import re
 from janome.tokenizer import Tokenizer
+from multiprocessing.connection import Client
+
+from django.conf import settings
 
 katakana_chart = ("ァアィイゥウェエォオカガキギクグケゲコゴサザシジスズセゼソゾタダチヂッツヅテデトドナニヌネノ"
                   "ハバパヒビピフブプヘベペホボポマミムメモャヤュユョヨラリルレロヮワヰヱヲンヴヵヶヽヾ")
@@ -21,7 +24,26 @@ digit_ful2half = str.maketrans(fullwidth_digit_chart, halfwidth_digit_chart)
 
 
 class JpText:
-    tokenizer = Tokenizer()
+    class LightTokenizer:
+        """
+        Provide an interface to a resident process in prod, and just using directly the Tokenizer in dev
+
+        The Tokenizer is heavy, and having each of the instance of the Apache instantiating it consume too much RAM
+        """
+
+        full_tokenizer = Tokenizer() if not hasattr(settings, 'JANOME_PORT') else None
+
+        @classmethod
+        def tokenize(cls, text):
+            if cls.full_tokenizer:
+                res = cls.full_tokenizer.tokenize(text)
+            else:
+                with Client(('localhost', settings.JANOME_PORT), authkey=settings.JANOME_KEY) as conn:
+                    conn.send([text])
+                    res = conn.recv()
+            return res
+
+    tokenizer = LightTokenizer()
 
     class TextToken:
         tok_regex = re.compile(r'([一-龥].*?\]| .*?\])')
