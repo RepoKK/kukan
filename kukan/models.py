@@ -323,8 +323,14 @@ class Example(models.Model):
 
     def save(self, *args, **kwargs):
         self.validate_unique()
-        self.kanken=Kanken.objects.get(id=Kanji.objects.filter(kanji__in=self.word).
-                                       aggregate(Max('kanken'))['kanken__max'])
+        kanken = Kanken.objects.get(id=Kanji.objects.filter(kanji__in=self.word).
+                                    aggregate(Max('kanken'))['kanken__max'])
+        # Any example with 表外 reading is at least 準一級
+        if (kanken.difficulty < Kanken.objects.get(kyu='準１級').difficulty
+            and Reading.objects.filter(exmap__example__id=self.id, joyo__yomi_joyo='表外').exists()):
+            kanken = Kanken.objects.get(kyu='準１級')
+        self.kanken = kanken
+
         super().save(*args, **kwargs)
 
     def get_absolute_url(self):
