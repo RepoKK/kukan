@@ -134,8 +134,9 @@ class JpText:
 
     def _check_furigana(self):
         self.furigana_errors = []
-        if not ''.join([t.origin for t in self.token_list]) == self.text:
-            self.furigana_errors.append('元の文章を復元出来ない')
+        reconverted = ''.join([t.origin for t in self.token_list])
+        if not reconverted == self.text:
+            self.furigana_errors.append('元の文章を復元出来ない: 「{}」'.format(reconverted))
         if self.yomi:
             if not ''.join([t.kana for t in self.token_list]) == self.kat2hir(self.yomi):
                 self.furigana_errors.append('推測振り仮名と元の読み方が合致しない')
