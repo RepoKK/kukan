@@ -66,7 +66,7 @@ class Exporter:
             yomi = example.yomi_native if example.yomi_native != "" else example.yomi
             sentence = example.sentence.replace(word,
                                                 '<span class="font-color01">' +
-                                                '(表外) 'if example.ex_kind == Example.HYOGAI else '' +
+                                                ('(表外) ' if example.ex_kind == Example.HYOGAI else '') +
                                                 yomi + '</span>')
 
             word = ''.join([alt_to_std.get(k, k) for k in word])
