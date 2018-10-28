@@ -545,8 +545,11 @@ def set_yomi(request):
     lst_reading = []
     lst_id = []
     for kj in word:
-        lst_reading.append([x.reading.translate(jau.hir2kat) for x in Reading.objects.filter(kanji=kj)])
-        lst_id.append([x.id for x in Reading.objects.filter(kanji=kj)])
+        readings = [x.reading.translate(jau.hir2kat).translate({ord(c): None for c in '（）'})
+                    for x in Reading.objects.filter(kanji=kj)]
+        if readings:
+            lst_reading.append(readings)
+            lst_id.append([x.id for x in Reading.objects.filter(kanji=kj)])
 
     candidate = reduce(lambda a, b: [x + y for x in a for y in b], lst_reading)
     candidate_id = reduce(lambda a, b: [([x] if isinstance(x, int) else x) + [y] for x in a for y in b], lst_id)
