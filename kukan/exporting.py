@@ -54,10 +54,11 @@ class Exporter:
     def export_anki_kaki(self, writer):
         std_to_alt, alt_to_std = Exporter.std_alt_maps()
 
-        q_set = Example.objects.exclude(sentence='')\
-            .exclude(kanken__difficulty__gt=11)\
-            .exclude(ex_kind=Example.KOTOWAZA)\
-            .exclude(self.excl_in_progress)
+        q_set = (Example.objects.exclude(sentence='')
+                 .exclude(kanken__difficulty__gt=11)
+                 .exclude(ex_kind=Example.KOTOWAZA)
+                 .exclude(ex_kind=Example.HYOGAI)
+                 .exclude(self.excl_in_progress))
         if self.profile.name == 'Ayumi':
             q_set = q_set.filter(Q(kanken__difficulty__gte=8) | Q(ex_kind__in=[Example.TAIGI, Example.RUIGI]))
 
