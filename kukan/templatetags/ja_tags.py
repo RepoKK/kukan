@@ -3,6 +3,7 @@ from django import template
 from django.utils.safestring import mark_safe
 from django.utils.html import escapejs
 from kukan.jautils import JpText, kat2hir
+import re
 
 register = template.Library()
 
@@ -27,6 +28,30 @@ def add_furigana(plain_text, furigana_text):
         res = mark_safe('<ruby>{}<rt>{}</rt></ruby>'.format(plain_text, furigana_text.translate(kat2hir)))
     else:
         res = plain_text
+    return res
+
+
+@register.filter(is_safe=True)
+def furigana_ruby(sentence):
+    """Add furigana as Ruby HTML on top of text"""
+
+    res = mark_safe(re.sub(r'\[(.*?)\|(.*?)\|f\]', '<ruby>{}<rt>{}</rt></ruby>'.format(r'\1', r'\2'), sentence))
+    return res
+
+
+@register.filter(is_safe=True)
+def furigana_remove(sentence):
+    """Remove furigana, display as simple text"""
+
+    res = re.sub(r'\[(.*?)\|(.*?)\|f\]', '{}'.format(r'\1'), sentence)
+    return res
+
+
+@register.filter(is_safe=True)
+def furigana_bracket(sentence):
+    """Display furigana inside brackets"""
+
+    res = re.sub(r'\[(.*?)\|(.*?)\|f\]', '{}({})'.format(r'\1', r'\2'), sentence)
     return res
 
 

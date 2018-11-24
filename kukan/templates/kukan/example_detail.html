@@ -30,7 +30,7 @@
             {% endif %}
             <div class="content">
                 <h2 class="title is-5">単語の意味</h2>
-                {{ example.get_definition_html|safe  }}
+                {{ example.get_definition_html|safe|furigana_bracket  }}
             </div>
             {{ example.goo_link_exact|safe}}
         </div>
@@ -38,7 +38,7 @@
             <div class="content"><h2 class="title is-5">情報</h2></div>
             <ul>
                 <li><strong>漢検：</strong>{{example.kanken}}</li>
-                <li><strong>例文：</strong>{{example.sentence}}</li>
+                <li><strong>例文：</strong>{{example.sentence|furigana_ruby}}</li>
                 <li><strong>作成：</strong>{{example.created_time}}</li>
                 <li><strong>更新：</strong>{{example.updated_time}}</li>
                 <li><strong>種類：</strong>{{example.get_ex_kind_display}}</li>

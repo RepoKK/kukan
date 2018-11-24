@@ -9,7 +9,7 @@ from django.http import HttpResponse
 from kukan.anki import AnkiProfile
 from .models import Kanji, Example, Yoji
 from kukan.jautils import JpText
-
+from kukan.templatetags.ja_tags import furigana_ruby
 
 class Exporter:
     kind_list = ['anki_yoji', 'anki_kaki', 'anki_kanji', 'anki_yomi', 'anki_kotowaza']
@@ -65,10 +65,8 @@ class Exporter:
         for example in q_set:
             word = example.word_native if example.word_native != "" else example.word
             yomi = example.yomi_native if example.yomi_native != "" else example.yomi
-            sentence = example.sentence.replace(word,
-                                                '<span class="font-color01">' +
-                                                ('(表外) ' if example.ex_kind == Example.HYOGAI else '') +
-                                                yomi + '</span>')
+            sentence = furigana_ruby(example.sentence.replace(word,
+                                                              '<span class="font-color01">' + yomi + '</span>'))
 
             word = ''.join([alt_to_std.get(k, k) for k in word])
             alt_word = ''.join([alt[0] + ('（{}）'.format('・'.join(alt[1:])) if len(alt) > 1 else '') for alt in
@@ -95,9 +93,8 @@ class Exporter:
         for example in q_set:
             word = example.word_native if example.word_native != "" else example.word
             yomi = example.yomi_native if example.yomi_native != "" else example.yomi
-            sentence = example.sentence.replace(word,
-                                                '<span class="font-color01">' +
-                                                word + '</span>')
+            sentence = furigana_ruby(example.sentence.replace(word,
+                                                              '<span class="font-color01">' + word + '</span>'))
 
             word = ''.join([alt_to_std.get(k, k) for k in word])
             alt_word = ''.join([alt[0] + ('（{}）'.format('・'.join(alt[1:])) if len(alt) > 1 else '') for alt in
