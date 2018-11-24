@@ -9,7 +9,7 @@ from django.http import JsonResponse
 from functools import reduce
 from django.core.paginator import Paginator, EmptyPage
 import kukan.jautils as jau
-from kukan.jautils import JpText
+from kukan.jautils import JpText, JpnText
 from django.db.models import Count
 
 from django.contrib.auth.mixins import LoginRequiredMixin
@@ -607,11 +607,16 @@ def get_goo(request):
 
 @login_required
 def get_furigana(request):
-    text = JpText(request.GET.get('word', None), request.GET.get('yomi', None))
-    return JsonResponse({
-        'furigana': text.guess_furigana(),
-        'furigana_notifications': {'items': text.get_furigana_errors(), 'type': 'is-warning'},
-    })
+    if request.GET.get('format', None) == 'bracket':
+        return JsonResponse({
+            'furigana': JpnText.from_simple_text(request.GET.get('word', '')).furigana()
+        })
+    else:
+        text = JpText(request.GET.get('word', None), request.GET.get('yomi', None))
+        return JsonResponse({
+            'furigana': text.guess_furigana(),
+            'furigana_notifications': {'items': text.get_furigana_errors(), 'type': 'is-warning'},
+        })
 
 
 class ExportView(LoginRequiredMixin, generic.FormView):

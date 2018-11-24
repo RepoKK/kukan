@@ -194,3 +194,68 @@ class JpText:
 
     def get_furigana_html(self):
         return ''.join([t.get_html() for t in self.token_list])
+
+
+class JpnText:
+    """
+    New class to handle Japanese text with optional Furigana.
+
+    Furigana format is [KANJI|FURIGANA|f]
+    """
+    class LightTokenizer:
+        """
+        Provide an interface to a resident process in prod, and just using directly the Tokenizer in dev
+
+        The Tokenizer is heavy, and having each of the instance of the Apache instantiating it consume too much RAM
+        """
+
+        full_tokenizer = Tokenizer() if not hasattr(settings, 'JANOME_PORT') else None
+
+        @classmethod
+        def tokenize(cls, text):
+            if cls.full_tokenizer:
+                res = cls.full_tokenizer.tokenize(text)
+            else:
+                with Client(('localhost', settings.JANOME_PORT), authkey=settings.JANOME_KEY) as conn:
+                    conn.send([text])
+                    res = conn.recv()
+            return res
+
+    tokenizer = LightTokenizer()
+
+    class TextToken:
+
+        def __init__(self, origin, furigana=None):
+            self.kanji = origin
+            self.furigana = furigana.translate(kat2hir) if furigana else None
+
+        def furigana_none(self):
+            return self.kanji
+
+        def furigana_bracket(self):
+            return '[{}|{}|f]'.format(self.kanji, self.furigana) if self.furigana else self.kanji
+
+        def furigana_ruby(self):
+            return '<ruby>{}<rt>{}</rt></ruby>'.format(self.kanji, self.furigana) if self.furigana else self.kanji
+
+        @classmethod
+        def from_token(cls, tok):
+            return cls(tok.surface,
+                       tok.reading if tok.surface.translate(kat2hir) != tok.reading.translate(kat2hir) else None)
+
+    def __init__(self, text, token_list=None):
+        self.text = text
+        self.token_list = token_list or []
+
+    @classmethod
+    def from_simple_text(cls, text):
+        return cls(text, token_list=[cls.TextToken.from_token(tok) for tok in cls.tokenizer.tokenize(text)])
+
+    def furigana(self, kind='bracket'):
+        """
+        Return the Japanese text with its furigana
+
+        :param kind: The type of furigana, possible value: bracket, ruby, none
+        :return: The text with the furigana
+        """
+        return ''.join([getattr(t, 'furigana_' + kind)() for t in self.token_list])

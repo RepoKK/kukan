@@ -135,13 +135,16 @@
     <input readonly="readonly" name="reading_selected" class="input is-static" type="hidden" v-model="reading_selected">
     <template v-if="ex_kind!='KOTOWAZA'">
         {% render_single_field form.sentence %}
+        <div class="buttons is-centered">
+            <span class="button is-small is-info" @click="insertFurigana"><b-icon icon="code-brackets"></b-icon>　振り仮名</span>
+        </div>
     </template><template v-else>
         {% render_single_field form.kotowaza %}
     </template>
 
     {% render_single_field form.definition %}
     <div class="buttons is-centered">
-        <span class="button is-small is-info"　@click="insertBreak"><b-icon icon="format-page-break"></b-icon>　分離線</span>
+        <span class="button is-small is-info" @click="insertBreak"><b-icon icon="format-page-break"></b-icon>　分離線</span>
         <span class="button is-small is-info" @click="insertElem"><b-icon icon="code-brackets"></b-icon>　項目</span>
         <span class="button is-small is-info" @click="insertExampleMeaning"><b-icon icon="information-variant"></b-icon>　例文の意味</span>
     </div>
@@ -326,6 +329,33 @@
         },
         insertExampleMeaning: function() {
             this.insertText('id_definition', '\n----\n\n**' + this.sentence + '**\n\n')
+        },
+        insertFurigana: function() {
+            var elem_id = 'id_sentence'
+            var e = document.getElementById(elem_id);
+            var l = e.selectionEnd - e.selectionStart;
+
+            const params = [
+                `word=${e.value.substr(e.selectionStart, l)}`,
+                `format=bracket`,
+            ].join('&')
+            axios.get(`/ajax/get_furigana/?${params}`)
+                .then(({ data }) => {
+                    if (data.furigana) {
+                        this.insertText(elem_id, data.furigana)
+                    } else {
+                        this.$toast.open({
+                            message: `振り仮名推測失敗`,
+                            type: 'is-warning'
+                        })
+                    }
+                })
+                .catch((error) => {
+                        this.$toast.open({
+                            message: `振り仮名推測失敗`,
+                            type: 'is-danger'
+                        })
+                })
         },
         insertText: function(elem_id, value) {
             var textArea = document.getElementById(elem_id);

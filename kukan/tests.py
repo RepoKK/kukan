@@ -10,6 +10,7 @@ os.environ.setdefault("DJANGO_SETTINGS_MODULE", "kukansite.settings")
 django.setup()
 
 from kukan.templatetags.ja_tags import furigana_ruby, furigana_remove, furigana_bracket
+from kukan.jautils import JpnText
 
 
 class FuriganaTest(TestCase):
@@ -19,6 +20,17 @@ class FuriganaTest(TestCase):
         self.assertEqual('部屋(へや)から町を俯瞰(ふかん)する', furigana_bracket(sentence))
         self.assertEqual('<ruby>部屋<rt>へや</rt></ruby>から町を<ruby>俯瞰<rt>ふかん</rt></ruby>する',
                          furigana_ruby(sentence))
+
+    def test_JpnText(self):
+        sentence = 'ご飯に差し支えない様に'
+        jpn_text = JpnText.from_simple_text(sentence)
+        self.assertEqual('[ご飯|ごはん|f]に[差し支え|さしつかえ|f]ない[様|よう|f]に', jpn_text.furigana())
+        self.assertEqual('ご飯に差し支えない様に', jpn_text.furigana('none'))
+        self.assertEqual('<ruby>ご飯<rt>ごはん</rt></ruby>に<ruby>差し支え<rt>さしつかえ</rt></ruby>ない' +
+                         '<ruby>様<rt>よう</rt></ruby>に',
+                         jpn_text.furigana('ruby'))
+        self.assertEqual('', JpnText.from_simple_text('').furigana())
+
 
 #
 #
