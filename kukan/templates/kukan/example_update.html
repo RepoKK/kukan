@@ -370,7 +370,12 @@
             }
 
             // insert:
-            textArea.value = tmpStr.substring(0, startPos) + value + tmpStr.substring(endPos, tmpStr.length);
+            res = tmpStr.substring(0, startPos) + value + tmpStr.substring(endPos, tmpStr.length);
+            if (elem_id=='id_sentence') {
+                this.sentence = res
+            } else {
+                this.definition = res
+            }
 
             // move cursor:
             setTimeout(() => {

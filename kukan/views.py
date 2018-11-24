@@ -609,7 +609,7 @@ def get_goo(request):
 def get_furigana(request):
     if request.GET.get('format', None) == 'bracket':
         return JsonResponse({
-            'furigana': JpnText.from_simple_text(request.GET.get('word', '')).furigana()
+            'furigana': JpnText.from_simple_text(request.GET.get('word', '')).furigana() or '[||f]'
         })
     else:
         text = JpText(request.GET.get('word', None), request.GET.get('yomi', None))
