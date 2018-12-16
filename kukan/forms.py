@@ -239,6 +239,8 @@ class ExampleForm(BForm):
             # Delete the maps not relevant anymore
             extra_maps = ExMap.objects.filter(example=example).exclude(id__in=map_list)
             extra_maps.delete()
+            # Save again to trigger the update of the Kyu done part of Example.save (issue #27)
+            example.save()
 
         return example
 
