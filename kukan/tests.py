@@ -118,7 +118,7 @@ class ExampleFormTest(TestCase):
                           'definition': '言葉の定義', 'ex_kind': Example.HYOGAI, 'yomi_native': ''}
         self.assertEqual(Example.objects.get(word='閲する').kanken, Kanken.objects.get(kyu='３級'))
         self.SetHyogaiYomi()
-        self.assertEquals(Example.objects.get(word='閲する').kanken, Kanken.objects.get(kyu='準１級'))
+        self.assertEqual(Example.objects.get(word='閲する').kanken, Kanken.objects.get(kyu='準１級'))
         self.SetJoyoYomi()
         self.assertEqual(Example.objects.get(word='閲する').kanken, Kanken.objects.get(kyu='３級'))
 
@@ -146,5 +146,5 @@ class ExampleFormTest(TestCase):
 #                                                       'ex_kind': Example.HYOGAI, 'kotowaza': None, 'yomi_native': ''})
 #         print(response)
 #
-#         self.assertEquals(Example.objects.get(word='閲する').kanken, Kanken.objects.get(kyu='３級'))
+#         self.assertEqual(Example.objects.get(word='閲する').kanken, Kanken.objects.get(kyu='３級'))
 

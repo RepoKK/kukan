@@ -3,7 +3,7 @@ from .models import Kanji, Reading, Example, ExMap, Kotowaza
 from django.utils.translation import gettext_lazy as _
 import kukan.jautils as jau
 from django.db import transaction
-from kukan.anki import AnkiProfile
+from kukan.anki_dj import AnkiProfile
 from kukan.jautils import JpText
 
 

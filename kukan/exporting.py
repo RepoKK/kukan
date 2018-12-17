@@ -6,10 +6,11 @@ from django.template.loader import render_to_string
 from django.conf import settings
 from django.http import HttpResponse
 
-from kukan.anki import AnkiProfile
+from kukan.anki_dj import AnkiProfile
 from .models import Kanji, Example, Yoji
 from kukan.jautils import JpText
 from kukan.templatetags.ja_tags import furigana_ruby
+
 
 class Exporter:
     kind_list = ['anki_yoji', 'anki_kaki', 'anki_kanji', 'anki_yomi', 'anki_kotowaza']
