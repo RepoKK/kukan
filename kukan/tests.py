@@ -12,11 +12,12 @@ django.setup()
 from kukan.templatetags.ja_tags import furigana_ruby, furigana_remove, furigana_bracket
 from kukan.jautils import JpnText
 
-from kukan.models import Kanji, Example, Reading, ExMap, Kanken, YomiType, YomiJoyo
+from kukan.models import Kanji, Example, Reading, ExMap, Kanken, YomiType, YomiJoyo, Bushu, KoukiBushu
 from kukan.forms import ExampleForm
 from django.db.models import Max
 from django.test import Client
 from django.contrib.auth.models import User
+from kukan.test_helpers import FixtureAppLevel, FixtureKukan
 
 
 class FuriganaTest(TestCase):
@@ -65,7 +66,7 @@ class FuriganaTest(TestCase):
 #         self.assertEqual(Example.objects.count(), 1)
 
 class ModelTest(TestCase):
-    fixtures = ['base', 'test_data']
+    fixtures = ['baseline', '閲']
 
     def testKyu(self):
         example = Example.objects.create(word='閲する', yomi='けみする', sentence='膨大な資料を閲する',
@@ -85,18 +86,9 @@ class ModelTest(TestCase):
 
 
 class ExampleFormTest(TestCase):
-    fixtures = ['baseline.json', 'test_data']
+    fixtures = ['baseline', '閲', '覧']
 
     def setUp(self):
-        Reading.objects.create(kanji=Kanji.objects.get(kanji='閲'), reading='けみ（する）',
-                               yomi_type=YomiType.objects.get(yomi_type='訓'),
-                               joyo=YomiJoyo.objects.get(yomi_joyo='表外'), joyo_order=9999)
-        Reading.objects.create(kanji=Kanji.objects.get(kanji='閲'), reading='エツ',
-                               yomi_type=YomiType.objects.get(yomi_type='音'),
-                               joyo=YomiJoyo.objects.get(yomi_joyo='常用'), joyo_order=4094)
-        Reading.objects.create(kanji=Kanji.objects.get(kanji='覧'), reading='ラン',
-                               yomi_type=YomiType.objects.get(yomi_type='音'),
-                               joyo=YomiJoyo.objects.get(yomi_joyo='常用'), joyo_order=3543)
         Example.objects.create(word='閲する', yomi='ケミスル', sentence='膨大な資料を閲する', is_joyo=False)
 
     def SetHyogaiYomi(self):
@@ -148,3 +140,26 @@ class ExampleFormTest(TestCase):
 #
 #         self.assertEqual(Example.objects.get(word='閲する').kanken, Kanken.objects.get(kyu='３級'))
 
+
+class TestFixtureFunctions(TestCase):
+    fixtures = ['baseline', '閲']
+
+    def setUp(self):
+        pass
+
+    def test_AppLevel(self):
+        self.assertGreater(len(FixtureAppLevel('kukan', 'baseline').get_list_models()), 15)
+        self.assertEqual(FixtureAppLevel('kukan', 'baseline', ['Bushu', 'Kanken']).get_list_models(),
+                         ['kukan.Bushu', 'kukan.Kanken'])
+        self.assertTrue('kukan.Bushu' not in FixtureAppLevel('kukan', 'baseline',
+                                                             exclude_models=['Bushu']).get_list_models())
+
+    def test_KukanAppFix(self):
+        self.assertEqual(FixtureKukan('baseline').file_name, 'baseline.json')
+        self.assertEqual(FixtureKukan('baseline.json').file_name, 'baseline.json')
+
+        kukan_fixture = FixtureKukan('baseline')
+        self.assertEqual(kukan_fixture.get_list_models(),
+                         ['kukan.' + x for x in
+                          ['Classification', 'JisClass', 'Kanken', 'YomiJoyo', 'YomiType']])
+        self.assertEqual(kukan_fixture.output_dir, r'C:\Users\Fred\PycharmProjects\kukan\kukan\fixtures')

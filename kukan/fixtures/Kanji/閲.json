@@ -1,0 +1,76 @@
+[
+{
+    "model": "kukan.kanji",
+    "pk": "\u95b2",
+    "fields": {
+        "bushu": "\u9580",
+        "kouki_bushu": "\u9580",
+        "kanken": 8,
+        "strokes": 15,
+        "classification": 1,
+        "jis": "JIS\u7b2c\uff11\u6c34\u6e96"
+    }
+}
+,
+{
+    "model": "kukan.bushu",
+    "pk": "\u9580",
+    "fields": {
+        "reading": "\u3082\u3093\u304c\u307e\u3048"
+    }
+}
+,
+{
+    "model": "kukan.koukibushu",
+    "pk": "\u9580",
+    "fields": {
+        "variations": "\u9580",
+        "reading": "\u30e2\u30f3 \u3082\u3093\u304c\u307e\u3048 \u304b\u3069\u304c\u307e\u3048",
+        "number": 169,
+        "kakusu": 8
+    }
+}
+,
+{
+    "model": "kukan.reading",
+    "pk": 7463,
+    "fields": {
+        "kanji": "\u95b2",
+        "reading": "\u30a8\u30c4",
+        "reading_simple": "\u3048\u3064",
+        "yomi_type": 1,
+        "joyo": 1,
+        "joyo_order": 4094,
+        "remark": "",
+        "ijidokun": ""
+    }
+},
+{
+    "model": "kukan.reading",
+    "pk": 7464,
+    "fields": {
+        "kanji": "\u95b2",
+        "reading": "\u3051\u307f\uff08\u3059\u308b\uff09",
+        "reading_simple": "\u3051\u307f\u3059\u308b",
+        "yomi_type": 2,
+        "joyo": 3,
+        "joyo_order": 9999,
+        "remark": "",
+        "ijidokun": ""
+    }
+},
+{
+    "model": "kukan.reading",
+    "pk": 7465,
+    "fields": {
+        "kanji": "\u95b2",
+        "reading": "\u3078\uff08\u308b\uff09",
+        "reading_simple": "\u3078\u308b",
+        "yomi_type": 2,
+        "joyo": 3,
+        "joyo_order": 9999,
+        "remark": "",
+        "ijidokun": ""
+    }
+}
+]
