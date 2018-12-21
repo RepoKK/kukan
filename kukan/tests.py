@@ -1,6 +1,8 @@
 import sys, os, datetime
 import unittest
+import json
 import django
+from collections import Counter
 
 from django.utils import timezone
 from django.test import TestCase
@@ -17,7 +19,7 @@ from kukan.forms import ExampleForm
 from django.db.models import Max
 from django.test import Client
 from django.contrib.auth.models import User
-from kukan.test_helpers import FixtureAppLevel, FixtureKukan
+from kukan.test_helpers import FixtureAppLevel, FixtureKukan, FixtureKanji
 
 
 class FuriganaTest(TestCase):
@@ -142,10 +144,23 @@ class ExampleFormTest(TestCase):
 
 
 class TestFixtureFunctions(TestCase):
-    fixtures = ['baseline', '閲']
+    fixtures = ['baseline', '閲', '渚', '渚']
 
     def setUp(self):
         pass
+
+    def check_kanji_count(self, kanji, expected_count):
+        """
+        Check whether a Kanji fixture has the expected number of items
+        """
+        fixture = FixtureKanji().dump('閲', to_file=False)
+        values = [f['model'].split('.')[-1] for f in json.loads(fixture)]
+        self.assertEqual(dict(Counter(values)), expected_count, 'Issue with ' + kanji )
+
+    def test_related_kanji(self):
+        self.check_kanji_count('閲', {'kanji': 1, 'koukibushu': 1, 'bushu': 1, 'reading': 3, 'kanjidetails': 1})
+        self.check_kanji_count('渚', {'kanji': 1, 'koukibushu': 1, 'bushu': 1, 'reading': 3, 'kanjidetails': 1})
+        self.check_kanji_count('渚', {'kanji': 1, 'koukibushu': 1, 'bushu': 1, 'reading': 3, 'kanjidetails': 1})
 
     def test_AppLevel(self):
         self.assertGreater(len(FixtureAppLevel('kukan', 'baseline').get_list_models()), 15)

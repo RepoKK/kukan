@@ -103,7 +103,8 @@ class FixtureKanji(FixtureModelLevel):
 
     def _dump_one(self, primary_key):
         fixture = []
-        for model in ['Kanji', 'Bushu', 'KoukiBushu', 'Reading']:
-            keys = ','.join([str(x.pk) for x in getattr(models, model).objects.filter(kanji=primary_key)])
-            fixture.append(self.get_fixture(model, primary_keys=keys))
+        for model in ['Kanji', 'Bushu', 'KoukiBushu', 'Reading', 'KanjiDetails']:
+            objects = getattr(models, model).objects.filter(kanji=primary_key)
+            if len(objects):
+                fixture.append(self.get_fixture(model, primary_keys=','.join([str(x.pk) for x in objects])))
         return fixture
