@@ -5,6 +5,8 @@ import django
 from collections import Counter
 
 from django.utils import timezone
+from io import StringIO
+import csv
 from django.test import TestCase
 
 sys.path.extend(['E:\\Django\\kukan', 'E:/Django/kukan'])
@@ -20,6 +22,8 @@ from django.db.models import Max
 from django.test import Client
 from django.contrib.auth.models import User
 from kukan.test_helpers import FixtureAppLevel, FixtureKukan, FixtureKanji
+from kukan.test_helpers import FixtureAppLevel, FixtureKukan
+from kukan.exporting import Exporter
 
 
 class FuriganaTest(TestCase):
@@ -178,3 +182,19 @@ class TestFixtureFunctions(TestCase):
                          ['kukan.' + x for x in
                           ['Classification', 'JisClass', 'Kanken', 'YomiJoyo', 'YomiType']])
         self.assertEqual(kukan_fixture.output_dir, r'C:\Users\Fred\PycharmProjects\kukan\kukan\fixtures')
+
+
+class TestExport(TestCase):
+    fixtures = ['baseline', '汀', '渚', '渚']
+
+    def setUp(self):
+        Example.objects.create(word='汀渚', yomi='テイショ', sentence='汀渚', is_joyo=False)
+        Example.objects.create(word='汀渚', yomi='テイショ', sentence='汀渚', is_joyo=False)
+
+    def test_export_issue_9(self):
+        with StringIO() as out:
+            writer = csv.writer(out, delimiter='\t', quotechar='"')
+            Exporter('anki_kaki', 'Fred').export_anki_kaki(writer)
+            self.assertEqual('1	"<span class=""font-color01"">テイショ</span>"	汀渚[汀渚]	準１級\r\n' +
+                             '2	"<span class=""font-color01"">テイショ</span>"	汀渚[汀渚]	準１級\r\n',
+                             out.getvalue())
