@@ -1,26 +1,24 @@
-from django.urls import reverse
-from django.views import generic
-from django.views.generic.edit import CreateView, UpdateView, DeleteView
-from django.views.generic.base import TemplateView
-from django.urls import reverse_lazy
-from .models import Kanji, YomiType, YomiJoyo, Reading, Example, ExMap, Yoji, TestResult, Kotowaza
-from .forms import SearchForm, ExampleForm, ExportForm, KotowazaForm
-from django.http import JsonResponse
-from functools import reduce
-from django.core.paginator import Paginator, EmptyPage
-import kukan.jautils as jau
-from kukan.jautils import JpText, JpnText
-from django.db.models import Count
-
-from django.contrib.auth.mixins import LoginRequiredMixin
-from django.contrib.auth.decorators import login_required
-from django.utils import timezone
-
-from .filters import *
 import time
+from collections import defaultdict, deque
+from functools import reduce
+
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.core.paginator import Paginator, EmptyPage
+from django.db.models import Count
+from django.http import JsonResponse
+from django.urls import reverse
+from django.urls import reverse_lazy
+from django.views import generic
+from django.views.generic.base import TemplateView
+from django.views.generic.edit import CreateView, UpdateView, DeleteView
 
 from kukan.exporting import ExporterAsResp
+from kukan.jautils import JpText, JpnText
 from kukan.onlinepedia import DefinitionWordBase
+from .filters import *
+from .forms import SearchForm, ExampleForm, ExportForm, KotowazaForm
+from .models import Yoji, TestResult, Kotowaza
 
 
 class Index(LoginRequiredMixin, generic.FormView):
@@ -479,57 +477,59 @@ def get_yomi(request):
     if word is None or word == '':
         word = request.GET.get('word', None)
     ex_id = request.GET.get('ex_id', None)
-    linked_ex = []
-    example = None
-    if ex_id != '':
-        try:
-            example = Example.objects.get(id=ex_id)
-        except Example.DoesNotExist:
-            pass
+    readings_input = request.GET.get('reading_selected', None)
+    kj_readings = defaultdict(deque)
 
-    ini_reading_selected = request.GET.get('reading_selected', None).split(',')
-    ini_reading_selected = [int(x) if x != '' else -1 for x in ini_reading_selected]
-    reading_data = {}
-    reading_selected = []
+    if readings_input.replace(',', '') != '':
+        for reading_pk in readings_input.split(','):
+            if reading_pk[:6] == 'Ateji_':
+                kj_readings[reading_pk[-1]].append((ExMap.ateji_option_disp, reading_pk))
+            elif reading_pk != '':
+                reading_obj = Reading.objects.get(id=reading_pk)
+                kj_readings[Kanji.objects.get(reading=reading_pk).kanji].append((reading_obj.reading, reading_obj.pk))
+    elif ex_id != '':
+        for ex_map in ExMap.objects.filter(example__pk=ex_id).order_by('map_order'):
+            if ex_map.is_ateji:
+                kj_readings[ex_map.kanji.kanji].append((ExMap.ateji_option_disp, 'Ateji_' + ex_map.kanji.kanji))
+            else:
+                kj_readings[ex_map.kanji.kanji].append((ex_map.reading.reading, ex_map.reading.pk))
+
+    joyo_members = {e.map_order: e
+                    for e in ExMap.objects.filter(example__pk=ex_id or -1, in_joyo_list=True).order_by('map_order')}
+
+    readings_output = []
+    list_of_reading_data = []
     for idx, kj in enumerate(word):
         try:
             kanji = Kanji.objects.get(kanji=kj)
         except Kanji.DoesNotExist:
             continue
-        reading_data[kj] = {}
-        reading_data[kj]['kanji'] = kj
-        reading_data[kj]['kyu'] = kanji.kanken.kyu
-        reading_data[kj]['example_num'] = kanji.exmap_set.exclude(example__sentence='').count()
-        if example is not None:
-            linked_ex = ExMap.objects.filter(kanji=kj, example=example)
+        reading_data = {
+            'kanji': kj, 'kyu': kanji.kanken.kyu,
+            'example_num': kanji.exmap_set.exclude(example__sentence='').count(),
+            'readings': [{'key': 'Ateji_' + kj, 'read': ExMap.ateji_option_disp}] +
+                        [{'key': x.id, 'read': x.get_full()} for x in Reading.objects.filter(kanji=kj)]
+        }
+        try:
+            reading = kj_readings[kj].popleft()
+            reading_data['selected'] = reading[0]
+            readings_output.append(reading[1])
+        except IndexError:
+            reading_data['selected'] = None
+            readings_output.append(None)
 
-        reading_data[kj]['readings'] = \
-            [{'key': x.id, 'read': x.get_full()} for x in Reading.objects.filter(kanji=kj)]
-        reading_data[kj]['readings'] = [{'key': 0, 'read': ExMap.ateji_option_disp}] + reading_data[kj]['readings']
-        if len(linked_ex) and (linked_ex[0].reading or linked_ex[0].is_ateji):
-            if linked_ex[0].is_ateji:
-                reading_data[kj]['selected'] = ExMap.ateji_option_disp
-                reading_selected.append(0)
-            else:
-                reading_data[kj]['selected'] = linked_ex[0].reading.reading
-                reading_selected.append(linked_ex[0].reading.id)
-            reading_data[kj]['joyo'] = linked_ex[0].in_joyo_list
-
-        elif len(ini_reading_selected) > idx \
-                and ini_reading_selected[idx] > -1 \
-                and (ini_reading_selected[idx] == 0
-                     or Reading.objects.get(id=ini_reading_selected[idx]).kanji.kanji == kj):
-            if ini_reading_selected[idx] == 0:
-                reading_data[kj]['selected'] = ExMap.ateji_option_disp
-            else:
-                reading_data[kj]['selected'] = Reading.objects.get(id=ini_reading_selected[idx]).reading
-            reading_data[kj]['joyo'] = False
-            reading_selected.append(ini_reading_selected[idx])
+        ex_map_in_joyo = joyo_members.get(idx, None)
+        if ex_map_in_joyo:
+            r = ExMap.ateji_option_disp if ex_map_in_joyo.is_ateji else ex_map_in_joyo.reading.reading
+            if r != reading_data['selected'] or ex_map_in_joyo.kanji.kanji != kj:
+                raise ValueError('Readings in Joyo list are invariant')
+            reading_data['joyo'] = True
         else:
-            reading_data[kj]['selected'] = None
-            reading_data[kj]['joyo'] = False
-            reading_selected.append(None)
-    data = {'reading_selected': reading_selected, 'reading_data': reading_data}
+            reading_data['joyo'] = False
+
+        list_of_reading_data.append(reading_data)
+
+    data = {'reading_selected': readings_output, 'reading_data': list_of_reading_data}
     return JsonResponse(data)
 
 
@@ -572,9 +572,9 @@ def get_similar_word(request):
     sim_count = qry_sim.count()
     if sim_count > 0:
         str_more = '、...' if sim_count > 5 else ''
-        sim_word = ['単語を含む既存の例文（{}件）：'.format(sim_count ),
+        sim_word = ['単語を含む既存の例文（{}件）：'.format(sim_count),
                     '、'.join([x.word + ('（' + x.yomi + '）' if x.yomi != '' else '')
-                               for x in qry_sim[:5]]) + str_more]
+                              for x in qry_sim[:5]]) + str_more]
     else:
         sim_word = []
 
@@ -654,4 +654,5 @@ class ExportView(LoginRequiredMixin, generic.FormView):
 #     with open(r"D:\testOCR\res.py.txt", "wb") as file:
 #         file.write(bz2.decompress(b''.fromhex(final)))
 #
-# C:\Program Files (x86)\Tesseract-OCR>tesseract.exe D:\testOCR\test.bmp D:\testOCR\out -c tessedit_char_whitelist=0123456789Abcdef -c load_system_dawg=f -c load_freq_dawg=f
+# C:\Program Files (x86)\Tesseract-OCR>tesseract.exe D:\testOCR\test.bmp D:\testOCR\out
+#     -c tessedit_char_whitelist=0123456789Abcdef -c load_system_dawg=f -c load_freq_dawg=f

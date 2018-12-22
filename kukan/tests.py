@@ -1,29 +1,19 @@
-import sys, os, datetime
-import unittest
-import json
-import django
-from collections import Counter
-
-from django.utils import timezone
-from io import StringIO
 import csv
+import json
+from collections import Counter
+from io import StringIO
+
+from django.contrib.auth.models import User
+from django.test import Client
 from django.test import TestCase
 
-sys.path.extend(['E:\\Django\\kukan', 'E:/Django/kukan'])
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "kukansite.settings")
-django.setup()
-
-from kukan.templatetags.ja_tags import furigana_ruby, furigana_remove, furigana_bracket
-from kukan.jautils import JpnText
-
-from kukan.models import Kanji, Example, Reading, ExMap, Kanken, YomiType, YomiJoyo, Bushu, KoukiBushu
-from kukan.forms import ExampleForm
-from django.db.models import Max
-from django.test import Client
-from django.contrib.auth.models import User
-from kukan.test_helpers import FixtureAppLevel, FixtureKukan, FixtureKanji
-from kukan.test_helpers import FixtureAppLevel, FixtureKukan
 from kukan.exporting import Exporter
+from kukan.forms import ExampleForm
+from kukan.jautils import JpnText
+from kukan.models import Kanji, Example, Reading, ExMap, Kanken
+from kukan.templatetags.ja_tags import furigana_ruby, furigana_remove, furigana_bracket
+from kukan.test_helpers import FixtureAppLevel, FixtureKukan
+from kukan.test_helpers import FixtureKanji
 
 
 class FuriganaTest(TestCase):
@@ -92,14 +82,20 @@ class ModelTest(TestCase):
 
 
 class ExampleFormTest(TestCase):
-    fixtures = ['baseline', '閲', '覧']
+    fixtures = ['baseline', '閲', '覧', '斌', '劉', '遥']
 
     def setUp(self):
         Example.objects.create(word='閲する', yomi='ケミスル', sentence='膨大な資料を閲する', is_joyo=False)
+        Example.objects.create(word='斌斌', yomi='ヒンピン', sentence='恩師の斌斌たる人柄が偲ばれる', is_joyo=False)
+        Example.objects.create(word='劉覧', yomi='リュウラン', sentence='劉覧', is_joyo=False)
+
+        User.objects.create_user('test_user', password='pwd')
+        self.client = Client()
+        self.client.post('/login/', {'username': 'test_user', 'password': 'pwd'})
 
     def SetHyogaiYomi(self):
         self.form_data['reading_selected'] = Reading.objects.get(kanji='閲', reading='けみ（する）').id
-        form = ExampleForm(self.form_data, instance=self.example )
+        form = ExampleForm(self.form_data, instance=self.example)
         self.assertTrue(form.is_valid())
         form.save()
         self.assertEqual(form.cleaned_data['yomi'], 'ケミスル')
@@ -129,22 +125,141 @@ class ExampleFormTest(TestCase):
         form = ExampleForm(self.form_data, instance=None)
         self.assertTrue(form.is_valid())
         form.save()
-        self.assertEqual(Example.objects.get(word='閲覧').kanken, Kanken.objects.get(kyu='３級'))
+        self.assertEqual(Kanken.objects.get(kyu='３級'), Example.objects.get(word='閲覧').kanken)
 
+        # Test for issue 22
+        self.form_data = {'word': '遥遥', 'yomi': 'ハルバル', 'sentence': '遥遥',
+                          'definition': '言葉の定義', 'ex_kind': Example.KAKI, 'yomi_native': '',
+                          'reading_selected': ','.join([str(x) for x in
+                                                       [Reading.objects.get(kanji='遥', reading='はる（か）').id,
+                                                        Reading.objects.get(kanji='遥', reading='はる（か）').id]])}
+        form = ExampleForm(self.form_data, instance=None)
+        self.assertTrue(form.is_valid())
+        form.save()
+        self.assertEqual(Kanken.objects.get(kyu='準１級'), Example.objects.get(word='遥遥').kanken)
 
-# class ExampleManipulation(TestCase):
-#     def setUp(self):
-#         User.objects.create_user('test_user', password='pwd')
-#         self.client = Client()
-#         response = self.client.post('/login/', {'username': 'test_user', 'password': 'pwd'})
-#
-#     def testCreate(self):
-#         response = self.client.post('/example/add/', {'word': '閲する', 'yomi': 'けみする',
-#                                                       'sentence': '膨大な資料を閲する', 'definition': '言葉の定義',
-#                                                       'ex_kind': Example.HYOGAI, 'kotowaza': None, 'yomi_native': ''})
-#         print(response)
-#
-#         self.assertEqual(Example.objects.get(word='閲する').kanken, Kanken.objects.get(kyu='３級'))
+    def check_reading_selected(self, expected, word, example, currently_set):
+        self.assertEqual(expected,
+                         self.call_get_yomi(word, example, '', currently_set).json()['reading_selected'],
+                         'Issue with word={}, currently_set={}'.format(word, currently_set))
+
+    def call_get_yomi(self, word='', example='', word_native='', reading_selected=None):
+        ex_id = Example.objects.get(word=example).id if example else ''
+        return self.client.get('/ajax/get_yomi/', data={
+            'word': word, 'ex_id': ex_id, 'word_native': word_native,
+            'reading_selected': ','.join([str(x) if x is not None else '' for x in reading_selected or []])})
+
+    def test_get_yomi_no_reading(self):
+        """
+        Test the views.get_yomi function in the case Example is not yet associated with Readings
+        """
+        # ****   Basic test
+        response = self.call_get_yomi(word='劉覧', example='劉覧',
+                                      word_native='', reading_selected='')
+        # Check we get expected number of kanji
+        self.assertEqual(2, len(response.json()['reading_data']))
+        # Check we get back the correct readings, and nothing selected
+        self.assertEqual(['Ateji_劉', 10319, 10320, 10321],
+                         [x['key'] for x in response.json()['reading_data'][0]['readings']])
+        self.assertEqual(['Ateji_覧', 6422, 6423],  [x['key'] for x in response.json()['reading_data'][1]['readings']])
+        self.assertEqual([None, None], response.json()['reading_selected'])
+
+        # ****   Test addition / removal of kanji with the reading set
+        # Set the reading, then check the return is not changed
+        self.check_reading_selected([10319, 6422], '劉覧', '劉覧', [10319, 6422])
+        # Set the reading, then remove second kanji, check the first don't loose the reading
+        self.check_reading_selected([10319], '劉', '劉覧', [10319, 6422])
+        # Add second
+        self.check_reading_selected([10319, None], '劉覧', '劉覧', [10319])
+        # Add before / after
+        self.check_reading_selected([None, 10319, None, None], '斌劉覧閲', '劉覧', [10319, None])
+
+        # Select reading of second, and add before / after
+        self.check_reading_selected([None, 10319, 6422, None], '斌劉覧閲', '劉覧', [None, 10319, 6422, None])
+
+        # Invert first and second
+        self.check_reading_selected([6422, 10319], '覧劉', '劉覧', [10319, 6422])
+
+        # Add multiple identical kanjis
+        self.check_reading_selected([10319, 6422, None], '劉覧劉', '劉覧', [6422, 10319])
+        self.check_reading_selected([10319, None, 6422], '劉劉覧', '劉覧', [6422, 10319])
+
+        # Set one to Ateji
+        self.check_reading_selected(['Ateji_劉', 6422, 10319], '劉覧劉', '劉覧', ['Ateji_劉', 10319, 6422])
+        # Move one from start to end
+        self.check_reading_selected([6422, 'Ateji_劉', 10319], '覧劉劉', '劉覧', ['Ateji_劉', 6422, 10319])
+
+        # Set all to Ateji
+        self.check_reading_selected(['Ateji_劉', 'Ateji_覧', 'Ateji_劉'], '劉覧劉', '劉覧',
+                                    ['Ateji_劉', 'Ateji_覧', 'Ateji_劉'])
+        # Move one from start to end
+        self.check_reading_selected(['Ateji_覧', 'Ateji_劉', 'Ateji_劉'], '覧劉劉', '劉覧',
+                                    ['Ateji_劉', 'Ateji_覧', 'Ateji_劉'])
+
+        # Test for issue 22
+        self.check_reading_selected([9575, 9575], '斌斌', '斌斌', [9575, 9575])
+
+    def create_example_with_reading(self, kanji_list):
+        """
+        Create a new example and the association with the readings
+        :param kanji_list: list of tuple of Kanji / Reading (as string). Reading can take word 'Ateji'
+        """
+        word = ''.join([x[0] for x in kanji_list])
+        reading_selected = ','.join(['Ateji_' + x[0] if x[1] == 'Ateji'
+                                     else str(Reading.objects.get(kanji=x[0], reading=x[1]).id)
+                                     for x in kanji_list])
+        form_data = {'word': word, 'yomi': 'にせよみ', 'sentence': word,
+                     'definition': '言葉の定義', 'ex_kind': Example.KAKI, 'yomi_native': '',
+                     'reading_selected': reading_selected}
+        form = ExampleForm(form_data, instance=None)
+        self.assertTrue(form.is_valid())
+        form.save()
+
+    def test_get_yomi_with_reading(self):
+        """
+        Test the views.get_yomi function in the case Example is already associated with Readings
+        """
+        self.create_example_with_reading([('劉', 'リュウ'), ('閲', 'エツ')])
+        self.check_reading_selected([10319, 7463], '劉閲', '劉閲', [None, None])
+        self.check_reading_selected([10320, 7463], '劉閲', '劉閲', [10320, 7463])
+
+        self.check_reading_selected([None, None], '閲閲', None, [None, None])
+        self.create_example_with_reading([('閲', 'エツ'), ('閲', 'エツ')])
+        self.check_reading_selected([7463, 7463], '閲閲', '閲閲', [None, None])
+
+        self.create_example_with_reading([('覧', 'Ateji'), ('閲', 'エツ')])
+        self.check_reading_selected(['Ateji_覧', 7463], '覧閲', '覧閲', [None, None])
+
+        self.create_example_with_reading([('覧', 'Ateji'), ('閲', 'エツ'), ('覧', 'Ateji'), ('閲', 'Ateji')])
+        self.check_reading_selected(['Ateji_覧', 7463, 'Ateji_覧', 'Ateji_閲'], '覧閲覧閲', '覧閲覧閲',
+                                    [None, None, None, None])
+
+    def test_get_yomi_joyo_list(self):
+        """
+        Test the views.get_yomi function in the case Example has Readings part of the Joyo list
+        The important part is to not allow change of them
+        """
+        self.create_example_with_reading([('覧', 'ラン'), ('閲', 'Ateji')])
+        ex = Example.objects.get(word='覧閲')
+        ex.is_joyo = True
+        ex.save()
+        ex_map = ExMap.objects.get(example=ex, kanji='覧')
+        ex_map.in_joyo_list = True
+        ex_map.save()
+        self.check_reading_selected([6422, 'Ateji_閲'], '覧閲', '覧閲', [None, None])
+        self.assertTrue(self.call_get_yomi('覧閲', '覧閲', '', [None, None]).json()['reading_data'][0]['joyo'])
+
+        # Check we can change the reading of non JoyoList normally
+        self.check_reading_selected([6422, 7463], '覧閲', '覧閲', [6422, 7463])
+        # Check we get an exception if trying to change the reading of a JoyoList (覧 below)
+        with self.assertRaises(ValueError):
+            self.check_reading_selected([6423, 7463], '覧閲', '覧閲', [6423, 7463])
+
+        # Check the logic works with Ateji
+        ex_map = ExMap.objects.get(example=ex, kanji='閲')
+        ex_map.in_joyo_list = True
+        ex_map.save()
+        self.assertTrue(self.call_get_yomi('覧閲', '覧閲', '', [None, None]).json()['reading_data'][1]['joyo'])
 
 
 class TestFixtureFunctions(TestCase):
@@ -159,7 +274,7 @@ class TestFixtureFunctions(TestCase):
         """
         fixture = FixtureKanji().dump('閲', to_file=False)
         values = [f['model'].split('.')[-1] for f in json.loads(fixture)]
-        self.assertEqual(dict(Counter(values)), expected_count, 'Issue with ' + kanji )
+        self.assertEqual(dict(Counter(values)), expected_count, 'Issue with ' + kanji)
 
     def test_related_kanji(self):
         self.check_kanji_count('閲', {'kanji': 1, 'koukibushu': 1, 'bushu': 1, 'reading': 3, 'kanjidetails': 1})

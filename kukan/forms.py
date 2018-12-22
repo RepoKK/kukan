@@ -154,8 +154,6 @@ class ExampleForm(BForm):
         if ex and ex.is_joyo:
             self.fields['word'].widget.attrs['readonly'] = True
 
-
-
     def clean(self):
         cleaned_data = super(ExampleForm, self).clean()
         sentence = cleaned_data.get('sentence')
@@ -212,26 +210,26 @@ class ExampleForm(BForm):
                     kanji = Kanji.objects.get(kanji=kj)
                     # check if the reading is a Joyo one - in which case it can't be changed
                     try:
-                        map = example.exmap_set.get(kanji=kanji,
-                                                    example=example,
-                                                    map_order=idx,
-                                                    in_joyo_list=True)
+                        ex_map = example.exmap_set.get(kanji=kanji,
+                                                       example=example,
+                                                       map_order=idx,
+                                                       in_joyo_list=True)
                     except ExMap.DoesNotExist:
-                        if reading_selected[idx] == '0':
-                            map, create = example.exmap_set.get_or_create(kanji=kanji,
-                                                                          example=example,
-                                                                          map_order=idx,
-                                                                          is_ateji=True,
-                                                                          in_joyo_list=False)
+                        if reading_selected[idx][:6] == 'Ateji_':
+                            ex_map, create = example.exmap_set.get_or_create(kanji=kanji,
+                                                                             example=example,
+                                                                             map_order=idx,
+                                                                             is_ateji=True,
+                                                                             in_joyo_list=False)
                         else:
                             reading = Reading.objects.get(kanji=kj, id=reading_selected[idx])
-                            map, create = example.exmap_set.get_or_create(kanji=kanji,
-                                                                          reading=reading,
-                                                                          example=example,
-                                                                          map_order=idx,
-                                                                          is_ateji=False,
-                                                                          in_joyo_list=False)
-                    map_list.append(map.id)
+                            ex_map, create = example.exmap_set.get_or_create(kanji=kanji,
+                                                                             reading=reading,
+                                                                             example=example,
+                                                                             map_order=idx,
+                                                                             is_ateji=False,
+                                                                             in_joyo_list=False)
+                    map_list.append(ex_map.id)
                     idx += 1
                 except Kanji.DoesNotExist:
                     # Not a Kanji (kana, or kanji not in the list)
