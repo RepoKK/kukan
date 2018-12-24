@@ -3,6 +3,7 @@ import json
 from collections import Counter
 from io import StringIO
 
+import requests
 from django.contrib.auth.models import User
 from django.test import Client
 from django.test import TestCase
@@ -12,7 +13,7 @@ from kukan.forms import ExampleForm
 from kukan.jautils import JpnText
 from kukan.models import Kanji, Example, Reading, ExMap, Kanken
 from kukan.templatetags.ja_tags import furigana_ruby, furigana_remove, furigana_bracket
-from kukan.test_helpers import FixtureAppLevel, FixtureKukan
+from kukan.test_helpers import FixtureAppLevel, FixtureKukan, FixWebKukan, PatchRequestsGet
 from kukan.test_helpers import FixtureKanji
 
 
@@ -313,3 +314,66 @@ class TestExport(TestCase):
             self.assertEqual('1	"<span class=""font-color01"">テイショ</span>"	汀渚[汀渚]	準１級\r\n' +
                              '2	"<span class=""font-color01"">テイショ</span>"	汀渚[汀渚]	準１級\r\n',
                              out.getvalue())
+
+
+@PatchRequestsGet('kukan.onlinepedia')
+class TestDefinitionFetching(TestCase):
+
+    def setUp(self):
+        User.objects.create_user('test_user', password='pwd')
+        self.client = Client()
+        self.client.post('/login/', {'username': 'test_user', 'password': 'pwd'})
+
+    def get_kanjipedia_def(self, word):
+        self.mock_get.return_value = FixWebKukan().load_page('Kanjipedia', 'def_' + word)
+        link = self.mock_get.return_value.url.replace('https://www.kanjipedia.jp', '')
+        return self.client.get('/ajax/get_goo/', data={'word': word, 'word_native': '', 'link': link})
+
+    def get_kanjipedia_def_string(self, word):
+        return self.get_kanjipedia_def(word).json()['definition']
+
+    def test_definition_with_icon(self):
+        # Test for issue #22
+        self.assertNotEqual(-1, self.get_kanjipedia_def_string('枯渇').find('【書きかえ】'))
+        self.assertNotEqual(-1, self.get_kanjipedia_def_string('左様').find('【表記】'))
+
+
+class TestPatchRequestGetDecorator(TestCase):
+    def test_decorated_class(self):
+        @PatchRequestsGet('kukan.tests')
+        class DecoratorTarget(TestCase):
+            def test_A(self):
+                self.assertIsNotNone(self.mock_get)
+                mock_return_string = 'requests.get override'
+                self.mock_get.return_value = mock_return_string
+                self.assertEqual(mock_return_string, requests.get('some fake URL'))
+
+            def other_function(self):
+                self.assertIsNone(self.mock_get)
+
+        instance = DecoratorTarget()
+        self.assertIsNone(instance.mock_get)
+        instance.test_A()
+        self.assertIsNone(instance.mock_get)
+        self.assertEqual('test_A', DecoratorTarget.test_A.__name__)
+        instance.other_function()
+
+    def test_multiple_decorator(self):
+        @PatchRequestsGet('kukan.onlinepedia', 'mock1')
+        @PatchRequestsGet('kukan.tests', 'mock0')
+        class DecoratorTarget(TestCase):
+            def test_A(self):
+                self.assertIsNotNone(self.mock0)
+                self.assertIsNotNone(self.mock1)
+                self.assertIsNot(self.mock0, self.mock1)
+                self.assertNotEqual(self.mock0, self.mock1)
+                mock_return_string0 = 'requests.get override 0'
+                mock_return_string1 = 'requests.get override 1'
+                self.mock0.return_value = mock_return_string0
+                self.mock1.return_value = mock_return_string1
+                self.assertEqual(mock_return_string0, requests.get('some fake URL'))
+
+        instance = DecoratorTarget()
+        self.assertIsNone(instance.mock0)
+        self.assertIsNone(instance.mock1)
+        instance.test_A()

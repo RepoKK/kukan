@@ -1,8 +1,13 @@
+import functools
 import os
 import inspect
 import importlib
+import pickle
 from io import StringIO
 from abc import ABC, abstractmethod
+from unittest.mock import patch
+
+import requests
 from django.core.management import call_command
 from django.conf import settings
 from kukan.models import Kanji
@@ -16,15 +21,21 @@ from kukan import models
 # FixtureKanji().dump('覧')
 
 
-class FixtureManager:
-
-    def __init__(self, app, indent=4, subdir=None):
+class TestHelpers:
+    def __init__(self, app, subdir=None):
         self.app = app
-        self.indent = indent
-        if subdir is None:
+        self.subdir = subdir
+        if self.subdir is None:
             self.output_dir = os.path.join(settings.BASE_DIR, self.app, 'fixtures')
         else:
-            self.output_dir = os.path.join(settings.BASE_DIR, self.app, 'fixtures', subdir)
+            self.output_dir = os.path.join(settings.BASE_DIR, self.app, 'fixtures', self.subdir)
+
+
+class FixtureManager(TestHelpers):
+
+    def __init__(self, app, indent=4, subdir=None):
+        self.indent = indent
+        super().__init__(app, subdir)
 
     def get_fixture(self, model, primary_keys):
         with StringIO() as out:
@@ -108,3 +119,73 @@ class FixtureKanji(FixtureModelLevel):
             if len(objects):
                 fixture.append(self.get_fixture(model, primary_keys=','.join([str(x.pk) for x in objects])))
         return fixture
+
+
+class FixWebContents(TestHelpers):
+    """
+    Class used to create a file with the content of a web page.
+    To be used with Mock for testing
+
+    Example:
+        link = 'https://www.kanjipedia.jp//kotoba/0002049900'
+        WebPageContents('kukan', r'Web\Kanjipedia').store_page(link, 'def_枯渇')
+    """
+    def __init__(self, app):
+        super().__init__(app, 'Web')
+
+    def store_page(self, link, name, subdir=None):
+        base_dir = os.path.join(self.output_dir, subdir) if subdir else self.output_dir
+        file_path = os.path.join(base_dir, name)
+        resp = requests.get(link)
+        with open(file_path, "wb") as f:
+            pickle.dump(resp, f)
+
+    def load_page(self, *args):
+        with open(os.path.join(self.output_dir, *args), 'rb') as f:
+            return pickle.load(f)
+
+
+class FixWebKukan(FixWebContents):
+    def __init__(self):
+        super().__init__('kukan')
+
+    def store_page(self, link, name, subdir=None):
+        if not subdir:
+            if 'www.kanjipedia.jp' in link:
+                subdir = 'Kanjipedia'
+            elif 'dictionary.goo.ne.jp' in link:
+                subdir = 'Goo'
+        super().store_page(link, name, subdir)
+
+
+class PatchRequestsGet:
+    """
+    Decorator on a class, this will add a mock on the requests.get function, available as an instance attribute
+    The test_ functions are patched so that a new, independent mock on requests.get is available
+    """
+    def __init__(self, path, mock_name='mock_get'):
+        """
+        :param path: path of the requests.get to be patched (without this last 2 elements)
+        :param mock_name: optional, the name of the mock in case multiple decorators are applied
+        """
+        self.path = path
+        self.mock_name = mock_name
+
+    def __call__(self, cls):
+        setattr(cls, self.mock_name, None)
+
+        def deco_test_methods(f):
+            @functools.wraps(f)
+            def new_func(*args, **kwargs):
+                with patch(self.path + '.requests.get') as mock:
+                    setattr(args[0], self.mock_name, mock)
+                    res = f(*args, **kwargs)
+                setattr(args[0], self.mock_name, None)
+                return res
+            return new_func
+
+        for func in dir(cls):
+            if callable(getattr(cls, func)) and func.startswith("test_"):
+                setattr(cls, func, deco_test_methods(getattr(cls, func)))
+
+        return cls
