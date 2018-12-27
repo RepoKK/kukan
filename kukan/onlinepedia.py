@@ -75,10 +75,10 @@ class DefinitionWordBase(ABC):
 
 class DefinitionKanjipedia(DefinitionWordBase):
     word_link_regexp = r'/kotoba/\d{10}'
-    word_base_link = 'http://www.kanjipedia.jp/'
+    word_base_link = 'https://www.kanjipedia.jp/'
 
     def search_def(self):
-        link = 'http://www.kanjipedia.jp/search?k={}&wt=1&sk=perfect'.format(self.word)
+        link = 'https://www.kanjipedia.jp/search?k={}&wt=1&sk=perfect'.format(self.word)
         page = requests.get(link)
 
         try:
@@ -104,7 +104,8 @@ class DefinitionKanjipedia(DefinitionWordBase):
                 h = html2text.HTML2Text()
                 h.ignore_links = True
                 text = re.sub(r'<img.[^,>]+ alt="">', r'=>　', text, re.MULTILINE)
-                text = h.handle(re.sub(r'<img.*? alt="(.*?)">', r'**【\1】**　', text, re.MULTILINE))
+                text = h.handle(re.sub(r'<img.*? alt="(.*?)"(?: class="imgSize\d+")?>',
+                                       r'**【\1】**　', text, re.MULTILINE))
                 if i == 0:
                     text = text.translate({ord('①') + i: '\n\n{}. '.format(1 + i) for i in range(20)})
                 self.definition += text

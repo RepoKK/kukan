@@ -1,0 +1,87 @@
+[
+{
+    "model": "kukan.kanji",
+    "pk": "\u6e1a",
+    "fields": {
+        "bushu": null,
+        "kouki_bushu": "\u6c34",
+        "kanken": 11,
+        "strokes": 11,
+        "classification": 2,
+        "jis": "JIS\u7b2c\uff11\u6c34\u6e96"
+    }
+}
+,
+{
+    "model": "kukan.koukibushu",
+    "pk": "\u6c34",
+    "fields": {
+        "variations": "\u6c34 \u6c35 \u6c3a",
+        "reading": "\u307f\u305a \u3055\u3093\u305a\u3044 \u3057\u305f\u307f\u305a",
+        "number": 85,
+        "kakusu": 4
+    }
+}
+,
+{
+    "model": "kukan.reading",
+    "pk": 9172,
+    "fields": {
+        "kanji": "\u6e1a",
+        "reading": "\u30b7\u30e7",
+        "reading_simple": "\u3057\u3087",
+        "yomi_type": 1,
+        "joyo": 3,
+        "joyo_order": 9999,
+        "remark": "",
+        "ijidokun": ""
+    }
+},
+{
+    "model": "kukan.reading",
+    "pk": 9173,
+    "fields": {
+        "kanji": "\u6e1a",
+        "reading": "\u306a\u304e\u3055",
+        "reading_simple": "\u306a\u304e\u3055",
+        "yomi_type": 2,
+        "joyo": 3,
+        "joyo_order": 9999,
+        "remark": "",
+        "ijidokun": ""
+    }
+},
+{
+    "model": "kukan.reading",
+    "pk": 9174,
+    "fields": {
+        "kanji": "\u6e1a",
+        "reading": "\u307f\u304e\u308f",
+        "reading_simple": "\u307f\u304e\u308f",
+        "yomi_type": 2,
+        "joyo": 3,
+        "joyo_order": 9999,
+        "remark": "",
+        "ijidokun": ""
+    }
+}
+,
+{
+    "model": "kukan.kanjidetails",
+    "pk": 2496,
+    "fields": {
+        "kanji": "\u6e1a",
+        "meaning": "[\"\\u306a\\u304e\\u3055\\u3002\\u307f\\u304e\\u308f\\u3002\\u307f\\u305a\\u304e\\u308f\\u3002\\u6ce2\\u6253\\u3061\\u969b\\u3002\\n\\n\", \"\\u3059\\u3002\\u306a\\u304b\\u3059\\u3002\\u6cb3\\u5ddd\\u3084\\u6e56\\u306e\\u4e2d\\u306b\\u3067\\u304d\\u305f\\u5c0f\\u5cf6\\u3002\\n\\n\"]",
+        "external_ref": "http://kanji.jitenon.jp/kanjif/2542.html",
+        "std_kanji": null,
+        "anki_English": "",
+        "anki_Examples": "",
+        "anki_Kanji_Radical": "",
+        "anki_Traditional_Form": "",
+        "anki_Traditional_Radical": "",
+        "anki_Reading_Table": "",
+        "anki_kjBushuMei": "",
+        "anki_kjIjiDoukun": ""
+    }
+}
+]

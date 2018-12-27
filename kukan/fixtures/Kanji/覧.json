@@ -1,0 +1,81 @@
+[
+{
+    "model": "kukan.kanji",
+    "pk": "\u89a7",
+    "fields": {
+        "bushu": "\u898b",
+        "kouki_bushu": "\u898b",
+        "kanken": 6,
+        "strokes": 17,
+        "classification": 1,
+        "jis": "JIS\u7b2c\uff11\u6c34\u6e96"
+    }
+}
+,
+{
+    "model": "kukan.bushu",
+    "pk": "\u898b",
+    "fields": {
+        "reading": "\u307f\u308b"
+    }
+}
+,
+{
+    "model": "kukan.koukibushu",
+    "pk": "\u898b",
+    "fields": {
+        "variations": "\u898b",
+        "reading": "\u307f\u308b",
+        "number": 147,
+        "kakusu": 7
+    }
+}
+,
+{
+    "model": "kukan.reading",
+    "pk": 6422,
+    "fields": {
+        "kanji": "\u89a7",
+        "reading": "\u30e9\u30f3",
+        "reading_simple": "\u3089\u3093",
+        "yomi_type": 1,
+        "joyo": 1,
+        "joyo_order": 3543,
+        "remark": "",
+        "ijidokun": ""
+    }
+},
+{
+    "model": "kukan.reading",
+    "pk": 6423,
+    "fields": {
+        "kanji": "\u89a7",
+        "reading": "\u307f\uff08\u308b\uff09",
+        "reading_simple": "\u307f\u308b",
+        "yomi_type": 2,
+        "joyo": 3,
+        "joyo_order": 9999,
+        "remark": "",
+        "ijidokun": ""
+    }
+}
+,
+{
+    "model": "kukan.kanjidetails",
+    "pk": 1711,
+    "fields": {
+        "kanji": "\u89a7",
+        "meaning": "[\"\\u307f\\u308b\\u3002\\u3088\\u304f\\u898b\\u308b\\u3002\\u5e83\\u304f\\u898b\\u308f\\u305f\\u3059\\u3002\\n\\n\"]",
+        "external_ref": "http://kanji.jitenon.jp/kanjib/998.html",
+        "std_kanji": null,
+        "anki_English": "perusal, see",
+        "anki_Examples": "\u89bd",
+        "anki_Kanji_Radical": "\u89bd",
+        "anki_Traditional_Form": "\u89bd",
+        "anki_Traditional_Radical": "\u898b",
+        "anki_Reading_Table": "<tr><td class='C_read'>\u30e9\u30f3</td><td class='C_example'><a href=https://dictionary.goo.ne.jp/srch/all/\u89b3\u89a7/m0u/>\u89b3\u89a7</a>\u3001<a href=https://dictionary.goo.ne.jp/srch/all/\u5c55\u89a7/m0u/>\u5c55\u89a7</a>\u3001<a href=https://dictionary.goo.ne.jp/srch/all/\u4e00\u89a7/m0u/>\u4e00\u89a7</a></td></tr>",
+        "anki_kjBushuMei": "\u307f\u308b",
+        "anki_kjIjiDoukun": ""
+    }
+}
+]

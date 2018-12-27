@@ -3,16 +3,13 @@ from django.db import models
 from django.utils import timezone
 import datetime
 import re
-import csv
 import json
-from django.db.models import Count
 import markdown
 from django.db.models import Max
 import kukan.jautils as jau
 import random
 from django.core.exceptions import ValidationError
 from django.utils.functional import cached_property
-from enum import Enum
 
 
 class Classification(models.Model):

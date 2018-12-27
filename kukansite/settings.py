@@ -82,7 +82,7 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
         #'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
-        'NAME': os.path.join('D:\KanjiDB', 'db.sqlite3'),
+        'NAME': os.path.join(r'C:\Users\Fred\PycharmProjects\kukan', 'db.sqlite3'),
     }
 }
 
@@ -135,6 +135,8 @@ DB_BACKUP = os.path.join(TOP_DIR, r'db_backup')
 ANKI_DIR = os.path.join(TOP_DIR, r'anki')
 ANKI_SRC = os.path.join(ANKI_DIR, r'anki-2.1.4')
 ANKI_IMPORT_DIR = os.path.join(ANKI_DIR, r'import')
+
+FIXTURE_DIRS = [os.path.join(BASE_DIR, 'kukan', 'fixtures', 'Kanji')]
 
 X_FRAME_OPTIONS='DENY'
 
