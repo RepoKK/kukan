@@ -13,6 +13,11 @@
           <option value="kukan.models.ExMap.objects" />
           <option value="kukan.models.ExMap.DoesNotExist" />
           <option value="kukan.models.Kanken.objects" />
+          <option value="django.db.models.fields.related.ForeignKey.yomi_joyo" />
+          <option value="django.db.models.fields.related.ForeignKey.word" />
+          <option value="django.db.models.fields.related.ForeignKey.difficulty" />
+          <option value="django.db.models.fields.related.ForeignKey.kanji" />
+          <option value="django.db.models.fields.related.ForeignKey.kyu" />
         </list>
       </option>
     </inspection_tool>
