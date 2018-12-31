@@ -1,0 +1,123 @@
+[
+{
+    "model": "kukan.kanji",
+    "pk": "\u4e01",
+    "fields": {
+        "bushu": "\u4e00",
+        "kouki_bushu": "\u4e00",
+        "kanken": 3,
+        "strokes": 2,
+        "classification": 1,
+        "jis": "JIS\u7b2c\uff11\u6c34\u6e96"
+    }
+}
+,
+{
+    "model": "kukan.bushu",
+    "pk": "\u4e00",
+    "fields": {
+        "reading": "\u3044\u3061"
+    }
+}
+,
+{
+    "model": "kukan.koukibushu",
+    "pk": "\u4e00",
+    "fields": {
+        "variations": "\u4e00",
+        "reading": "\u30a4\u30c1",
+        "number": 1,
+        "kakusu": 1
+    }
+}
+,
+{
+    "model": "kukan.reading",
+    "pk": 6,
+    "fields": {
+        "kanji": "\u4e01",
+        "reading": "\u30c1\u30e7\u30a6",
+        "reading_simple": "\u3061\u3087\u3046",
+        "yomi_type": 1,
+        "joyo": 1,
+        "joyo_order": 4,
+        "remark": "",
+        "ijidokun": ""
+    }
+},
+{
+    "model": "kukan.reading",
+    "pk": 7,
+    "fields": {
+        "kanji": "\u4e01",
+        "reading": "\u30c6\u30a4",
+        "reading_simple": "\u3066\u3044",
+        "yomi_type": 1,
+        "joyo": 1,
+        "joyo_order": 5,
+        "remark": "",
+        "ijidokun": ""
+    }
+},
+{
+    "model": "kukan.reading",
+    "pk": 8,
+    "fields": {
+        "kanji": "\u4e01",
+        "reading": "\u30c8\u30a6",
+        "reading_simple": "\u3068\u3046",
+        "yomi_type": 1,
+        "joyo": 3,
+        "joyo_order": 9999,
+        "remark": "",
+        "ijidokun": ""
+    }
+},
+{
+    "model": "kukan.reading",
+    "pk": 9,
+    "fields": {
+        "kanji": "\u4e01",
+        "reading": "\u3042\uff08\u305f\u308b\uff09",
+        "reading_simple": "\u3042\u305f\u308b",
+        "yomi_type": 2,
+        "joyo": 3,
+        "joyo_order": 9999,
+        "remark": "",
+        "ijidokun": ""
+    }
+},
+{
+    "model": "kukan.reading",
+    "pk": 10,
+    "fields": {
+        "kanji": "\u4e01",
+        "reading": "\u3072\u306e\u3068",
+        "reading_simple": "\u3072\u306e\u3068",
+        "yomi_type": 2,
+        "joyo": 3,
+        "joyo_order": 9999,
+        "remark": "",
+        "ijidokun": ""
+    }
+}
+,
+{
+    "model": "kukan.kanjidetails",
+    "pk": 2,
+    "fields": {
+        "kanji": "\u4e01",
+        "meaning": "[\"[\\uff11] \\u5341\\u5e72\\uff08\\u3058\\u3063\\u304b\\u3093\\uff09\\u306e\\u56db\\u756a\\u76ee\\u3002\\u3072\\u306e\\u3068\\u3002\\u4e94\\u884c\\u3067\\u306f\\u706b\\u3002\\u65b9\\u4f4d\\u3067\\u306f\\u5357\\u3002\\n\\n\", \"[\\uff11] \\u3064\\u3088\\u3044\\u3002\\u3055\\u304b\\u3093\\u3002\\n\\n\", \"[\\uff11] \\u50cd\\u304d\\u76db\\u308a\\u306e\\u7537\\u6027\\u3002\\u58ee\\u5e74\\u306e\\u7537\\u6027\\u3002\\n\\n\", \"[\\uff11] \\u3057\\u3082\\u3079\\u3002\\u4e0b\\u50cd\\u304d\\u3001\\u96d1\\u7528\\u306e\\u7537\\u6027\\u3002\\n\\n\", \"[\\uff11] \\u3042\\u305f\\u308b\\u3002\\u51fa\\u906d\\u3046\\u3002\\u906d\\u9047\\u3059\\u308b\\u3002\\n\\n\", \"[\\uff11] \\u3088\\u307b\\u308d\\uff08\\u3088\\u307c\\u308d\\uff09\\u3002\\u516c\\u7528\\u306b\\u5fb4\\u767a\\u3055\\u308c\\u305f\\u7537\\u5b50\\u3002\\n\\n\", \"[\\uff12] \\u65a7\\u306a\\u3069\\u3067\\u6728\\u3092\\u5207\\u308b\\u97f3\\u3002\\n\\n\", \"[\\u65e5\\u672c] \\u66f8\\u7269\\u306e\\u679a\\u6570\\u3092\\u6570\\u3048\\u308b\\u8a9e\\u3002\\n\\n\", \"[\\u65e5\\u672c] \\u753a\\u3092\\u7d30\\u304b\\u304f\\u5206\\u3051\\u305f\\u533a\\u5206\\u3002  \\n\\u4f8b\\uff1a\\u4e8c\\u4e01\\u76ee\\n\\n\", \"[\\u65e5\\u672c] \\u9577\\u3055\\u30fb\\u9762\\u7a4d\\u306e\\u5358\\u4f4d\\u3002\\u300c\\u753a\\u300d\\u3068\\u3082\\u3002\\u4e00\\u4e01\\u306f\\u516d\\u5341\\u9593\\u3002\\u7d04\\uff11\\uff10\\uff19\\u30e1\\u30fc\\u30c8\\u30eb\\u3002\\n\\n\", \"[\\u65e5\\u672c] \\u30b5\\u30a4\\u30b3\\u30ed\\u306e\\u76ee\\u3067\\u306e\\u5076\\u6570\\u3002  \\n\\u4f8b\\uff1a\\u4e01\\uff08\\u3061\\u3087\\u3046\\uff09\\u304b\\u534a\\uff08\\u306f\\u3093\\uff09\\u304b\\u3002\\n\\n\", \"[\\u65e5\\u672c] \\u56fd\\u540d\\u300c\\u4e01\\u62b9\\uff08\\u30c7\\u30f3\\u30de\\u30fc\\u30af\\uff09\\u300d\\u306e\\u7565\\u3002\\n\\n\", \"[\\u65e5\\u672c] \\u8c46\\u8150\\u30fb\\u62f3\\u9283\\u306a\\u3069\\u3092\\u6570\\u3048\\u308b\\u8a9e\\u3002\\n\\n\", \"[\\u65e5\\u672c] \\u98f2\\u98df\\u7269\\u3092\\u6570\\u3048\\u308b\\u8a9e\\u3002  \\n\\u4f8b\\uff1a\\u4e00\\u4e01\\u3042\\u304c\\u308a\\n\\n\"]",
+        "external_ref": "http://kanji.jitenon.jp/kanji/369.html",
+        "std_kanji": null,
+        "anki_English": "street, ward, town, counter for guns, tools, leaves or cakes of something, even number, 4th calendar sign",
+        "anki_Examples": "",
+        "anki_Kanji_Radical": "",
+        "anki_Traditional_Form": "",
+        "anki_Traditional_Radical": "-",
+        "anki_Reading_Table": "<tr><td class='C_read'>\u30c1\u30e7\u30a6</td><td class='C_example'><a href=https://dictionary.goo.ne.jp/srch/all/\u4e01\u6570/m0u/>\u4e01\u6570</a>\u3001<a href=https://dictionary.goo.ne.jp/srch/all/\u843d\u4e01/m0u/>\u843d\u4e01</a>\u3001<a href=https://dictionary.goo.ne.jp/srch/all/\u4e8c\u4e01\u76ee/m0u/>\u4e8c\u4e01\u76ee</a></td></tr><tr><td class='C_read'>\u30c6\u30a4</td><td class='C_example'><a href=https://dictionary.goo.ne.jp/srch/all/\u4e01\u5b57\u8def/m0u/>\u4e01\u5b57\u8def</a>\u3001<a href=https://dictionary.goo.ne.jp/srch/all/\u7532\u4e59\u4e19\u4e01/m0u/>\u7532\u4e59\u4e19\u4e01</a></td></tr>",
+        "anki_kjBushuMei": "\u3044\u3061",
+        "anki_kjIjiDoukun": ""
+    }
+}
+]

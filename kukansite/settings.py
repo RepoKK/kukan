@@ -15,18 +15,18 @@ import os
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/2.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
+# noinspection SpellCheckingInspection
 SECRET_KEY = '-x1d#d4*ruehq!!bu(u$-ye_umoe%h2esul@-hl#2s)u2clh=y'
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
 ALLOWED_HOSTS = ['*', '192.168.12.10', '127.0.0.1', '0.0.0.0']
-INTERNAL_IPS = ('127.0.0.1')
+INTERNAL_IPS = '127.0.0.1'
 
 # Application definition
 
@@ -74,18 +74,15 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'kukansite.wsgi.application'
 
-
 # Database
 # https://docs.djangoproject.com/en/2.0/ref/settings/#databases
 
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
-        #'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
-        'NAME': os.path.join(r'C:\Users\Fred\PycharmProjects\kukan', 'db.sqlite3'),
+        'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
     }
 }
-
 
 # Password validation
 # https://docs.djangoproject.com/en/2.0/ref/settings/#auth-password-validators
@@ -105,7 +102,6 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-
 # Internationalization
 # https://docs.djangoproject.com/en/2.0/topics/i18n/
 
@@ -118,7 +114,6 @@ USE_I18N = True
 USE_L10N = True
 
 USE_TZ = True
-
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/2.0/howto/static-files/
@@ -138,7 +133,7 @@ ANKI_IMPORT_DIR = os.path.join(ANKI_DIR, r'import')
 
 FIXTURE_DIRS = [os.path.join(BASE_DIR, 'kukan', 'fixtures', 'Kanji')]
 
-X_FRAME_OPTIONS='DENY'
+X_FRAME_OPTIONS = 'DENY'
 
 # Redirect to home URL after login (Default redirects to /accounts/profile/)
 LOGIN_URL = '/login'

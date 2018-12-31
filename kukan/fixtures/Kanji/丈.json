@@ -1,0 +1,81 @@
+[
+{
+    "model": "kukan.kanji",
+    "pk": "\u4e08",
+    "fields": {
+        "bushu": "\u4e00",
+        "kouki_bushu": "\u4e00",
+        "kanken": 7,
+        "strokes": 3,
+        "classification": 1,
+        "jis": "JIS\u7b2c\uff11\u6c34\u6e96"
+    }
+}
+,
+{
+    "model": "kukan.bushu",
+    "pk": "\u4e00",
+    "fields": {
+        "reading": "\u3044\u3061"
+    }
+}
+,
+{
+    "model": "kukan.koukibushu",
+    "pk": "\u4e00",
+    "fields": {
+        "variations": "\u4e00",
+        "reading": "\u30a4\u30c1",
+        "number": 1,
+        "kakusu": 1
+    }
+}
+,
+{
+    "model": "kukan.reading",
+    "pk": 19,
+    "fields": {
+        "kanji": "\u4e08",
+        "reading": "\u30b8\u30e7\u30a6",
+        "reading_simple": "\u3058\u3087\u3046",
+        "yomi_type": 1,
+        "joyo": 1,
+        "joyo_order": 12,
+        "remark": "",
+        "ijidokun": ""
+    }
+},
+{
+    "model": "kukan.reading",
+    "pk": 20,
+    "fields": {
+        "kanji": "\u4e08",
+        "reading": "\u305f\u3051",
+        "reading_simple": "\u305f\u3051",
+        "yomi_type": 2,
+        "joyo": 1,
+        "joyo_order": 13,
+        "remark": "",
+        "ijidokun": ""
+    }
+}
+,
+{
+    "model": "kukan.kanjidetails",
+    "pk": 5,
+    "fields": {
+        "kanji": "\u4e08",
+        "meaning": "[\"\\u305f\\u3051\\u3002\\u8eab\\u9577\\u3002\\n\\n\", \"\\u306f\\u304b\\u308b\\u3002\\u571f\\u5730\\u3092\\u6e2c\\u308b\\u3002\\n\\n\", \"\\u9577\\u3055\\u306e\\u5358\\u4f4d\\u3002\\u4e00\\u4e08\\u306f\\u5341\\u5c3a\\u3002\\u65e5\\u672c\\u3067\\u306e\\uff11\\u4e08\\u306f\\u7d04\\uff13\\uff10\\uff13\\u30bb\\u30f3\\u30c1\\u30e1\\u30fc\\u30c8\\u30eb\\u3002\\n\\n\", \"\\u8001\\u4eba\\u30fb\\u9577\\u8001\\u306a\\u3069\\u3092\\u656c\\u3063\\u3066\\u547c\\u3076\\u8a9e\\u3002\\n\\n\", \"\\u6b4c\\u821e\\u4f0e\\u5f79\\u8005\\u306e\\u82b8\\u540d\\u306b\\u3064\\u3051\\u308b\\u656c\\u79f0\\u3002\\n\\n\", \"\\u52a9\\u8a5e\\u306e\\u300c\\u305f\\u3051\\u300d\\u300c\\u3060\\u3051\\u300d\\u306b\\u5f53\\u3066\\u3066\\u7528\\u3044\\u3089\\u308c\\u308b\\u5b57\\u3002\\n\\n\"]",
+        "external_ref": "http://kanji.jitenon.jp/kanjic/1144.html",
+        "std_kanji": null,
+        "anki_English": "length, 10feet, measure, Mr., Ms., height, stature, all (one has), only, that's all, merely",
+        "anki_Examples": "",
+        "anki_Kanji_Radical": "",
+        "anki_Traditional_Form": "",
+        "anki_Traditional_Radical": "-",
+        "anki_Reading_Table": "<tr><td class='C_read'>\u30b8\u30e7\u30a6</td><td class='C_example'><a href=https://dictionary.goo.ne.jp/srch/all/\u4e08\u516d/m0u/>\u4e08\u516d</a>\u3001<a href=https://dictionary.goo.ne.jp/srch/all/\u4e08\u592b\u306a\u4f53/m0u/>\u4e08\u592b\u306a\u4f53</a></td></tr><tr><td class='C_read'>\u305f\u3051</td><td class='C_example'><a href=https://dictionary.goo.ne.jp/srch/all/\u4e08/m0u/>\u4e08</a>\u3001<a href=https://dictionary.goo.ne.jp/srch/all/\u80cc\u4e08/m0u/>\u80cc\u4e08</a></td></tr>",
+        "anki_kjBushuMei": "\u3044\u3061",
+        "anki_kjIjiDoukun": ""
+    }
+}
+]

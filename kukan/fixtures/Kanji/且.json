@@ -1,0 +1,109 @@
+[
+{
+    "model": "kukan.kanji",
+    "pk": "\u4e14",
+    "fields": {
+        "bushu": "\u4e00",
+        "kouki_bushu": "\u4e00",
+        "kanken": 9,
+        "strokes": 5,
+        "classification": 1,
+        "jis": "JIS\u7b2c\uff11\u6c34\u6e96"
+    }
+}
+,
+{
+    "model": "kukan.bushu",
+    "pk": "\u4e00",
+    "fields": {
+        "reading": "\u3044\u3061"
+    }
+}
+,
+{
+    "model": "kukan.koukibushu",
+    "pk": "\u4e00",
+    "fields": {
+        "variations": "\u4e00",
+        "reading": "\u30a4\u30c1",
+        "number": 1,
+        "kakusu": 1
+    }
+}
+,
+{
+    "model": "kukan.reading",
+    "pk": 56,
+    "fields": {
+        "kanji": "\u4e14",
+        "reading": "\u30b7\u30e7",
+        "reading_simple": "\u3057\u3087",
+        "yomi_type": 1,
+        "joyo": 3,
+        "joyo_order": 9999,
+        "remark": "",
+        "ijidokun": ""
+    }
+},
+{
+    "model": "kukan.reading",
+    "pk": 57,
+    "fields": {
+        "kanji": "\u4e14",
+        "reading": "\u304b\uff08\u3064\uff09",
+        "reading_simple": "\u304b\u3064",
+        "yomi_type": 2,
+        "joyo": 1,
+        "joyo_order": 44,
+        "remark": "",
+        "ijidokun": ""
+    }
+},
+{
+    "model": "kukan.reading",
+    "pk": 58,
+    "fields": {
+        "kanji": "\u4e14",
+        "reading": "\u3057\u3070\u3089\uff08\u304f\uff09",
+        "reading_simple": "\u3057\u3070\u3089\u304f",
+        "yomi_type": 2,
+        "joyo": 3,
+        "joyo_order": 9999,
+        "remark": "",
+        "ijidokun": ""
+    }
+},
+{
+    "model": "kukan.reading",
+    "pk": 59,
+    "fields": {
+        "kanji": "\u4e14",
+        "reading": "\u307e\u3055\uff08\u306b\uff09",
+        "reading_simple": "\u307e\u3055\u306b",
+        "yomi_type": 2,
+        "joyo": 3,
+        "joyo_order": 9999,
+        "remark": "",
+        "ijidokun": ""
+    }
+}
+,
+{
+    "model": "kukan.kanjidetails",
+    "pk": 11,
+    "fields": {
+        "kanji": "\u4e14",
+        "meaning": "[\"\\u304b\\u3064\\u3002\\u305d\\u306e\\u3046\\u3048\\u3002\\u3055\\u3089\\u306b\\u3002\\u7269\\u4e8b\\u306e\\u540c\\u6642\\u9032\\u884c\\u3001\\u4e26\\u5217\\u306e\\u610f\\u3092\\u8868\\u3059\\u3002\\n\\n\", \"\\u3057\\u3070\\u3089\\u304f\\u3002\\u3072\\u3068\\u307e\\u305a\\u3002\\u3068\\u308a\\u3042\\u3048\\u305a\\u3002\\n\\n\", \"\\u300c\\u307e\\u3055\\u306b\\uff5e\\u305b\\u3093\\u3068\\u3059\\u300d\\u3068\\u8aad\\u307f\\u3001\\u300c\\u4eca\\u306b\\u3082\\uff5e\\u3057\\u3088\\u3046\\u3068\\u3059\\u308b\\u300d\\u306e\\u610f\\u3002\\n\\n\", \"\\u3082\\u3057\\u3002\\u4eee\\u306b\\u3002\\n\\n\"]",
+        "external_ref": "http://kanji.jitenon.jp/kanjid/1636.html",
+        "std_kanji": null,
+        "anki_English": "moreover, also, furthermore",
+        "anki_Examples": "",
+        "anki_Kanji_Radical": "",
+        "anki_Traditional_Form": "",
+        "anki_Traditional_Radical": "-",
+        "anki_Reading_Table": "<tr><td class='C_read'>\u304b<span class='okuri'>\u3064</span></td><td class='C_example'><a href=https://dictionary.goo.ne.jp/srch/all/\u4e14\u3064/m0u/>\u4e14\u3064</a></td></tr>",
+        "anki_kjBushuMei": "\u3044\u3061",
+        "anki_kjIjiDoukun": ""
+    }
+}
+]

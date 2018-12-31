@@ -1,0 +1,101 @@
+[
+{
+    "model": "kukan.kanji",
+    "pk": "\u8305",
+    "fields": {
+        "bushu": null,
+        "kouki_bushu": "\u8278",
+        "kanken": 11,
+        "strokes": 8,
+        "classification": 2,
+        "jis": "JIS\u7b2c\uff11\u6c34\u6e96"
+    }
+}
+,
+{
+    "model": "kukan.koukibushu",
+    "pk": "\u8278",
+    "fields": {
+        "variations": "\u8278 \u8279",
+        "reading": "\u304f\u3055 \u304f\u3055\u304b\u3093\u3080\u308a \u305d\u3046\u3053\u3046",
+        "number": 140,
+        "kakusu": 6
+    }
+}
+,
+{
+    "model": "kukan.reading",
+    "pk": 8571,
+    "fields": {
+        "kanji": "\u8305",
+        "reading": "\u30dc\u30a6",
+        "reading_simple": "\u307c\u3046",
+        "yomi_type": 1,
+        "joyo": 3,
+        "joyo_order": 9999,
+        "remark": "",
+        "ijidokun": ""
+    }
+},
+{
+    "model": "kukan.reading",
+    "pk": 8572,
+    "fields": {
+        "kanji": "\u8305",
+        "reading": "\u304b\u3084",
+        "reading_simple": "\u304b\u3084",
+        "yomi_type": 2,
+        "joyo": 3,
+        "joyo_order": 9999,
+        "remark": "",
+        "ijidokun": ""
+    }
+},
+{
+    "model": "kukan.reading",
+    "pk": 8573,
+    "fields": {
+        "kanji": "\u8305",
+        "reading": "\u3061",
+        "reading_simple": "\u3061",
+        "yomi_type": 2,
+        "joyo": 3,
+        "joyo_order": 9999,
+        "remark": "",
+        "ijidokun": ""
+    }
+},
+{
+    "model": "kukan.reading",
+    "pk": 8574,
+    "fields": {
+        "kanji": "\u8305",
+        "reading": "\u3061\u304c\u3084",
+        "reading_simple": "\u3061\u304c\u3084",
+        "yomi_type": 2,
+        "joyo": 3,
+        "joyo_order": 9999,
+        "remark": "",
+        "ijidokun": ""
+    }
+}
+,
+{
+    "model": "kukan.kanjidetails",
+    "pk": 2303,
+    "fields": {
+        "kanji": "\u8305",
+        "meaning": "[\"\\u304b\\u3084\\u3002\\u3061\\u3002\\u3061\\u304c\\u3084\\u3002\\u3059\\u3059\\u304d\\u30fb\\u3059\\u3052\\u306a\\u3069\\u306e\\u7dcf\\u79f0\\u3002\\n\\n\", \"\\u304b\\u3084\\u3076\\u304d\\u3002\\u304b\\u3084\\u3067\\u3075\\u3044\\u305f\\u5c4b\\u6839\\u3002\\n\\n\"]",
+        "external_ref": "http://kanji.jitenon.jp/kanjif/2922.html",
+        "std_kanji": null,
+        "anki_English": "",
+        "anki_Examples": "",
+        "anki_Kanji_Radical": "",
+        "anki_Traditional_Form": "",
+        "anki_Traditional_Radical": "",
+        "anki_Reading_Table": "",
+        "anki_kjBushuMei": "",
+        "anki_kjIjiDoukun": ""
+    }
+}
+]

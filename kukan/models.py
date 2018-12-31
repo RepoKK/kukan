@@ -1,15 +1,16 @@
-from django.urls import reverse
-from django.db import models
-from django.utils import timezone
-import datetime
-import re
 import json
-import markdown
-from django.db.models import Max
-import kukan.jautils as jau
 import random
+import re
+
+import markdown
 from django.core.exceptions import ValidationError
+from django.db import models
+from django.db.models import Max
+from django.urls import reverse
 from django.utils.functional import cached_property
+
+import kukan.jautils as jau
+from utilsdjango.decorators import OrderFromAttr, QuickGetKey
 
 
 class Classification(models.Model):
@@ -19,18 +20,24 @@ class Classification(models.Model):
         return self.classification
 
 
+@QuickGetKey('yomi_joyo')
 class YomiJoyo(models.Model):
     yomi_joyo = models.CharField('常用漢字表', max_length=5)
+
     def __str__(self):
         return self.yomi_joyo
 
 
+@QuickGetKey('yomi_type')
 class YomiType(models.Model):
     yomi_type = models.CharField('読み種別', max_length=1)
+
     def __str__(self):
         return self.yomi_type
 
 
+@OrderFromAttr('difficulty')
+@QuickGetKey('kyu')
 class Kanken(models.Model):
     kyu = models.CharField('漢字検定', max_length=3)
     difficulty = models.IntegerField()
@@ -60,6 +67,7 @@ class Kanken(models.Model):
 
     def __str__(self):
         return self.kyu
+
     class Meta:
         ordering = ['difficulty']
 
@@ -69,7 +77,7 @@ class Bushu(models.Model):
     reading = models.CharField('READING', max_length=3)
 
     def __str__(self):
-        return self.bushu + '　(' + self.reading + ')'
+        return '{}　()'.format(self.bushu, self.reading)
 
 
 class KoukiBushu(models.Model):
@@ -80,21 +88,23 @@ class KoukiBushu(models.Model):
     kakusu = models.IntegerField()
 
     def __str__(self):
-        return self.bushu + '　(' + self.reading + ')'
+        return '{}　()'.format(self.bushu, self.reading)
 
 
 class JisClass(models.Model):
     level = models.CharField('JIS水準', max_length=10, primary_key=True)
+
     def __str__(self):
         return self.level
 
 
+@QuickGetKey('kanji')
 class Kanji(models.Model):
     kanji = models.CharField('漢字', max_length=1, primary_key=True)
     bushu = models.ForeignKey(Bushu, on_delete=models.CASCADE, verbose_name='部首',
                               blank=True, null=True)
     kouki_bushu = models.ForeignKey(KoukiBushu, on_delete=models.CASCADE, verbose_name='康煕部首',
-                              blank=True, null=True)
+                                    blank=True, null=True)
     kanken = models.ForeignKey(Kanken, on_delete=models.CASCADE, verbose_name='漢検')
     strokes = models.IntegerField('画数')
     classification = models.ForeignKey(Classification, on_delete=models.CASCADE, verbose_name='種別',
@@ -107,8 +117,8 @@ class Kanji(models.Model):
 
     def basic_info2(self):
         list_fld = []
-        for fld in ['bushu', 'kouki_bushu','strokes', 'classification', 'kanken', 'jis']:
-                    list_fld.append([ self._meta.get_field(fld).verbose_name, getattr(self, fld)])
+        for fld in ['bushu', 'kouki_bushu', 'strokes', 'classification', 'kanken', 'jis']:
+            list_fld.append([self._meta.get_field(fld).verbose_name, getattr(self, fld)])
         list_fld.append(['外部辞典', '<a href="' + self.kanjidetails.external_ref + '">漢字辞典オンライン</a>'])
 
         if self.jitai['std'][1] == self and self.jitai['alt']:
@@ -122,7 +132,7 @@ class Kanji(models.Model):
                 list_fld.append(['標準字体',
                                  '<a href="'
                                  + reverse('kukan:kanji_detail', kwargs={'pk': self.jitai['std'][1]}) + '">'
-                                 + self.jitai['std'][1].kanji + '</a>'])
+                                 + str(self.jitai['std'][1].kanji) + '</a>'])
         return list_fld
 
     @cached_property
@@ -136,24 +146,24 @@ class Kanji(models.Model):
             jitai_dict['alt'][0] = None
         return jitai_dict
 
-    def get_jukiji(self):
-        list_juku = []
-        maps=ExMap.objects.filter(kanji=self.kanji, in_joyo_list=True, is_ateji=True)
+    def get_jukuji(self):
+        list_jukuji = []
+        maps = ExMap.objects.filter(kanji=self.kanji, in_joyo_list=True, is_ateji=True)
         for jk_ex in self.example_set.filter(exmap__in=maps):
             jk = jk_ex.word
             word = re.sub(r'（.*', '', jk)
-            #TODO: just to be able to do the comparaison with old data
-            word = re.sub(r'（.*','' ,word)
+            # TODO: just to be able to do the comparison with old data
+            word = re.sub(r'（.*', '', word)
             res = '<a href=https://dictionary.goo.ne.jp/srch/all/'
             res += word
             res += '/m0u/>'
             res += jk
             res += '</a>'
-            list_juku.append(res)
+            list_jukuji.append(res)
         res = ''
-        if len(list_juku) > 0:
+        if len(list_jukuji) > 0:
             res = "<tr><td class='C_read C_special' colspan=2>"
-            res += '<br>'.join(list_juku)
+            res += '<br>'.join(list_jukuji)
             res += "</td></tr>"
         return res
 
@@ -190,6 +200,7 @@ class Reading(models.Model):
     joyo_order = models.IntegerField('常用漢字表・順番', blank=True)
     remark = models.CharField('備考', max_length=200, blank=True)
     ijidokun = models.CharField('異字同訓', max_length=200, blank=True)
+
     class Meta:
         unique_together = ["kanji", "reading"]
         ordering = ['yomi_type', 'joyo_order']
@@ -198,24 +209,24 @@ class Reading(models.Model):
         return self.kanji.kanji + ' - ' + self.reading
 
     def save(self, *args, **kwargs):
-        self.reading_simple=self.get_simple().translate(jau.kat2hir)
+        self.reading_simple = self.get_simple().translate(jau.kat2hir)
         super().save(*args, **kwargs)
 
     def get_simple(self):
-        res = re.sub("（", "", self.reading)
+        res = re.sub("（", "", str(self.reading))
         res = re.sub("）", "", res)
         return res
 
     def get_full(self):
         res = self.reading
         if self.joyo.yomi_joyo == '常用・特別':
-            res = '▽' + res
+            res = '▽' + str(res)
         if self.joyo.yomi_joyo == '表外':
             res = '✘ ' + res
         return res
 
     def get_html_format(self):
-        res = re.sub('（', "<span class='okuri'>", self.reading)
+        res = re.sub('（', "<span class='okuri'>", str(self.reading))
         res = re.sub('）', '</span>', res)
         if self.joyo.yomi_joyo == '常用・特別':
             res = '▽' + res
@@ -224,6 +235,7 @@ class Reading(models.Model):
         return res
 
     def get_list_ex(self):
+        # noinspection PyUnresolvedReferences
         list_ex = "、".join(map(Example.get_url, list(self.example_set.all())))
         return list_ex
 
@@ -232,8 +244,8 @@ class Reading(models.Model):
                                Example.objects.filter(exmap__reading=self,
                                                       exmap__in_joyo_list=True)))
         list_ex_non_joyo = "、".join(map(Example.get_url,
-                               Example.objects.filter(exmap__reading=self,
-                                                      exmap__in_joyo_list=False)))
+                                        Example.objects.filter(exmap__reading=self,
+                                                               exmap__in_joyo_list=False)))
         if list_ex_non_joyo != '':
             list_ex += ' / ' + list_ex_non_joyo
 
@@ -256,7 +268,7 @@ class Kotowaza(models.Model):
     definition = models.CharField('諺の意味', max_length=10000, blank=True)
 
     def __str__(self):
-        return '{1} - {0}'.format(self.kotowaza, self.id)
+        return '{1} - {0}'.format(self.kotowaza, self.pk)
 
     def get_absolute_url(self):
         return reverse('kukan:kotowaza_detail', kwargs={'pk': self.pk})
@@ -323,9 +335,9 @@ class Example(models.Model):
         kanken = Kanken.objects.get(id=Kanji.objects.filter(kanji__in=self.word).
                                     aggregate(Max('kanken'))['kanken__max'])
         # Any example with 表外 reading is at least 準一級
-        if (self.id is not None
+        if (self.pk is not None
                 and kanken.difficulty < Kanken.objects.get(kyu='準１級').difficulty
-                and Reading.objects.filter(exmap__example__id=self.id, joyo__yomi_joyo='表外').exists()):
+                and Reading.objects.filter(exmap__example__pk=self.pk, joyo__yomi_joyo='表外').exists()):
             kanken = Kanken.objects.get(kyu='準１級')
         self.kanken = kanken
 
@@ -335,7 +347,7 @@ class Example(models.Model):
         return reverse('kukan:example_detail', kwargs={'pk': self.pk})
 
     def get_url(self):
-        link = "<a href=" + self.get_absolute_url() + ">" + self.word + "</a>"
+        link = "<a href=" + self.get_absolute_url() + ">" + str(self.word) + "</a>"
         return link
 
     def get_word_native(self):
@@ -344,27 +356,28 @@ class Example(models.Model):
     def goo_link(self):
         link = ''
         if self.word:
-            simple = re.sub(r'（.*）', '', self.word)
-            link = "<a href=https://dictionary.goo.ne.jp/srch/all/" + simple + "/m0u/>" + self.word + "</a>"
+            simple = re.sub(r'（.*）', '', str(self.word))
+            link = "<a href=https://dictionary.goo.ne.jp/srch/all/" + simple + "/m0u/>{}</a>".format(
+                self.word)
         return link
 
     def goo_link_exact(self):
         link = ''
         if self.word:
-            simple = re.sub(r'（.*）', '', self.word)
+            simple = re.sub(r'（.*）', '', str(self.word))
             link = "<a href=https://dictionary.goo.ne.jp/srch/all/" + simple + "/m1u/>" \
-                   + '「' + self.word + "」で一致する言葉を検索</a>"
+                   + '「' + str(self.word) + "」で一致する言葉を検索</a>"
         return link
 
     def get_definition_html(self):
         return markdown.markdown(self.definition)
 
-    # @property
-    # def std_version(self):
-    #     ex = Example.objects.get(pk=47717)
-    #     kyo = pd.Series([Kanji.objects.safe_get(kanji=x, default=x) for x in self.word])
-    #     hyo = kyo.apply(lambda x: KanjiDetails.objects.get(kanji=x.kanji).std_kanji if x is Kanji else None).fillna(
-    #         kyo).astype(str).str.cat()
+    def is_hyogai(self):
+        return ((Kanken.objects.get(id=Kanji.objects.filter(kanji__in=self.word).
+                                    aggregate(Max('kanken'))['kanken__max'])
+                 <= Kanken.objects.get(kyu='２級'))
+                and
+                (self.kanken >= Kanken.objects.get(kyu='準１級')))
 
 
 class ExMap(models.Model):
@@ -393,11 +406,12 @@ class Bunrui(models.Model):
         return self.bunrui
 
 
+@QuickGetKey('yoji')
 class Yoji(models.Model):
     yoji = models.CharField('四字熟語', max_length=4, primary_key=True)
     reading = models.CharField('読み方', max_length=100)
     meaning = models.TextField('意味', max_length=10000, blank=True)
-    # Ruigigo
+
     kanken = models.ForeignKey(Kanken, on_delete=models.CASCADE, verbose_name='漢検')
     bunrui = models.ManyToManyField(Bunrui, blank=True)
     # True if the jitenon site gives a kanken kyu
@@ -411,19 +425,19 @@ class Yoji(models.Model):
 
     def save(self, *args, **kwargs):
         self.kanken = Kanken.objects.get(id=Kanji.objects.filter(kanji__in=self.yoji).
-                                       aggregate(Max('kanken'))['kanken__max'])
+                                         aggregate(Max('kanken'))['kanken__max'])
         # Only create the cloze pattern once
         if self.anki_cloze == '':
-            idxList = ["11", "22"]
-            random.shuffle(idxList)
-            self.anki_cloze = idxList[0]+idxList[1]
+            idx_list = ["11", "22"]
+            random.shuffle(idx_list)
+            self.anki_cloze = idx_list[0] + idx_list[1]
         super().save(*args, **kwargs)
 
     def get_definition_html(self):
         return markdown.markdown(self.meaning, output_format="html5")
 
     def reading_as_list(self):
-        return re.sub(r'（', '-（', self.reading).split('-')
+        return re.sub(r'（', '-（', str(self.reading)).split('-')
 
 
 class TestResult(models.Model):
@@ -466,4 +480,4 @@ class TestResult(models.Model):
         super().save(*args, **kwargs)
 
     def __str__(self):
-        return self.name + ' ' + self.kanken.kyu + ' ' + str(self.test_number) + str(self.date)
+        return '{} {} {}{}'.format(self.name, self.kanken.kyu, self.test_number, self.date)

@@ -1,20 +1,25 @@
 import csv
 import json
+import os
 from collections import Counter
 from io import StringIO
+from unittest.mock import mock_open, patch
 
 import requests
+from django.conf import settings
 from django.contrib.auth.models import User
+from django.db.models import Count, Q
 from django.test import Client
 from django.test import TestCase
 
 from kukan.exporting import Exporter
 from kukan.forms import ExampleForm
 from kukan.jautils import JpnText
-from kukan.models import Kanji, Example, Reading, ExMap, Kanken
+from kukan.models import Kanji, Example, Reading, ExMap, Kanken, YomiJoyo
 from kukan.templatetags.ja_tags import furigana_ruby, furigana_remove, furigana_bracket
 from kukan.test_helpers import FixtureAppLevel, FixtureKukan, FixWebKukan, PatchRequestsGet
 from kukan.test_helpers import FixtureKanji
+from kukan.jautils import kat2hir
 
 
 class FuriganaTest(TestCase):
@@ -35,32 +40,6 @@ class FuriganaTest(TestCase):
                          jpn_text.furigana('ruby'))
         self.assertEqual('', JpnText.from_simple_text('').furigana())
 
-
-#
-#
-# class JpSentenceTests(TestCase):
-#
-#     def test_JpSentence_conversions(self):
-#         sentence = JpSentence('部屋から町を[俯瞰|ふかん|f]する')
-#         self.assertEqual(sentence.text_only(), '部屋から町を俯瞰する')
-#         self.assertEqual(sentence, '部屋から町を[俯瞰|ふかん|f]する')
-#         self.assertEqual(sentence.ruby(), '部屋から町を<ruby>俯瞰<rt>ふかん</rt></ruby>する')
-#
-#         sentence2 = JpSentence('遁辞を[弄|ろう|f]しても無駄だ。')
-#         self.assertEqual(sentence2.text_only(), '遁辞を弄しても無駄だ。')
-#
-#
-# class ExampleTest(TestCase):
-#     fixtures = ['base', 'test_data']
-#
-#     def setUp(self):
-#         self.ex = Example.objects.filter(word='遁辞')[0]
-#         self.ex.sentence = '遁辞を[弄|ロウ|f]しても無駄だ。'
-#         self.ex.save()
-#
-#     def test_testdb(self):
-#         self.assertEqual(furigana_remove(self.ex.sentence), ' 遁辞を弄しても無駄だ。')
-#         self.assertEqual(Example.objects.count(), 1)
 
 class ModelTest(TestCase):
     fixtures = ['baseline', '閲']
@@ -121,8 +100,8 @@ class ExampleFormTest(TestCase):
         self.form_data = {'word': '閲覧', 'yomi': 'えつらん', 'sentence': '膨大な資料を閲覧する',
                           'definition': '言葉の定義', 'ex_kind': Example.KAKI, 'yomi_native': '',
                           'reading_selected': ','.join([str(x) for x in
-                                                       [Reading.objects.get(kanji='閲', reading='エツ').id,
-                                                        Reading.objects.get(kanji='覧', reading='ラン').id]])}
+                                                        [Reading.objects.get(kanji='閲', reading='エツ').id,
+                                                         Reading.objects.get(kanji='覧', reading='ラン').id]])}
         form = ExampleForm(self.form_data, instance=None)
         self.assertTrue(form.is_valid())
         form.save()
@@ -132,8 +111,8 @@ class ExampleFormTest(TestCase):
         self.form_data = {'word': '遥遥', 'yomi': 'ハルバル', 'sentence': '遥遥',
                           'definition': '言葉の定義', 'ex_kind': Example.KAKI, 'yomi_native': '',
                           'reading_selected': ','.join([str(x) for x in
-                                                       [Reading.objects.get(kanji='遥', reading='はる（か）').id,
-                                                        Reading.objects.get(kanji='遥', reading='はる（か）').id]])}
+                                                        [Reading.objects.get(kanji='遥', reading='はる（か）').id,
+                                                         Reading.objects.get(kanji='遥', reading='はる（か）').id]])}
         form = ExampleForm(self.form_data, instance=None)
         self.assertTrue(form.is_valid())
         form.save()
@@ -162,7 +141,8 @@ class ExampleFormTest(TestCase):
         # Check we get back the correct readings, and nothing selected
         self.assertEqual(['Ateji_劉', 10319, 10320, 10321],
                          [x['key'] for x in response.json()['reading_data'][0]['readings']])
-        self.assertEqual(['Ateji_覧', 6422, 6423],  [x['key'] for x in response.json()['reading_data'][1]['readings']])
+        self.assertEqual(['Ateji_覧', 6422, 6423],
+                         [x['key'] for x in response.json()['reading_data'][1]['readings']])
         self.assertEqual([None, None], response.json()['reading_selected'])
 
         # ****   Test addition / removal of kanji with the reading set
@@ -297,23 +277,136 @@ class TestFixtureFunctions(TestCase):
         self.assertEqual(kukan_fixture.get_list_models(),
                          ['kukan.' + x for x in
                           ['Classification', 'JisClass', 'Kanken', 'YomiJoyo', 'YomiType']])
-        self.assertEqual(kukan_fixture.output_dir, r'C:\Users\Fred\PycharmProjects\kukan\kukan\fixtures')
+        self.assertEqual(kukan_fixture.output_dir, os.path.join(settings.BASE_DIR, 'kukan', 'fixtures'))
 
 
 class TestExport(TestCase):
-    fixtures = ['baseline', '汀', '渚', '渚']
+    kanji_per_kyu = '一万丁不久並丈乏且串茅丐'
+    fixtures = ['baseline', '汀', '渚', '渚', '覧'] + list(kanji_per_kyu)
+
+    output_templt_kaki_hyogai = '{pk}\t"<span class=tag_hyogai>表外</span>' \
+                                + '{kind}:<span class=""font-color01"">{yomi}</span>"\t{word}\t{kanken}\r\n'
+    output_templt_kaki = output_templt_kaki_hyogai.replace('<span class=tag_hyogai>表外</span>', '')
+
+    output_templt_yomi_hyogai = ('{pk}\t"<span class=tag_hyogai>表外</span>{kind}:<span class='
+                                 + '""font-color01"">{word}</span>"\t{yomi}\t<p>{definition}</p>\r\n')
+    output_templt_yomi = output_templt_yomi_hyogai.replace('<span class=tag_hyogai>表外</span>', '')
 
     def setUp(self):
         Example.objects.create(word='汀渚', yomi='テイショ', sentence='汀渚', is_joyo=False)
         Example.objects.create(word='汀渚', yomi='テイショ', sentence='汀渚', is_joyo=False)
 
+    def create_example_with_reading(self, kanji_list, ex_kind):
+        """
+        Create a new example and the association with the readings
+        :param kanji_list: list of tuple of Kanji / Reading (as string). Reading can take word 'Ateji'
+        :param ex_kind: type of the Example (Kaki, Yomi, etc). Set as one of the Example const (KAKI, ...)
+        """
+        if ex_kind == Example.HYOGAI:
+            kanji_list = [(kj, r) for kj, r in kanji_list
+                          if (Kanji[kj].kanken >= Kanken['準１級']
+                              or
+                              Reading.objects.get(kanji=kj, reading_simple=r).joyo == YomiJoyo['表外'])]
+        if len(kanji_list):
+            word = ''.join([x[0] for x in kanji_list])
+            reading_selected = ','.join(['Ateji_' + x[0] if x[1] == 'Ateji'
+                                         else str(Reading.objects.get(kanji=x[0],
+                                                                      reading_simple=x[1].translate(kat2hir)).id)
+                                         for x in kanji_list])
+            form_data = {'word': word, 'yomi': 'にせよみ', 'sentence': '{}:{}'.format(ex_kind, word),
+                         'definition': '言葉の定義', 'ex_kind': ex_kind, 'yomi_native': '',
+                         'reading_selected': reading_selected}
+            form = ExampleForm(form_data, instance=None)
+            self.assertTrue(form.is_valid())
+            form.save()
+            return form.instance
+        else:
+            return None
+
+    def create_example_all_kinds(self, kanji_list):
+        res = []
+        for idx, ex_kind in enumerate(Example.EX_KIND_CHOICES):
+            res.append(self.create_example_with_reading(kanji_list * (idx + 1), ex_kind[0]))
+        return res
+
+    def assert_export_file(self, exporter, number_line, qry, output_template):
+        with patch('builtins.open', mock_open()) as m:
+            exporter.export()
+            try:
+                self.assertEqual(number_line + 3, len(m.mock_calls))
+                for idx, ex in enumerate(qry):
+                    name, args, kwargs = m.mock_calls[idx + 2]
+                    file_write = args[0]
+                    self.assertEqual(output_template.format(pk=ex.pk, kind=ex.ex_kind, yomi=ex.yomi, word=ex.word,
+                                                            kanken=ex.kanken, definition=ex.definition),
+                                     file_write)
+            except AssertionError:
+                print('\nList of calls of mock: \n' + str(m.mock_calls))
+                raise
+
     def test_export_issue_9(self):
         with StringIO() as out:
             writer = csv.writer(out, delimiter='\t', quotechar='"')
             Exporter('anki_kaki', 'Fred').export_anki_kaki(writer)
-            self.assertEqual('1	"<span class=""font-color01"">テイショ</span>"	汀渚[汀渚]	準１級\r\n' +
-                             '2	"<span class=""font-color01"">テイショ</span>"	汀渚[汀渚]	準１級\r\n',
+            self.assertEqual('1\t"<span class=""font-color01"">テイショ</span>"\t汀渚[汀渚]\t準１級\r\n' +
+                             '2\t"<span class=""font-color01"">テイショ</span>"\t汀渚[汀渚]\t準１級\r\n',
                              out.getvalue())
+
+    def test_export_kaki(self):
+        with patch('builtins.open', mock_open()) as m:
+            Exporter('anki_kaki', 'Fred').export()
+        handle = m()
+        handle.write.assert_any_call(
+            '1\t"<span class=""font-color01"">テイショ</span>"\t汀渚[汀渚]\t準１級\r\n')
+
+    def test_export_hyogai(self):
+        Example.objects.all().delete()
+        ex = self.create_example_all_kinds([('覧', 'みる')])
+        self.assertEqual(Kanken.objects.get(kyu='準１級'), ex[0].kanken)
+
+        self.assert_export_file(Exporter('anki_kaki', 'Fred'), 3,
+                                Example.objects.filter(ex_kind__in=[Example.KAKI, Example.RUIGI, Example.TAIGI]),
+                                self.output_templt_kaki_hyogai)
+
+        self.assert_export_file(Exporter('anki_yomi', 'Fred'), 5,
+                                Example.objects.exclude(ex_kind=Example.KOTOWAZA),
+                                self.output_templt_yomi_hyogai)
+
+    def test_export_all(self):
+        Example.objects.all().delete()
+        for kj in self.kanji_per_kyu:
+            reading = Reading.objects.filter(kanji=kj, joyo=YomiJoyo.objects.get(yomi_joyo='常用')).first()
+            if reading is None:
+                reading = Reading.objects.filter(kanji=kj).first()
+            self.create_example_all_kinds([(kj, reading.reading_simple)])
+        # Check that each Kyu / Kind has exactly one example (HYOGAI are special - cannot have low Kanken)
+        self.assertEqual([{'kanken__kyu': kanken.kyu, 'ex_kind': ex_kind, 'kanken__count': 1}
+                          for kanken in Kanken.objects.all()
+                          for ex_kind in [x[0] for x in Example.EX_KIND_CHOICES if x[0] is not Example.HYOGAI]],
+                         list(Example.objects.exclude(ex_kind=Example.HYOGAI).values('kanken__kyu', 'ex_kind')
+                              .annotate(Count('kanken')).order_by('pk')))
+        self.assertEqual([{'kanken__kyu': kanken.kyu, 'ex_kind': ex_kind, 'kanken__count': 1}
+                          for kanken in Kanken.objects.all() if kanken >= Kanken.objects.get(kyu='準１級')
+                          for ex_kind in [Example.HYOGAI]],
+                         list(Example.objects.filter(ex_kind=Example.HYOGAI).values('kanken__kyu', 'ex_kind')
+                              .annotate(Count('kanken')).order_by('pk')))
+
+        for kind, account, template, number_line, criteria, in [
+            ('anki_kaki', 'Fred', self.output_templt_kaki, 3 * 11,
+             Q(ex_kind__in=[Example.KAKI, Example.RUIGI, Example.TAIGI])),
+            ('anki_kaki', 'Ayumi', self.output_templt_kaki, 4 + 2 * 11,
+             (Q(ex_kind__in=[Example.KAKI], kanken__gte=Kanken.objects.get(kyu='３級'))
+              | Q(ex_kind__in=[Example.TAIGI, Example.RUIGI]))),
+            ('anki_yomi', 'Fred', self.output_templt_yomi, 15,
+             (Q(ex_kind__in=[Example.KAKI, Example.TAIGI, Example.RUIGI], kanken__gte=Kanken.objects.get(kyu='準１級'))
+              | Q(ex_kind__in=[Example.YOMI, Example.HYOGAI]))),
+        ]:
+            with self.subTest(kind=kind, account=account):
+                # Currently only go up to 準一級
+                criteria = criteria & Q(kanken__lte=Kanken.objects.get(kyu='準１級'))
+                self.assert_export_file(Exporter(kind, account), number_line,
+                                        Example.objects.filter(criteria),
+                                        template)
 
 
 @PatchRequestsGet('kukan.onlinepedia')
@@ -339,6 +432,47 @@ class TestDefinitionFetching(TestCase):
 
 
 class TestPatchRequestGetDecorator(TestCase):
+    def test_decorated_class(self):
+        @PatchRequestsGet('kukan.tests')
+        class DecoratorTarget(TestCase):
+            def test_A(self):
+                self.assertIsNotNone(self.mock_get)
+                mock_return_string = 'requests.get override'
+                self.mock_get.return_value = mock_return_string
+                self.assertEqual(mock_return_string, requests.get('some fake URL'))
+
+            def other_function(self):
+                self.assertIsNone(self.mock_get)
+
+        instance = DecoratorTarget()
+        self.assertIsNone(instance.mock_get)
+        instance.test_A()
+        self.assertIsNone(instance.mock_get)
+        self.assertEqual('test_A', DecoratorTarget.test_A.__name__)
+        instance.other_function()
+
+    def test_multiple_decorator(self):
+        @PatchRequestsGet('kukan.onlinepedia', 'mock1')
+        @PatchRequestsGet('kukan.tests', 'mock0')
+        class DecoratorTarget(TestCase):
+            def test_A(self):
+                self.assertIsNotNone(self.mock0)
+                self.assertIsNotNone(self.mock1)
+                self.assertIsNot(self.mock0, self.mock1)
+                self.assertNotEqual(self.mock0, self.mock1)
+                mock_return_string0 = 'requests.get override 0'
+                mock_return_string1 = 'requests.get override 1'
+                self.mock0.return_value = mock_return_string0
+                self.mock1.return_value = mock_return_string1
+                self.assertEqual(mock_return_string0, requests.get('some fake URL'))
+
+        instance = DecoratorTarget()
+        self.assertIsNone(instance.mock0)
+        self.assertIsNone(instance.mock1)
+        instance.test_A()
+
+
+class TestDecoratorPatchRequestGetDecorator(TestCase):
     def test_decorated_class(self):
         @PatchRequestsGet('kukan.tests')
         class DecoratorTarget(TestCase):

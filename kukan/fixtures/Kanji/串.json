@@ -1,0 +1,123 @@
+[
+{
+    "model": "kukan.kanji",
+    "pk": "\u4e32",
+    "fields": {
+        "bushu": "\u4e28",
+        "kouki_bushu": "\u4e28",
+        "kanken": 10,
+        "strokes": 7,
+        "classification": 1,
+        "jis": "JIS\u7b2c\uff11\u6c34\u6e96"
+    }
+}
+,
+{
+    "model": "kukan.bushu",
+    "pk": "\u4e28",
+    "fields": {
+        "reading": "\u305f\u3066\u307c\u3046"
+    }
+}
+,
+{
+    "model": "kukan.koukibushu",
+    "pk": "\u4e28",
+    "fields": {
+        "variations": "\u4e28",
+        "reading": "\u307c\u3046 \u305f\u3066\u307c\u3046",
+        "number": 2,
+        "kakusu": 1
+    }
+}
+,
+{
+    "model": "kukan.reading",
+    "pk": 79,
+    "fields": {
+        "kanji": "\u4e32",
+        "reading": "\u30ab\u30f3",
+        "reading_simple": "\u304b\u3093",
+        "yomi_type": 1,
+        "joyo": 3,
+        "joyo_order": 9999,
+        "remark": "",
+        "ijidokun": ""
+    }
+},
+{
+    "model": "kukan.reading",
+    "pk": 80,
+    "fields": {
+        "kanji": "\u4e32",
+        "reading": "\u30bb\u30f3",
+        "reading_simple": "\u305b\u3093",
+        "yomi_type": 1,
+        "joyo": 3,
+        "joyo_order": 9999,
+        "remark": "",
+        "ijidokun": ""
+    }
+},
+{
+    "model": "kukan.reading",
+    "pk": 81,
+    "fields": {
+        "kanji": "\u4e32",
+        "reading": "\u304f\u3057",
+        "reading_simple": "\u304f\u3057",
+        "yomi_type": 2,
+        "joyo": 1,
+        "joyo_order": 60,
+        "remark": "",
+        "ijidokun": ""
+    }
+},
+{
+    "model": "kukan.reading",
+    "pk": 82,
+    "fields": {
+        "kanji": "\u4e32",
+        "reading": "\u3064\u3089\u306c\uff08\u304f\uff09",
+        "reading_simple": "\u3064\u3089\u306c\u304f",
+        "yomi_type": 2,
+        "joyo": 3,
+        "joyo_order": 9999,
+        "remark": "",
+        "ijidokun": ""
+    }
+},
+{
+    "model": "kukan.reading",
+    "pk": 83,
+    "fields": {
+        "kanji": "\u4e32",
+        "reading": "\u306a\uff08\u308c\u308b\uff09",
+        "reading_simple": "\u306a\u308c\u308b",
+        "yomi_type": 2,
+        "joyo": 3,
+        "joyo_order": 9999,
+        "remark": "",
+        "ijidokun": ""
+    }
+}
+,
+{
+    "model": "kukan.kanjidetails",
+    "pk": 18,
+    "fields": {
+        "kanji": "\u4e32",
+        "meaning": "[\"[\\uff11] \\u306a\\u308c\\u308b\\u3002\\u306a\\u308c\\u89aa\\u3057\\u3080\\u3002\\n\\n\", \"[\\uff12] \\u3064\\u3089\\u306c\\u304f\\u3002\\u3046\\u304c\\u3064\\u3002\\u7a74\\u3092\\u3042\\u3051\\u3066\\u901a\\u3059\\u3002\\n\\n\", \"[\\u65e5\\u672c] \\u304f\\u3057\\u3002\\u8089\\u3084\\u9b5a\\u306a\\u3069\\u3092\\u523a\\u3057\\u901a\\u3059\\u3001\\u7af9\\u3084\\u9244\\u306e\\u7d30\\u3044\\u68d2\\u3002\\n\\n\"]",
+        "external_ref": "http://kanji.jitenon.jp/kanjid/1984.html",
+        "std_kanji": null,
+        "anki_English": "shish kebab, spit, skewer",
+        "anki_Examples": "",
+        "anki_Kanji_Radical": "",
+        "anki_Traditional_Form": "",
+        "anki_Traditional_Radical": "-",
+        "anki_Reading_Table": "<tr><td class='C_read'>\u304f\u3057</td><td class='C_example'><a href=https://dictionary.goo.ne.jp/srch/all/\u4e32\u523a\u3057/m0u/>\u4e32\u523a\u3057</a>\u3001<a href=https://dictionary.goo.ne.jp/srch/all/\u4e32\u713c\u304d/m0u/>\u4e32\u713c\u304d</a></td></tr>",
+        "anki_kjBushuMei": "\u305f\u3066\u307c\u3046",
+        "anki_kjIjiDoukun": ""
+    }
+}
+]

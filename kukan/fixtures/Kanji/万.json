@@ -1,0 +1,95 @@
+[
+{
+    "model": "kukan.kanji",
+    "pk": "\u4e07",
+    "fields": {
+        "bushu": "\u4e00",
+        "kouki_bushu": "\u4e00",
+        "kanken": 2,
+        "strokes": 3,
+        "classification": 1,
+        "jis": "JIS\u7b2c\uff11\u6c34\u6e96"
+    }
+}
+,
+{
+    "model": "kukan.bushu",
+    "pk": "\u4e00",
+    "fields": {
+        "reading": "\u3044\u3061"
+    }
+}
+,
+{
+    "model": "kukan.koukibushu",
+    "pk": "\u4e00",
+    "fields": {
+        "variations": "\u4e00",
+        "reading": "\u30a4\u30c1",
+        "number": 1,
+        "kakusu": 1
+    }
+}
+,
+{
+    "model": "kukan.reading",
+    "pk": 16,
+    "fields": {
+        "kanji": "\u4e07",
+        "reading": "\u30de\u30f3",
+        "reading_simple": "\u307e\u3093",
+        "yomi_type": 1,
+        "joyo": 1,
+        "joyo_order": 10,
+        "remark": "",
+        "ijidokun": ""
+    }
+},
+{
+    "model": "kukan.reading",
+    "pk": 17,
+    "fields": {
+        "kanji": "\u4e07",
+        "reading": "\u30d0\u30f3",
+        "reading_simple": "\u3070\u3093",
+        "yomi_type": 1,
+        "joyo": 1,
+        "joyo_order": 11,
+        "remark": "",
+        "ijidokun": ""
+    }
+},
+{
+    "model": "kukan.reading",
+    "pk": 18,
+    "fields": {
+        "kanji": "\u4e07",
+        "reading": "\u3088\u308d\u305a",
+        "reading_simple": "\u3088\u308d\u305a",
+        "yomi_type": 2,
+        "joyo": 3,
+        "joyo_order": 9999,
+        "remark": "",
+        "ijidokun": ""
+    }
+}
+,
+{
+    "model": "kukan.kanjidetails",
+    "pk": 4,
+    "fields": {
+        "kanji": "\u4e07",
+        "meaning": "[\"\\u6570\\u306e\\u540d\\u3002\\u5343\\u306e\\u5341\\u500d\\u3002\\n\\n\", \"\\u3088\\u308d\\u305a\\u3002\\u3059\\u3079\\u3066\\u3002\\u3059\\u3079\\u3066\\u306e\\u3002\\u6570\\u304c\\u975e\\u5e38\\u306b\\u591a\\u3044\\u3002\\n\\n\", \"\\u6c7a\\u3057\\u3066\\u3002\\u7d76\\u5bfe\\u306b\\u3002\\u3069\\u3093\\u306a\\u3053\\u3068\\u304c\\u3042\\u3063\\u3066\\u3082\\u3002\\n\\n\", \"\\u3055\\u305d\\u308a\\u3002\\u6bd2\\u866b\\u3002\\n\\n\"]",
+        "external_ref": "http://kanji.jitenon.jp/kanji/226.html",
+        "std_kanji": null,
+        "anki_English": "ten thousand",
+        "anki_Examples": "\u842c",
+        "anki_Kanji_Radical": "\u842c",
+        "anki_Traditional_Form": "\u842c",
+        "anki_Traditional_Radical": "\u8278",
+        "anki_Reading_Table": "<tr><td class='C_read'>\u30de\u30f3</td><td class='C_example'><a href=https://dictionary.goo.ne.jp/srch/all/\u4e07\u4e00/m0u/>\u4e07\u4e00</a>\u3001<a href=https://dictionary.goo.ne.jp/srch/all/\u4e07\u5e74\u7b46/m0u/>\u4e07\u5e74\u7b46</a>\u3001<a href=https://dictionary.goo.ne.jp/srch/all/\u5de8\u4e07/m0u/>\u5de8\u4e07</a></td></tr><tr><td class='C_read'>\u30d0\u30f3</td><td class='C_example'><a href=https://dictionary.goo.ne.jp/srch/all/\u4e07\u56fd/m0u/>\u4e07\u56fd</a>\u3001<a href=https://dictionary.goo.ne.jp/srch/all/\u4e07\u7aef/m0u/>\u4e07\u7aef</a>\u3001<a href=https://dictionary.goo.ne.jp/srch/all/\u4e07\u5168/m0u/>\u4e07\u5168</a></td></tr>",
+        "anki_kjBushuMei": "\u3044\u3061",
+        "anki_kjIjiDoukun": ""
+    }
+}
+]

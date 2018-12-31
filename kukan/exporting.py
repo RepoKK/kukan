@@ -1,15 +1,17 @@
-import os, csv
-from functools import reduce
+import csv
+import os
 from collections import defaultdict
-from django.db.models import Q
-from django.template.loader import render_to_string
+from functools import reduce
+
 from django.conf import settings
+from django.db.models import Q
 from django.http import HttpResponse
+from django.template.loader import render_to_string
 
 from kukan.anki_dj import AnkiProfile
-from .models import Kanji, Example, Yoji
 from kukan.jautils import JpText
 from kukan.templatetags.ja_tags import furigana_ruby
+from .models import Kanji, Example, Yoji
 
 
 class Exporter:
@@ -66,8 +68,9 @@ class Exporter:
         for example in q_set:
             word = example.word_native if example.word_native != "" else example.word
             yomi = example.yomi_native if example.yomi_native != "" else example.yomi
-            sentence = furigana_ruby(example.sentence.replace(word,
-                                                              '<span class="font-color01">' + yomi + '</span>'))
+            hyogai_tag = '<span class=tag_hyogai>表外</span>' if example.is_hyogai() else ''
+            sentence = furigana_ruby(hyogai_tag + example.sentence.replace(
+                word, '<span class="font-color01">' + yomi + '</span>'))
 
             word = ''.join([alt_to_std.get(k, k) for k in word])
             alt_word = ''.join([alt[0] + ('（{}）'.format('・'.join(alt[1:])) if len(alt) > 1 else '') for alt in
@@ -94,8 +97,9 @@ class Exporter:
         for example in q_set:
             word = example.word_native if example.word_native != "" else example.word
             yomi = example.yomi_native if example.yomi_native != "" else example.yomi
-            sentence = furigana_ruby(example.sentence.replace(word,
-                                                              '<span class="font-color01">' + word + '</span>'))
+            hyogai_tag = '<span class=tag_hyogai>表外</span>' if example.is_hyogai() else ''
+            sentence = furigana_ruby(hyogai_tag + example.sentence.replace(
+                word, '<span class="font-color01">' + word + '</span>'))
 
             word = ''.join([alt_to_std.get(k, k) for k in word])
             alt_word = ''.join([alt[0] + ('（{}）'.format('・'.join(alt[1:])) if len(alt) > 1 else '') for alt in
@@ -127,7 +131,6 @@ class Exporter:
                              example.kotowaza.get_definition_html(),
                              example.kotowaza.yomi])
 
-    # noinspection PyUnusedLocal
     @staticmethod
     def export_anki_kanji(writer):
         for kj in Kanji.objects.exclude(kanken__difficulty__gt=10):
@@ -145,7 +148,6 @@ class Exporter:
                              kj.classification,
                              kj.kanjidetails.anki_kjIjiDoukun])
 
-    # noinspection PyUnusedLocal
     @staticmethod
     def export_anki_yoji(writer):
         test_start = defaultdict(list)

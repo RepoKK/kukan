@@ -1,0 +1,95 @@
+[
+{
+    "model": "kukan.kanji",
+    "pk": "\u4e0d",
+    "fields": {
+        "bushu": "\u4e00",
+        "kouki_bushu": "\u4e00",
+        "kanken": 4,
+        "strokes": 4,
+        "classification": 1,
+        "jis": "JIS\u7b2c\uff11\u6c34\u6e96"
+    }
+}
+,
+{
+    "model": "kukan.bushu",
+    "pk": "\u4e00",
+    "fields": {
+        "reading": "\u3044\u3061"
+    }
+}
+,
+{
+    "model": "kukan.koukibushu",
+    "pk": "\u4e00",
+    "fields": {
+        "variations": "\u4e00",
+        "reading": "\u30a4\u30c1",
+        "number": 1,
+        "kakusu": 1
+    }
+}
+,
+{
+    "model": "kukan.reading",
+    "pk": 49,
+    "fields": {
+        "kanji": "\u4e0d",
+        "reading": "\u30d5",
+        "reading_simple": "\u3075",
+        "yomi_type": 1,
+        "joyo": 1,
+        "joyo_order": 40,
+        "remark": "",
+        "ijidokun": ""
+    }
+},
+{
+    "model": "kukan.reading",
+    "pk": 50,
+    "fields": {
+        "kanji": "\u4e0d",
+        "reading": "\u30d6",
+        "reading_simple": "\u3076",
+        "yomi_type": 1,
+        "joyo": 1,
+        "joyo_order": 41,
+        "remark": "",
+        "ijidokun": ""
+    }
+},
+{
+    "model": "kukan.reading",
+    "pk": 51,
+    "fields": {
+        "kanji": "\u4e0d",
+        "reading": "\u305a",
+        "reading_simple": "\u305a",
+        "yomi_type": 2,
+        "joyo": 3,
+        "joyo_order": 9999,
+        "remark": "",
+        "ijidokun": ""
+    }
+}
+,
+{
+    "model": "kukan.kanjidetails",
+    "pk": 9,
+    "fields": {
+        "kanji": "\u4e0d",
+        "meaning": "[\"\\u300c\\u305a\\u300d\\u3068\\u8aad\\u307f\\u3001\\u300c\\uff5e\\u3057\\u306a\\u3044\\u300d\\u300c\\uff5e\\u3067\\u306a\\u3044\\u300d\\u306e\\u610f\\u3092\\u8868\\u3059\\u3002\\n\\n\", \"\\u300c\\u30fb\\u30fb\\u30fb\\u3084\\u3001\\u3044\\u306a\\u3084\\u300d\\u3068\\u8aad\\u307f\\u3001\\u6587\\u672b\\u306b\\u4ed8\\u3051\\u3066\\u7591\\u554f\\u306e\\u610f\\u3092\\u8868\\u3059\\u3002\\n\\n\", \"\\u300c\\u3056\\u308c\\u3070\\u300d\\u300c\\u305a\\u3093\\u3070\\u300d\\u3068\\u8aad\\u307f\\u3001\\u300c\\uff5e\\u3067\\u306a\\u3051\\u308c\\u3070\\u300d\\u300c\\uff5e\\u3057\\u306a\\u3051\\u308c\\u3070\\u300d\\u306e\\u610f\\u3002\\n\\n\"]",
+        "external_ref": "http://kanji.jitenon.jp/kanjib/600.html",
+        "std_kanji": null,
+        "anki_English": "negative, non-, bad, ugly, clumsy",
+        "anki_Examples": "",
+        "anki_Kanji_Radical": "",
+        "anki_Traditional_Form": "",
+        "anki_Traditional_Radical": "-",
+        "anki_Reading_Table": "<tr><td class='C_read'>\u30d5</td><td class='C_example'><a href=https://dictionary.goo.ne.jp/srch/all/\u4e0d\u5f53/m0u/>\u4e0d\u5f53</a>\u3001<a href=https://dictionary.goo.ne.jp/srch/all/\u4e0d\u5229/m0u/>\u4e0d\u5229</a>\u3001<a href=https://dictionary.goo.ne.jp/srch/all/\u4e0d\u8cdb\u6210/m0u/>\u4e0d\u8cdb\u6210</a></td></tr><tr><td class='C_read'>\u30d6</td><td class='C_example'><a href=https://dictionary.goo.ne.jp/srch/all/\u4e0d\u4f5c\u6cd5/m0u/>\u4e0d\u4f5c\u6cd5</a>\u3001<a href=https://dictionary.goo.ne.jp/srch/all/\u4e0d\u7528\u5fc3/m0u/>\u4e0d\u7528\u5fc3</a></td></tr>",
+        "anki_kjBushuMei": "\u3044\u3061",
+        "anki_kjIjiDoukun": ""
+    }
+}
+]
