@@ -9,6 +9,7 @@ from django.db.models import Count
 from django.http import JsonResponse
 from django.urls import reverse
 from django.urls import reverse_lazy
+from django.utils import timezone
 from django.views import generic
 from django.views.generic.base import TemplateView
 from django.views.generic.edit import CreateView, UpdateView, DeleteView
@@ -18,7 +19,7 @@ from kukan.jautils import JpText, JpnText
 from kukan.onlinepedia import DefinitionWordBase
 from .filters import *
 from .forms import SearchForm, ExampleForm, ExportForm, KotowazaForm
-from .models import Yoji, TestResult, Kotowaza
+from .models import Kanji, Reading, Example, ExMap, Yoji, TestResult, Kotowaza
 
 
 class Index(LoginRequiredMixin, generic.FormView):
@@ -60,29 +61,25 @@ class StatsPage(LoginRequiredMixin, TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         data_list = []
-        data = {}
-        data['cat'] = '漢字'
-        data['total'] = Kanji.objects.all().count()
-        data['joyo'] = Kanji.objects.filter(classification__classification='常用漢字').count()
-        data['non_joyo'] = Kanji.objects.exclude(classification__classification='常用漢字').count()
+        data = {'cat': '漢字', 'total': Kanji.objects.all().count(),
+                'joyo': Kanji.objects.filter(classification__classification='常用漢字').count(),
+                'non_joyo': Kanji.objects.exclude(classification__classification='常用漢字').count()}
         data_list.append(data.copy())
-        data = {}
-        data['cat'] = '総合読み'
-        data['total'] = Reading.objects.all().count()
-        data['joyo'] = Reading.objects.exclude(joyo__yomi_joyo='表外').count()
-        data['non_joyo'] = Reading.objects.filter(joyo__yomi_joyo='表外').count()
+        data = {'cat': '総合読み', 'total': Reading.objects.all().count(),
+                'joyo': Reading.objects.exclude(joyo__yomi_joyo='表外').count(),
+                'non_joyo': Reading.objects.filter(joyo__yomi_joyo='表外').count()}
         data_list.append(data.copy())
         data['cat'] = '音読み'
-        yomi_filt = Reading.objects.filter(yomi_type__yomi_type='音')
-        data['total'] = yomi_filt.count()
-        data['joyo'] = yomi_filt.exclude(joyo__yomi_joyo='表外').count()
-        data['non_joyo'] = yomi_filt.filter(joyo__yomi_joyo='表外').count()
+        yomi_filter = Reading.objects.filter(yomi_type__yomi_type='音')
+        data['total'] = yomi_filter.count()
+        data['joyo'] = yomi_filter.exclude(joyo__yomi_joyo='表外').count()
+        data['non_joyo'] = yomi_filter.filter(joyo__yomi_joyo='表外').count()
         data_list.append(data.copy())
-        yomi_filt = Reading.objects.filter(yomi_type__yomi_type='訓')
+        yomi_filter = Reading.objects.filter(yomi_type__yomi_type='訓')
         data['cat'] = '訓読み'
-        data['total'] = yomi_filt.count()
-        data['joyo'] = yomi_filt.exclude(joyo__yomi_joyo='表外').count()
-        data['non_joyo'] = yomi_filt.filter(joyo__yomi_joyo='表外').count()
+        data['total'] = yomi_filter.count()
+        data['joyo'] = yomi_filter.exclude(joyo__yomi_joyo='表外').count()
+        data['non_joyo'] = yomi_filter.filter(joyo__yomi_joyo='表外').count()
         data_list.append(data.copy())
         data['cat'] = '例文'
         data['total'] = Example.objects.all().count()
@@ -244,7 +241,7 @@ class AjaxList(LoginRequiredMixin, generic.TemplateView):
         filter_list = ""
         for flt in self.filters:
             flt.value = self.request.GET.get(flt.label, '')
-            filter_list += flt.toJSON() + ",\n"
+            filter_list += flt.to_json() + ",\n"
         filter_list = "[" + filter_list + "]"
 
         flt_order = []
@@ -631,28 +628,3 @@ class ExportView(LoginRequiredMixin, generic.FormView):
             return ExporterAsResp(choice, profile).export()
         else:
             return super().render_to_response(context)
-
-
-# TODO
-# def read_from_bin():
-#     res = []
-#     str = str.replace("\n", "")
-#     for x in zip(*[str[i::3] for i in range(3)]):
-#         if x[0] == x[1] and x[0] == x[2]:
-#             res.append(x[0])
-#         else:
-#             print('Problem: ', x[0], x[1], x[2])
-#             if x[0] in [x[1], x[2]]:
-#                 res.append(x[0])
-#             elif x[1] == x[2]:
-#                 res.append(x[1])
-#             else:
-#                 res.append('   zzz   ')
-#     final = ''.join(res)
-#     print(final, '\nError' if 'z' in res else '\nOK')
-#     print(bz2.decompress(b''.fromhex(final)))
-#     with open(r"D:\testOCR\res.py.txt", "wb") as file:
-#         file.write(bz2.decompress(b''.fromhex(final)))
-#
-# C:\Program Files (x86)\Tesseract-OCR>tesseract.exe D:\testOCR\test.bmp D:\testOCR\out
-#     -c tessedit_char_whitelist=0123456789Abcdef -c load_system_dawg=f -c load_freq_dawg=f

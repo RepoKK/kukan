@@ -1,6 +1,8 @@
 import csv
 import json
 import os
+import re
+import urllib.parse
 from collections import Counter
 from io import StringIO
 from unittest.mock import mock_open, patch
@@ -511,3 +513,39 @@ class TestDecoratorPatchRequestGetDecorator(TestCase):
         self.assertIsNone(instance.mock0)
         self.assertIsNone(instance.mock1)
         instance.test_A()
+
+
+class TestFilters(TestCase):
+    fixtures = ['baseline', '閲']
+
+    def setUp(self):
+        Example.objects.create(word='閲する', yomi='ケミスル', sentence='膨大な資料を閲する', is_joyo=False)
+
+        User.objects.create_user('test_user', password='pwd')
+        self.client = Client()
+        self.client.post('/login/', {'username': 'test_user', 'password': 'pwd'})
+
+    def test_special_character(self):
+        """
+        Test case for issue #12
+        """
+        for character_list in ['ABC', 'ABC DEF', "A', 'yomi'", r'",/?:@&=+$#()!`~^[]|_/\\*.']:
+            with self.subTest(character_list=character_list):
+                response = self.client.get('/example/list/', {'page': 1, 'sort_by': 'kanken',
+                                                              '意味': character_list})
+                meaning_lines = [line for line in response.context_data['filter_list'].split('\n') if '意味' in line]
+                self.assertEqual(1, len(meaning_lines))
+                line = meaning_lines[0]
+                search_obj = re.search('value(.*)', line)
+                self.assertIsNotNone(search_obj)
+                self.assertEqual("'{}'".format(character_list), urllib.parse.unquote(search_obj[0][7:-2]))
+
+        character_list = 'Test "#$%&\'()"'
+        response = self.client.get('/example/list/', {'page': 1, 'sort_by': 'kanken',
+                                                      '意味': character_list})
+        meaning_lines = [line for line in response.context_data['filter_list'].split('\n') if '意味' in line]
+        self.assertEqual(1, len(meaning_lines))
+        line = meaning_lines[0]
+        search_obj = re.search('value(.*)', line)
+        self.assertIsNotNone(search_obj)
+        self.assertEqual("'{}'".format('Test%20%22%23%24%25%26%27%28%29%22'), search_obj[0][7:-2])

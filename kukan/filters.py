@@ -1,13 +1,17 @@
-from .models import KoukiBushu, Kanji, YomiType, YomiJoyo, Reading, Example, ExMap
-import kukan.jautils as jau
-import json
-from django.utils import timezone
-from datetime import datetime, timedelta
 import collections
+import json
+import urllib.parse
+from abc import ABC, abstractmethod
+from datetime import datetime, timedelta
+
 from django.db.models import Max, Min, Q
 
-class FFilter():
-    type = ''
+import kukan.jautils as jau
+from .models import KoukiBushu, Reading
+
+
+class FFilter(ABC):
+    kind = ''
     label = ''
     value = ''
 
@@ -36,16 +40,14 @@ class FFilter():
             }
         }
 
-    def __init__(self, label, type):
-        self.type = type
+    def __init__(self, label, kind):
+        self.kind = kind
         self.label = label
         self.value = ''
 
-    def toJSON(self):
-        return "{'name':'" + self.type + "', "\
-               "'label':'" + self.label + "', "\
-               "'extra':" + self.get_extra_json() + ", " \
-               "'value':'" + self.value + "'}"
+    def to_json(self):
+        return "{{'name':'{}', 'label':'{}', 'extra':{}, 'value':'{}'}}".format(
+            self.kind, self.label, self.get_extra_json(), urllib.parse.quote(self.value))
 
     def get_extra_json(self):
         return "{}"
@@ -56,9 +58,13 @@ class FFilter():
             qry = self.add_to_query(flt, qry)
         return qry
 
+    @abstractmethod
+    def add_to_query(self, flt, qry):
+        pass
+
 
 class FGenericCheckbox(FFilter):
-    def __init__(self, title, field, model, is_two_column = False, order='', none_label='未設定', none_position='end'):
+    def __init__(self, title, field, model, is_two_column=False, order='', none_label='未設定', none_position='end'):
         self.model = model
         self.field = field
         self.nb_col = 2 if is_two_column else 1
@@ -73,16 +79,15 @@ class FGenericCheckbox(FFilter):
         q = Q(**kwargs)
         if self.none_label in flt:
             kwargs = {self.field + '__isnull': True}
-            q = q|Q(**kwargs)
+            q = q | Q(**kwargs)
         qry = qry.filter(q)
         return qry
 
     def get_extra_json(self):
         sys_list = [x[self.field] for x in self.model.objects.order_by(self.order).distinct().values(self.field)]
         try:
-            idx = sys_list.index(None)
             sys_list.pop(sys_list.index(None))
-            sys_list = [self.none_label] + sys_list if self.none_position=='start' else sys_list + [self.none_label]
+            sys_list = [self.none_label] + sys_list if self.none_position == 'start' else sys_list + [self.none_label]
         except ValueError:
             pass
         ret = [{'native': idx, 'label': x, 'col': idx % self.nb_col} for idx, x in enumerate(sys_list)]
@@ -99,7 +104,7 @@ class FGenericMinMax(FFilter):
         flt_fct = qry.filter
         if flt[0:2] == "≠ ":
             flt_fct = qry.exclude
-            flt=flt[2:]
+            flt = flt[2:]
         if '~' in flt:
             flt = flt.split('~')
             kwargs = {}
@@ -108,7 +113,7 @@ class FGenericMinMax(FFilter):
             if flt[1] != '':
                 kwargs.update({self.field + '__lte': flt[1]})
         else:
-            kwargs = {self.field : flt}
+            kwargs = {self.field: flt}
         qry = flt_fct(**kwargs)
         return qry
 
@@ -122,7 +127,7 @@ class FGenericDateRange(FFilter):
         flt_fct = qry.filter
         if flt[0:2] == "≠ ":
             flt_fct = qry.exclude
-            flt=flt[2:]
+            flt = flt[2:]
         if '~' in flt:
             flt = flt.split('~')
             kwargs = {}
@@ -137,11 +142,11 @@ class FGenericDateRange(FFilter):
                     end = datetime.strptime(flt[1] + ' +0900', "%Y-%m-%d %H:%M %z")
                 except ValueError:
                     end = datetime.strptime(flt[1] + ' +0900', "%Y-%m-%d %z")
-                    end = end+timedelta(days=1)
+                    end = end + timedelta(days=1)
                 kwargs.update({self.field + '__lt': end})
         else:
-            date=datetime.strptime(flt + ' +0900', "%Y-%m-%d %z")
-            kwargs = {self.field + '__gte': date, self.field + '__lt': date+timedelta(days=1)}
+            date = datetime.strptime(flt + ' +0900', "%Y-%m-%d %z")
+            kwargs = {self.field + '__gte': date, self.field + '__lt': date + timedelta(days=1)}
         qry = flt_fct(**kwargs)
         return qry
 
@@ -150,11 +155,11 @@ class FGenericString(FFilter):
     def __init__(self, title, field, lh_criteria='', rh_fct=''):
         self.field = field
         self.lh_criteria = lh_criteria if lh_criteria else self.field + '__contains'
-        self.rh_fct = rh_fct if rh_fct else lambda x :x
+        self.rh_fct = rh_fct if rh_fct else lambda x: x
         super().__init__(title, 'v-filter-string')
 
     def add_to_query(self, flt, qry):
-        kwargs = {self.lh_criteria:self.rh_fct(flt)}
+        kwargs = {self.lh_criteria: self.rh_fct(flt)}
         qry = qry.filter(**kwargs).distinct()
         return qry
 
@@ -170,7 +175,6 @@ class FGenericYesNo(FFilter):
 
     def add_to_query(self, flt, qry):
         kwargs = {self.field: self.criteria}
-        flt_fct = qry.exclude if self.inverse else qry.filter
         if (flt == self.label_yes and not self.inverse) or \
                 (flt == self.label_no and self.inverse):
             flt_fct = qry.filter
@@ -182,7 +186,7 @@ class FGenericYesNo(FFilter):
     def get_extra_json(self):
         ret = {'comptype': "b-radio",
                'elements': [{'native': 0, 'label': self.label_yes, 'col': 0},
-                            {'native': 1, 'label': self.label_no,  'col': 0}]}
+                            {'native': 1, 'label': self.label_no, 'col': 0}]}
         return json.dumps(ret)
 
 
