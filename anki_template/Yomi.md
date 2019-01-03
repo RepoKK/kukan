@@ -13,19 +13,21 @@
      background-color: white;
     }
     
-    .tag_hyougai {
-     justify-content: center;
-     align-items: top;
+    .tag_hyogai {
      color: white;
      height: 2em;
      line-height: 2.2em;
-     font-size: 0.75em;
+     font-size: 0.50em;
      background-color: #209cee;
+     padding-top:.35em;
+     padding-bottom:.25em;
      padding-left:.55em;
      padding-right:.55em;
      margin-right:1em;
      border-radius: 4px;
-     display: inline-flex;
+     display: inline;
+     position: relative;
+     top: -5px;
     }
     
     .font-color01 {
