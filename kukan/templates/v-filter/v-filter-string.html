@@ -23,7 +23,7 @@ Vue.component('v-filter-string', {
                 return this.localValue
             },
             set: function (newVal) {
-                this.localValue = decodeURIComponent(newVal)
+                this.localValue = newVal
             }
         }
     },

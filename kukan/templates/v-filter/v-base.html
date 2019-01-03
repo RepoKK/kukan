@@ -156,11 +156,11 @@ var MixinFrBase = {
     },
     methods: {
         resetToProps: function () {
-            this.tempFilter = this.value
+            this.tempFilter = decodeURIComponent(this.value)
             this.filter = this.tempFilter
         },
         handleApply: function (filter_val) {
-            this.filter=this.tempFilter
+            this.filter=encodeURIComponent(this.tempFilter)
             this.$emit('input', this.filter)
         },
         rm_fil: function () {

@@ -46,7 +46,7 @@ Vue.component('v-filter-container', {
                 for (var i = 0, len = this.active_filters.length; i < len; i++) {
                     flt_idx = this.active_filters[i]
                     if (this.filter_list[flt_idx].value) {
-                        res.push(this.filter_list[flt_idx].label + '=' + encodeURIComponent(this.filter_list[flt_idx].value))
+                        res.push(this.filter_list[flt_idx].label + '=' + this.filter_list[flt_idx].value)
                     }
                 }
                 return res.join("&")
@@ -75,7 +75,7 @@ Vue.component('v-filter-container', {
         }
     },
     created() {
-        this.$emit('input', decodeURIComponent(this.url_filter))
+        this.$emit('input', this.url_filter)
     },
     template: '#filter-container'
 })

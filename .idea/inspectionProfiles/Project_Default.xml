@@ -18,6 +18,7 @@
           <option value="django.db.models.fields.related.ForeignKey.difficulty" />
           <option value="django.db.models.fields.related.ForeignKey.kanji" />
           <option value="django.db.models.fields.related.ForeignKey.kyu" />
+          <option value="kukan.models.KoukiBushu.objects" />
         </list>
       </option>
     </inspection_tool>
