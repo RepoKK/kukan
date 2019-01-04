@@ -1,12 +1,12 @@
-import sys, os, re
-import pandas as pd
-from collections import namedtuple
+import os
 
-from django.core.management.base import BaseCommand
+import pandas as pd
 from django.conf import settings
 from django.core.mail import send_mail
+from django.core.management.base import BaseCommand
+
+from kukan.anki_dj import AnkiProfile
 from kukan.exporting import Exporter
-from kukan.anki import AnkiProfile
 
 
 class Command(BaseCommand):

@@ -1,17 +1,12 @@
-import sys, os, re, bz2
-import subprocess
+import bz2
 import datetime
-import pandas as pd
-from collections import namedtuple
-
-from django.core.management.base import BaseCommand
-from django.conf import settings
-from django.core.mail import send_mail
-from django.db import connection
-from kukan.exporting import Exporter
-from kukan.anki import AnkiProfile
+import os
+import subprocess
 
 import dropbox
+from django.conf import settings
+from django.core.management.base import BaseCommand
+from django.db import connection
 
 
 # Backup strategy:
@@ -28,7 +23,7 @@ class DbBackup:
         self.backup_path = None
         self.compressed_backup = None
 
-        self.dbx = dbx = dropbox.Dropbox(settings.DROPBOX_TOKEN)
+        self.dbx = dropbox.Dropbox(settings.DROPBOX_TOKEN)
 
     def _set_backup_day(self):
         today = datetime.datetime.today()
@@ -43,9 +38,9 @@ class DbBackup:
         os_cmd = 'sqlite3 {} ".backup \'{}\'"'.format(self.db_name, self.backup_path)
         try:
             subprocess.run(os_cmd, shell=True, stdout=subprocess.PIPE, check=True)
-            tarbz2contents = bz2.compress(open(self.backup_path, 'rb').read())
+            tar_bz2_contents = bz2.compress(open(self.backup_path, 'rb').read())
             with open(self.compressed_backup, "wb") as f:
-                f.write(tarbz2contents)
+                f.write(tar_bz2_contents)
         except subprocess.CalledProcessError as err:
             print('*** Failed to backup database', err.stdout)
             raise
