@@ -4,7 +4,7 @@ from django.utils.translation import gettext_lazy as _
 import kukan.jautils as jau
 from django.db import transaction
 from kukan.anki_dj import AnkiProfile
-from kukan.jautils import JpText
+from kukan.jautils import JpnText
 
 
 class SearchForm(Form):
@@ -117,7 +117,7 @@ class KotowazaForm(BForm):
         kotowaza = cleaned_data.get('kotowaza')
         yomi = cleaned_data.get('yomi')
         furigana = cleaned_data.get('furigana')
-        for error in JpText(kotowaza, yomi, furigana).get_furigana_errors():
+        for error in JpnText.from_furigana_format(furigana, kotowaza, yomi).get_furigana_errors():
             self.add_error('furigana',
                            ValidationError(_('%(error)s'),
                                            code='invalid',

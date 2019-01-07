@@ -9,7 +9,7 @@ from django.http import HttpResponse
 from django.template.loader import render_to_string
 
 from kukan.anki_dj import AnkiProfile
-from kukan.jautils import JpText
+from kukan.jautils import JpnText
 from kukan.templatetags.ja_tags import furigana_ruby
 from .models import Kanji, Example, Yoji
 
@@ -117,12 +117,14 @@ class Exporter:
 
     @staticmethod
     def export_anki_kotowaza(writer):
-        q_set = Example.objects.filter(ex_kind=Example.KOTOWAZA).exclude(kotowaza__yomi='')
+        q_set = (Example.objects.filter(ex_kind=Example.KOTOWAZA)
+                 .exclude(kotowaza__isnull=True)
+                 .exclude(kotowaza__yomi=''))
 
         for example in q_set:
             word = example.word_native if example.word_native != "" else example.word
             yomi = example.yomi_native if example.yomi_native != "" else example.yomi
-            furigana = JpText(word, yomi, example.kotowaza.furigana).get_furigana_simple(word)
+            furigana = JpnText.from_furigana_format(example.kotowaza.furigana, word, yomi).furigana('simple', word)
             sentence = furigana.replace(word, '<span class="font-color01">' + yomi + '</span>')
 
             writer.writerow([example.id,

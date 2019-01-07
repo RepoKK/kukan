@@ -15,7 +15,7 @@ from django.views.generic.base import TemplateView
 from django.views.generic.edit import CreateView, UpdateView, DeleteView
 
 from kukan.exporting import ExporterAsResp
-from kukan.jautils import JpText, JpnText
+from kukan.jautils import JpnText
 from kukan.onlinepedia import DefinitionWordBase
 from .filters import *
 from .forms import SearchForm, ExampleForm, ExportForm, KotowazaForm
@@ -604,16 +604,11 @@ def get_goo(request):
 
 @login_required
 def get_furigana(request):
-    if request.GET.get('format', None) == 'bracket':
-        return JsonResponse({
-            'furigana': JpnText.from_simple_text(request.GET.get('word', '')).furigana() or '[||f]'
-        })
-    else:
-        text = JpText(request.GET.get('word', None), request.GET.get('yomi', None))
-        return JsonResponse({
-            'furigana': text.guess_furigana(),
-            'furigana_notifications': {'items': text.get_furigana_errors(), 'type': 'is-warning'},
-        })
+    text = JpnText.from_text(request.GET.get('word', ''), request.GET.get('yomi', None))
+    return JsonResponse({
+        'furigana': text.furigana() or '[||f]',
+        'furigana_notifications': {'items': text.get_furigana_errors(), 'type': 'is-warning'},
+    })
 
 
 class ExportView(LoginRequiredMixin, generic.FormView):

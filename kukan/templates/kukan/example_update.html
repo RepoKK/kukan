@@ -337,7 +337,6 @@
 
             const params = [
                 `word=${e.value.substr(e.selectionStart, l)}`,
-                `format=bracket`,
             ].join('&')
             axios.get(`/ajax/get_furigana/?${params}`)
                 .then(({ data }) => {

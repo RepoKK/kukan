@@ -5,7 +5,7 @@ import re
 import urllib.parse
 from collections import Counter
 from io import StringIO
-from unittest.mock import mock_open, patch
+from unittest.mock import mock_open, patch, MagicMock
 
 import requests
 from django.conf import settings
@@ -13,18 +13,24 @@ from django.contrib.auth.models import User
 from django.db.models import Count, Q
 from django.test import Client
 from django.test import TestCase
+from django.urls import reverse
 
 from kukan.exporting import Exporter
-from kukan.forms import ExampleForm
-from kukan.jautils import JpnText
-from kukan.models import Kanji, Example, Reading, ExMap, Kanken, YomiJoyo
-from kukan.templatetags.ja_tags import furigana_ruby, furigana_remove, furigana_bracket
+from kukan.forms import ExampleForm, KotowazaForm
+from kukan.jautils import JpnText, hir2kat
+from kukan.models import Kanji, Example, Reading, ExMap, Kanken, YomiJoyo, Kotowaza
+from kukan.templatetags.ja_tags import furigana_ruby, furigana_remove, furigana_bracket, furigana_html
 from kukan.test_helpers import FixtureAppLevel, FixtureKukan, FixWebKukan, PatchRequestsGet
 from kukan.test_helpers import FixtureKanji
 from kukan.jautils import kat2hir
 
 
 class FuriganaTest(TestCase):
+    def setUp(self):
+        User.objects.create_user('test_user', password='pwd')
+        self.client = Client()
+        self.client.post('/login/', {'username': 'test_user', 'password': 'pwd'})
+
     def test_furigana_conversions(self):
         sentence = '[部屋|へや|f]から町を[俯瞰|ふかん|f]する'
         self.assertEqual('部屋から町を俯瞰する', furigana_remove(sentence))
@@ -33,14 +39,216 @@ class FuriganaTest(TestCase):
                          furigana_ruby(sentence))
 
     def test_JpnText(self):
-        sentence = 'ご飯に差し支えない様に'
-        jpn_text = JpnText.from_simple_text(sentence)
-        self.assertEqual('[ご飯|ごはん|f]に[差し支え|さしつかえ|f]ない[様|よう|f]に', jpn_text.furigana())
-        self.assertEqual('ご飯に差し支えない様に', jpn_text.furigana('none'))
-        self.assertEqual('<ruby>ご飯<rt>ごはん</rt></ruby>に<ruby>差し支え<rt>さしつかえ</rt></ruby>ない' +
-                         '<ruby>様<rt>よう</rt></ruby>に',
-                         jpn_text.furigana('ruby'))
-        self.assertEqual('', JpnText.from_simple_text('').furigana())
+
+        # The source_furigana can be set to None, in which case the JpnText will be built from the expected 'bracket'
+        for sentence, exclude, source_furigana, expected_results in [
+            ('ご飯に差し支えない様に', None, None, {
+                'bracket': 'ご[飯|はん|f]に[差し支|さしつか|f]えない[様|よう|f]に',
+                'none': 'ご飯に差し支えない様に',
+                'ruby': ('ご<ruby>飯<rt>はん</rt></ruby>に<ruby>差し支<rt>さしつか</rt></ruby>えない'
+                         '<ruby>様<rt>よう</rt></ruby>に'),
+                'simple': 'ご 飯[はん]に 差し支[さしつか]えない 様[よう]に',
+            }),
+            ('飛花落葉', None, None, {
+                'bracket': '[飛花落葉|ひからくよう|f]',
+                'none': '飛花落葉',
+                'ruby': '<ruby>飛花落葉<rt>ひからくよう</rt></ruby>',
+                'simple': '飛花落葉[ひからくよう]',
+            }),
+            ('平仮名ひらがなカタカナAlphabet', None, None, {
+                'bracket': '[平仮名|ひらがな|f]ひらがなカタカナAlphabet',
+                'none': '平仮名ひらがなカタカナAlphabet',
+                'ruby': '<ruby>平仮名<rt>ひらがな</rt></ruby>ひらがなカタカナAlphabet',
+                'simple': '平仮名[ひらがな]ひらがなカタカナAlphabet',
+            }),
+            ('ひ_カ_A', None, None, {
+                'bracket': 'ひ_カ_A',
+                'none': 'ひ_カ_A',
+                'ruby': 'ひ_カ_A',
+                'simple': 'ひ_カ_A',
+            }),
+            ('一竿の風月。', ['一竿'], '[一竿|いっかん|f]の[風月|ふうげつ|f]', {
+                'bracket': '一竿の[風月|ふうげつ|f]',
+                'none': '一竿の風月',
+                'ruby': '一竿の<ruby>風月<rt>ふうげつ</rt></ruby>',
+                'simple': '一竿の 風月[ふうげつ]',
+            }),
+        ]:
+            jpn_text = JpnText.from_furigana_format(source_furigana or expected_results['bracket'])
+            for kind, expected in expected_results.items():
+                with self.subTest(sentence, kind=kind):
+                    self.assertEqual(expected, jpn_text.furigana(kind, exclude))
+                    if kind == 'bracket':
+                        self.assertEqual(expected, jpn_text.furigana(exclude=exclude))
+
+    def test_get_sub_token_errors(self):
+        for origin, furigana in [
+            ('漢字', ''), ('かな漢字', 'かかんじ'), ('かな', 'かなな'), ('かな', 'かなな'),
+            ('かな漢字', 'かかなかんじ'), ('漢字かな', 'かんじな'), ('漢字かな', 'かんじかなな'),
+            ('かな', '')
+        ]:
+            with self.subTest(origin=origin, furigana=furigana):
+                with patch('kukan.jautils.JpnText.TextToken.__init__') as mock_text_token:
+                    mock_text_token.return_value = None
+                    with self.assertRaises(ValueError):
+                        JpnText.TextToken.get_sub_token(origin, furigana)
+
+    def test_from_text_unit(self):
+        for pattern in ['かな', '漢字', 'かな-漢字', '漢字-かな', 'かな-漢字-かな']:
+            surface = pattern.replace('-', '')
+            reading = pattern.replace('漢字', 'かんじ').replace('-', '')
+            tok_surface = pattern.split('-')
+            tok_reading = [x for x in pattern.replace('かな', '').replace('漢字', 'かんじ').split('-')]
+
+            with self.subTest(pattern=pattern):
+                with patch('kukan.jautils.JpnText.LightTokenizer.tokenize') as mock_tokenize, \
+                        patch('kukan.jautils.JpnText.TextToken.__init__') as mock_text_token, \
+                        patch('kukan.jautils.JpnText._check_furigana'):
+                    mock_tokenize.return_value = [MagicMock(surface=surface, reading=reading.translate(hir2kat))]
+                    mock_text_token.return_value = None
+
+                    JpnText.from_text(surface)
+
+                    self.assertListEqual([(s, r) if r else (s,) for s, r in zip(tok_surface, tok_reading)],
+                                         [x[0] for x in mock_text_token.call_args_list])
+
+        with self.subTest(pattern='empty'):
+            jpn_text = JpnText.from_text('')
+            self.assertEqual('', jpn_text.text)
+
+    def test_from_text_with_tokenize(self):
+        for word_elements, furigana_elements in [
+            (('漢字',), ('かんじ',)),
+            (('お', '世話'), (None, 'せわ')),
+            (('お', '差し支', 'え', 'なけれ', 'ば'), (None, 'さしつか', None, None, None)),
+        ]:
+            word = ''.join(word_elements)
+            with self.subTest(word=word):
+                with patch('kukan.jautils.JpnText.TextToken.__init__') as mock_text_token_init, \
+                        patch('kukan.jautils.JpnText._check_furigana'):
+                    mock_text_token_init.return_value = None
+                    JpnText.from_text(word)
+                    self.assertListEqual([(w, f) if f else (w,) for w, f in zip(word_elements, furigana_elements)],
+                                         [x[0] for x in mock_text_token_init.call_args_list])
+
+    def test_from_ruby(self):
+        for ruby, expected in [
+            ('<ruby>漢字<rt>かんじ</rt></ruby>', '[漢字|かんじ|f]'),
+            ('<ruby>ご飯<rt>ごはん</rt></ruby>に<ruby>差し支え<rt>さしつかえ</rt></ruby>ない',
+             'ご[飯|はん|f]に[差し支|さしつか|f]えない'),
+            ('<ruby>破鏡<rt>はきょう</rt></ruby><ruby>再<rt>ふたた</rt></ruby>び<ruby>照' +
+             '<rt>て</rt></ruby>らさず',
+             '[破鏡|はきょう|f][再|ふたた|f]び[照|て|f]らさず'),
+            ('しくじるは<ruby>稽古<rt>けいこ</rt></ruby>のため。',
+             'しくじるは[稽古|けいこ|f]のため。')
+        ]:
+            with self.subTest(ruby=ruby):
+                self.assertEqual(expected, JpnText.from_ruby(ruby).furigana())
+
+    def test_from_ruby_invalid_input(self):
+        ruby = '<ruby>漢字<rt>かんじ</ruby>'
+        with self.assertRaises(TypeError):
+            JpnText.from_ruby(ruby)
+
+    def test_from_furigana_format(self):
+        for test_text, expected_text, expected_hiragana in [
+            ('[漢字|かんじ|f]', '漢字', 'かんじ'),
+            ('ご[飯|はん|f]に[差し支|さしつか|f]えない', 'ご飯に差し支えない', 'ごはんにさしつかえない'),
+            ('[破鏡|はきょう|f][再|ふたた|f]び[照|て|f]らさず', '破鏡再び照らさず', 'はきょうふたたびてらさず'),
+            ('しくじるは[稽古|けいこ|f]のため。', 'しくじるは稽古のため。', 'しくじるはけいこのため。'),
+            ('ヨリ', 'ヨリ', 'より'),
+        ]:
+            with self.subTest(test_text=test_text):
+                jpn_text = JpnText.from_furigana_format(test_text, expected_text, expected_hiragana)
+                self.assertEqual(expected_hiragana, jpn_text.hiragana())
+                self.assertListEqual([], jpn_text.get_furigana_errors())
+
+    def test_from_furigana_format_errors(self):
+        for test_text, expected_dict, expected_errors in [
+            ('[漢字|かんじ|f]', {'text': '漢字', 'expected_yomi': 'かんじ'}, []),
+            ('[漢字|かんじ|f]', {'expected_yomi': 'かんじ'}, []),
+            ('[漢字|かんじ|f]', {'text': '漢字'}, []),
+            ('[漢字|かんじ|f]', {}, []),
+            ('[漢字|かんじ|f]', {}, []),
+            ('[漢字|かんじ|f]', {'text': '漢字', 'expected_yomi': 'かん'},
+             ['推測振り仮名と元の読み方が合致しない']),
+            ('[漢字|かんじ|f]', {'text': '感じ', 'expected_yomi': 'かんじ'},
+             ['元の文章を復元出来ない: 「漢字」']),
+            ('[漢字|かんじ|f]', {'text': '感じ', 'expected_yomi': 'かん'},
+             ['元の文章を復元出来ない: 「漢字」', '推測振り仮名と元の読み方が合致しない']),
+        ]:
+            with self.subTest(test_text=test_text):
+                jpn_text = JpnText.from_furigana_format(test_text, **expected_dict)
+                self.assertListEqual(expected_errors, jpn_text.get_furigana_errors())
+
+    def test_guess_furigana(self):
+        sentence = '身体は芭蕉の如し、風に従って破れ易し。'
+        yomi = 'しんたいはばしょうのごとし、かぜにしたがってやぶれやすし。'
+        furigana = '[身体|しんたい|f]は[芭蕉|ばしょう|f]の[如|ごと|f]し、' + \
+                   '[風|かぜ|f]に[従|したが|f]って[破|やぶ|f]れ[易|やす|f]し。'
+        jpn_text = JpnText.from_text(sentence)
+        self.assertEqual(sentence, jpn_text.furigana('none'))
+        self.assertEqual(furigana, jpn_text.furigana())
+        self.assertEqual(yomi, jpn_text.hiragana())
+
+        sentence = 'よリ崩れル'
+        yomi = 'ヨリクズレル'
+        furigana = 'よリ[崩|くず|f]れル'
+        jpn_text = JpnText.from_text(sentence)
+        self.assertEqual(sentence, jpn_text.furigana('none'))
+        self.assertEqual(furigana, jpn_text.furigana())
+        self.assertEqual(yomi.translate(kat2hir), jpn_text.hiragana())
+
+        for text, expected_yomi, expected_furigana, expected_errors in [
+            ('漢字', 'かんじ', '[漢字|かんじ|f]', []),
+        ]:
+            with self.subTest(test_text=text):
+                jpn_text = JpnText.from_text(text, expected_yomi)
+                self.assertListEqual(expected_errors, jpn_text.get_furigana_errors())
+                self.assertEqual(expected_furigana, jpn_text.furigana())
+
+    def test_guess_furigana_error_yomi(self):
+        for sentence, expected_yomi, expected_errors in [
+            ('身体', 'からだ', ['推測振り仮名と元の読み方が合致しない'])
+        ]:
+            with self.subTest(sentence=sentence, expected_yomi=expected_yomi):
+                jpn_text = JpnText.from_text(sentence, expected_yomi=expected_yomi)
+                self.assertListEqual(expected_errors, jpn_text.get_furigana_errors())
+
+    def test_guess_furigana_error_kanji(self):
+        with patch('kukan.jautils.JpnText.LightTokenizer.tokenize') as mock_tokenize:
+            mock_tokenize.return_value = [MagicMock(surface='身体', reading='カラダ')]
+            jpn_text = JpnText.from_text('体', expected_yomi='からだ')
+
+            self.assertListEqual(['元の文章を復元出来ない: 「身体」'], jpn_text.get_furigana_errors())
+
+    def test_views_get_furigana(self):
+
+        guess_error_msg = '推測振り仮名と元の読み方が合致しない'
+        for param_dict, expected_response, expected_warnings in [
+            ({'word': '漢字', 'yomi': 'かんじ'}, '[漢字|かんじ|f]', []),
+            ({'word': '漢字'}, '[漢字|かんじ|f]', []),
+            ({'word': '漢字', 'yomi': ''}, '[漢字|かんじ|f]', []),
+            ({'word': '漢字', 'yomi': 'かん'}, '[漢字|かんじ|f]', [guess_error_msg]),
+            ({'word': '', 'yomi': 'かんじ'}, '[||f]', [guess_error_msg]),
+            ({'yomi': 'かん'}, '[||f]', [guess_error_msg]),
+            ({}, '[||f]', []),
+        ]:
+            with self.subTest(**param_dict):
+                response = self.client.get('/ajax/get_furigana/', data={**param_dict})
+                self.assertEqual(expected_response, response.json()['furigana'])
+                self.assertListEqual(expected_warnings, response.json()['furigana_notifications']['items'])
+                self.assertEqual('is-warning', response.json()['furigana_notifications']['type'])
+
+    def test_tag_furigana_html(self):
+        for args, expected_result in [
+            (['漢字', ''], '漢字'),
+            (['', ''], ''),
+            (['漢字', '[漢字|かんじ|f]'], '<ruby>漢字<rt>かんじ</rt></ruby>'),
+            (['漢字', '[漢漢字|かんじ|f]'], '元の文章を復元出来ない: 「漢漢字」'),
+        ]:
+            with self.subTest(args):
+                self.assertEqual(expected_result, furigana_html(*args))
 
 
 class ModelTest(TestCase):
@@ -282,6 +490,39 @@ class TestFixtureFunctions(TestCase):
         self.assertEqual(kukan_fixture.output_dir, os.path.join(settings.BASE_DIR, 'kukan', 'fixtures'))
 
 
+class KotowazaFormTest(TestCase):
+    fixtures = ['baseline', '閲', '覧', '斌', '劉', '遥']
+
+    def setUp(self):
+        User.objects.create_user('test_user', password='pwd')
+        self.client = Client()
+        self.client.post('/login/', {'username': 'test_user', 'password': 'pwd'})
+
+        self.kotowaza = Kotowaza.objects.create(kotowaza='一')
+        Example.objects.create(word='閲覧', yomi='エツラン', kotowaza=self.kotowaza, is_joyo=False, ex_kind=Example.KOTOWAZA)
+
+    def test_form(self):
+
+        form_data = {'kotowaza': '閲覧の風月', 'yomi': 'えつらんのふうげつ',
+                     'furigana': '[閲覧|えつらん|f]の[風月|ふうげつ|f]',
+                     'definition': '説明'}
+        form = KotowazaForm(form_data, instance=self.kotowaza)
+        self.assertTrue(form.is_valid())
+        form.save()
+        self.assertTrue(Kotowaza.objects.filter(**form_data).exists())
+
+    def test_form_error(self):
+        form_data = {'kotowaza': '閲覧の風', 'yomi': 'つらんのふうげつ',
+                     'furigana': '[閲覧|えつらん|f]の[風月|ふうげつ|f]',
+                     'definition': '説明'}
+
+        response = self.client.post(reverse('kukan:kotowaza_update', args=[self.kotowaza.pk]),
+                                    form_data)
+
+        self.assertFormError(response, 'form', 'furigana', '元の文章を復元出来ない: 「閲覧の風月」')
+        self.assertFormError(response, 'form', 'furigana', '推測振り仮名と元の読み方が合致しない')
+
+
 class TestExport(TestCase):
     kanji_per_kyu = '一万丁不久並丈乏且串茅丐'
     fixtures = ['baseline', '汀', '渚', '渚', '覧'] + list(kanji_per_kyu)
@@ -293,6 +534,9 @@ class TestExport(TestCase):
     output_templt_yomi_hyogai = ('{pk}\t"<span class=tag_hyogai>表外</span>{kind}:<span class='
                                  + '""font-color01"">{word}</span>"\t{yomi}\t<p>{definition}</p>\r\n')
     output_templt_yomi = output_templt_yomi_hyogai.replace('<span class=tag_hyogai>表外</span>', '')
+
+    output_templt_kotowaza = ('{pk}\t"{expected_text}"'
+                              '\t{word}\t<p>{kotowaza_definition}</p>\t{kotowaza_yomi}\r\n')
 
     def setUp(self):
         Example.objects.create(word='汀渚', yomi='テイショ', sentence='汀渚', is_joyo=False)
@@ -331,20 +575,39 @@ class TestExport(TestCase):
             res.append(self.create_example_with_reading(kanji_list * (idx + 1), ex_kind[0]))
         return res
 
-    def assert_export_file(self, exporter, number_line, qry, output_template):
+    def assert_export_file(self, exporter, number_line, qry, output_template, **kwargs):
         with patch('builtins.open', mock_open()) as m:
             exporter.export()
             try:
                 self.assertEqual(number_line + 3, len(m.mock_calls))
                 for idx, ex in enumerate(qry):
-                    name, args, kwargs = m.mock_calls[idx + 2]
-                    file_write = args[0]
+                    name, m_args, m_kwargs = m.mock_calls[idx + 2]
+                    file_write = m_args[0]
+                    if ex.ex_kind == Example.KOTOWAZA:
+                        kotowaza_args = {'kotowaza_yomi': ex.kotowaza.yomi,
+                                         'kotowaza_definition': ex.kotowaza.definition}
+                    else:
+                        kotowaza_args = {}
                     self.assertEqual(output_template.format(pk=ex.pk, kind=ex.ex_kind, yomi=ex.yomi, word=ex.word,
-                                                            kanken=ex.kanken, definition=ex.definition),
+                                                            kanken=ex.kanken, definition=ex.definition,
+                                                            **kotowaza_args,
+                                                            **kwargs),
                                      file_write)
             except AssertionError:
                 print('\nList of calls of mock: \n' + str(m.mock_calls))
                 raise
+
+    def test_assert_export_file_function(self):
+        """
+        Test that above assert_export_file helper does return a proper Assertion with list of calls output
+        (mostly for test coverage...)
+        """
+        with patch('builtins.print') as mock_print, \
+                self.assertRaises(AssertionError):
+            self.assert_export_file(Exporter('anki_kaki', 'Fred'), 3,
+                                    Example.objects.filter(ex_kind__in=[Example.KAKI, Example.RUIGI, Example.TAIGI]),
+                                    self.output_templt_kaki_hyogai)
+            mock_print.assert_called_once()
 
     def test_export_issue_9(self):
         with StringIO() as out:
@@ -373,6 +636,21 @@ class TestExport(TestCase):
         self.assert_export_file(Exporter('anki_yomi', 'Fred'), 5,
                                 Example.objects.exclude(ex_kind=Example.KOTOWAZA),
                                 self.output_templt_yomi_hyogai)
+
+    def test_export_kotowaza(self):
+        Example.objects.all().delete()
+        Kotowaza.objects.all().delete()
+
+        kotowaza = Kotowaza.objects.create(kotowaza='一竿の風月', yomi='いっかんのふうげつ',
+                                           furigana='[一竿|いっかん|f]の[風月|ふうげつ|f]', definition='説明')
+        Example.objects.create(word='一竿', yomi='イッカン', kotowaza=kotowaza, is_joyo=False, ex_kind=Example.KOTOWAZA)
+
+        self.create_example_all_kinds([('覧', 'みる')])
+
+        self.assert_export_file(Exporter('anki_kotowaza', 'Fred'), 1,
+                                Example.objects.filter(ex_kind=Example.KOTOWAZA).exclude(kotowaza__isnull=True),
+                                self.output_templt_kotowaza,
+                                expected_text='<span class=""font-color01"">イッカン</span>の 風月[ふうげつ]')
 
     def test_export_all(self):
         Example.objects.all().delete()

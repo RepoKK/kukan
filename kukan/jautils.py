@@ -4,196 +4,23 @@ from multiprocessing.connection import Client
 
 from django.conf import settings
 
-katakana_chart = ("ァアィイゥウェエォオカガキギクグケゲコゴサザシジスズセゼソゾタダチヂッツヅテデトドナニヌネノ"
-                  "ハバパヒビピフブプヘベペホボポマミムメモャヤュユョヨラリルレロヮワヰヱヲンヴヵヶヽヾ")
-hiragana_chart = ("ぁあぃいぅうぇえぉおかがきぎくぐけげこごさざしじすずせぜそぞただちぢっつづてでとどなにぬねの"
-                  "はばぱひびぴふぶぷへべぺほぼぽまみむめもゃやゅゆょよらりるれろゎわゐゑをんゔゕゖゝゞ")
+katakana_chart = ('ァアィイゥウェエォオカガキギクグケゲコゴサザシジスズセゼソゾタダチヂッツヅテデトドナニヌネノ'
+                  'ハバパヒビピフブプヘベペホボポマミムメモャヤュユョヨラリルレロヮワヰヱヲンヴヵヶヽヾ')
+hiragana_chart = ('ぁあぃいぅうぇえぉおかがきぎくぐけげこごさざしじすずせぜそぞただちぢっつづてでとどなにぬねの'
+                  'はばぱひびぴふぶぷへべぺほぼぽまみむめもゃやゅゆょよらりるれろゎわゐゑをんゔゕゖゝゞ')
 
-punctuation_chart = ("。、・")
-alphabet_lower_chart = ("abcdefghijklmnopqrstuvwxyz")
-alphabet_upper_chart = ("ABCDEFGHIJKLMNOPQRSTUVWXYZ")
+punctuation_chart = '。、・'
+alphabet_lower_chart = 'abcdefghijklmnopqrstuvwxyz'
+alphabet_upper_chart = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
 
-fullwidth_digit_chart = ("０１２３４５６７８９")
-halfwidth_digit_chart = ("0123456789")
+fullwidth_digit_chart = '０１２３４５６７８９'
+halfwidth_digit_chart = '0123456789'
 
 hir2kat = str.maketrans(hiragana_chart, katakana_chart)
 hir2nul = dict.fromkeys(map(ord, hiragana_chart), None)
 kat2hir = str.maketrans(katakana_chart, hiragana_chart)
 
 digit_ful2half = str.maketrans(fullwidth_digit_chart, halfwidth_digit_chart)
-
-
-class JpText:
-    class LightTokenizer:
-        """
-        Provide an interface to a resident process in prod, and just using directly the Tokenizer in dev
-
-        The Tokenizer is heavy, and having each of the instance of the Apache instantiating it consume too much RAM
-        """
-
-        full_tokenizer = Tokenizer() if not hasattr(settings, 'JANOME_PORT') else None
-
-        @classmethod
-        def tokenize(cls, text):
-            if cls.full_tokenizer:
-                res = cls.full_tokenizer.tokenize(text)
-            else:
-                with Client(('localhost', settings.JANOME_PORT), authkey=settings.JANOME_KEY) as conn:
-                    conn.send([text])
-                    res = conn.recv()
-            return res
-
-    tokenizer = LightTokenizer()
-
-    class TextToken:
-        tok_regex = re.compile(r'([一-龥].*?\]| .*?\])')
-        kanji_tok_regex = re.compile(r'(^[一-龥].*?)\[(.*)\]')
-
-        def __init__(self, origin, kana=None, is_kanji=False):
-            self.origin = origin
-            self.kana = kana or self.origin
-            self.is_kanji = is_kanji
-
-        def get_simple(self, excluded_token=[]):
-            if self.is_kanji and self.origin not in excluded_token:
-                res = ' {}[{}]'.format(self.origin, self.kana)
-            else:
-                res = self.origin
-            return res
-
-        def get_html(self):
-            if self.is_kanji:
-                res = '<ruby>{}<rt>{}</rt></ruby>'.format(self.origin, self.kana)
-            else:
-                res = self.origin
-            return res
-
-        @classmethod
-        def from_elem(cls, elem):
-            rx_res = cls.kanji_tok_regex.match(elem)
-            if rx_res:
-                text_token_res = cls(rx_res.groups()[0], rx_res.groups()[1], True)
-            else:
-                text_token_res = cls(elem, elem, False)
-            return text_token_res
-
-        @classmethod
-        def from_furigana_text(cls, furigana):
-            tok_list = [t.strip() for t in cls.tok_regex.split(furigana) if t]
-            return [cls.from_elem(t) for t in tok_list]
-
-    def __init__(self, text, yomi=None, furigana=None, token_list=[]):
-        self.text = text
-        self.yomi = yomi
-        self.token_list = token_list
-        # self.furigana = furigana
-        self.furigana_errors = []
-        if furigana and not token_list:
-            self.token_list = self.TextToken.from_furigana_text(furigana)
-        self._check_furigana()
-
-    @classmethod
-    def from_furigana_text(cls, furigana):
-        token_list = cls.TextToken.from_furigana_text(furigana)
-        return cls(''.join([t.origin for t in token_list]),
-                   token_list=token_list)
-
-    @staticmethod
-    def kat2hir(word):
-        return word.translate(kat2hir)
-
-    @staticmethod
-    def tohensu(origin, kana):
-        origin = "".join(origin)
-        kana = "".join(kana)
-        return origin, kana
-
-    @classmethod
-    def kanadelete(cls, origin, kana):
-        origin = list(origin)
-        kana = list(kana)
-        num1 = len(origin)
-        num2 = len(kana)
-        okurigana = ""
-        if origin[num1 - 1] == kana[num2 - 1] and origin[num1 - 2] == kana[num2 - 2]:
-            okurigana = origin[num1 - 2] + origin[num1 - 1]
-            origin[num1 - 1] = ""
-            origin[num1 - 2] = ""
-            kana[num2 - 1] = ""
-            kana[num2 - 2] = ""
-            origin, kana = cls.tohensu(origin, kana)
-        elif origin[num1 - 1] == kana[num2 - 1]:
-            okurigana = origin[num1 - 1]
-            origin[num1 - 1] = ""
-            kana[num2 - 1] = ""
-            origin = "".join(origin)
-            kana = "".join(kana)
-        else:
-            origin, kana = cls.tohensu(origin, kana)
-        return origin, kana, okurigana
-
-    def _check_furigana(self):
-        self.furigana_errors = []
-        reconverted = ''.join([t.origin for t in self.token_list])
-        if not reconverted == self.text:
-            self.furigana_errors.append('元の文章を復元出来ない: 「{}」'.format(reconverted))
-        if self.yomi:
-            if not ''.join([t.kana for t in self.token_list]) == self.kat2hir(self.yomi):
-                self.furigana_errors.append('推測振り仮名と元の読み方が合致しない')
-
-    def guess_furigana(self):
-        self.token_list = []
-        furigana = ''
-        furigana_html = ''
-        for tok in self.tokenizer.tokenize(self.text):
-            origin = tok.surface  # もとの単語を代入
-            kana = self.kat2hir(tok.reading)  # 読み仮名を代入
-            # 正規表現で漢字と一致するかをチェック
-            pattern = "[一-龥]"
-            matchOB = re.search(pattern, origin)
-            # originが空のとき、漢字以外の時はふりがなを振る必要がないのでそのまま出力する
-            if origin != "" and matchOB:
-                # 正規表現で「漢字+仮名」かどうかチェック
-                matchOB_kanji_kana = re.fullmatch(r'(^[一-龥]+)([\u3041 -\u3093]+)', origin)
-                # 正規表現で「仮名+漢字」かどうかチェック
-                matchOB_kana_kanji = re.fullmatch(r'(^[\u3041 -\u3093]+)([一-龥]+)', origin)
-                # 正規表現で「漢字+仮名」の場合
-                if origin != "" and matchOB_kanji_kana:
-                    # 漢字を基準に分割
-                    origin_split = re.split(u'([一-龥]+)', origin)
-                    # 不要な空白を削除
-                    origin_split = [x.strip() for x in origin_split if x.strip()]
-                    # 「送り仮名」を含んだ「読み仮名」から「送り仮名」を後方一致で削除する
-                    kana = kana.rstrip(origin_split[1])
-                    self.token_list.append(self.TextToken(origin_split[0], kana, True))
-                    self.token_list.append(self.TextToken(origin_split[1]))
-                # 正規表現で「仮名+漢字」の場合
-                elif origin != "" and matchOB_kana_kanji:
-                    # 漢字を基準に分割
-                    origin_split = re.split(u'([一-龥]+)', origin)
-                    # 不要な空白を削除
-                    origin_split = [x.strip() for x in origin_split if x.strip()]
-                    # 「行頭の仮名」を含んだ「読み仮名」から「行頭の仮名」を前方一致で削除する
-                    kana = kana.lstrip(origin_split[0])
-                    self.token_list.append(self.TextToken(origin_split[0]))
-                    self.token_list.append(self.TextToken(origin_split[1], kana, True))
-                else:
-                    origin, kana, okurigana = self.kanadelete(origin, kana)
-                    self.token_list.append(self.TextToken(origin, kana, True))
-            else:
-                self.token_list.append(self.TextToken(origin))
-
-        self._check_furigana()
-        return self.get_furigana_simple()
-
-    def get_furigana_errors(self):
-        return self.furigana_errors
-
-    def get_furigana_simple(self, excluded_token=[]):
-        return ''.join([t.get_simple(excluded_token) for t in self.token_list]).strip()
-
-    def get_furigana_html(self):
-        return ''.join([t.get_html() for t in self.token_list])
 
 
 class JpnText:
@@ -226,36 +53,148 @@ class JpnText:
     class TextToken:
 
         def __init__(self, origin, furigana=None):
-            self.kanji = origin
+            self.origin = origin
             self.furigana = furigana.translate(kat2hir) if furigana else None
 
         def furigana_none(self):
-            return self.kanji
+            return self.origin
 
         def furigana_bracket(self):
-            return '[{}|{}|f]'.format(self.kanji, self.furigana) if self.furigana else self.kanji
+            return '[{}|{}|f]'.format(self.origin, self.furigana) if self.furigana else self.origin
 
         def furigana_ruby(self):
-            return '<ruby>{}<rt>{}</rt></ruby>'.format(self.kanji, self.furigana) if self.furigana else self.kanji
+            return '<ruby>{}<rt>{}</rt></ruby>'.format(
+                self.origin, self.furigana) if self.furigana else self.origin
+
+        def furigana_simple(self):
+            return ' {}[{}]'.format(
+                self.origin, self.furigana) if self.furigana else self.origin
+
+        def hiragana(self):
+            return self.furigana or self.origin.translate(kat2hir)
 
         @classmethod
-        def from_token(cls, tok):
-            return cls(tok.surface,
-                       tok.reading if tok.surface.translate(kat2hir) != tok.reading.translate(kat2hir) else None)
+        def get_sub_token(cls, origin, furigana_raw):
+            """
+            Given a text and its corresponding reading, return a list of up to 3 TextItem with the non-kanji text pre
+            and post kanji separated.
+            An Exception is raised is the reading do not match
 
-    def __init__(self, text, token_list=None):
-        self.text = text
-        self.token_list = token_list or []
+            :param origin: the original test (for instance 'お試し')
+            :param furigana_raw: the reading (for instance 'おためし')
+            :return: List of TextToken ([お], [試|ため], [し])
+            """
+
+            token_list = []
+            furigana = furigana_raw.translate(kat2hir)
+
+            sentinel_text = 'sentinel'
+            kanji_pattern = '[一-龥]'
+            if re.search(kanji_pattern, origin):
+                split_token = re.split(u'({}+)'.format(kanji_pattern), '{0}{1}{0}'.format(sentinel_text, origin))
+
+                pre_kanji = split_token[0][len(sentinel_text):] if split_token[0] != sentinel_text else ''
+                post_kanji = split_token[-1][:-len(sentinel_text)] if split_token[-1] != sentinel_text else ''
+
+                kanji = origin[len(pre_kanji):-len(post_kanji) or None]
+                kana = furigana[len(pre_kanji):-len(post_kanji) or None]
+
+                if not all([furigana.startswith(pre_kanji.translate(kat2hir)),
+                            furigana.endswith(post_kanji.translate(kat2hir)),
+                            kanji, kana]):
+                    raise ValueError('origin [{}] does not match furigana [{}]'.format(origin, furigana))
+
+                if pre_kanji:
+                    token_list.append(cls(pre_kanji))
+                token_list.append(cls(kanji, kana))
+                if post_kanji:
+                    token_list.append(cls(post_kanji))
+            else:
+                if origin.translate(kat2hir) != furigana and origin not in katakana_chart:
+                    raise ValueError('origin [{}] does not match furigana [{}]'.format(origin, furigana))
+                token_list = [cls(origin)]
+
+            return token_list
+
+    def __init__(self, text, token_list, expected_yomi=None):
+        self.token_list = token_list
+        self.text = text or self.furigana('none')
+        self.expected_yomi = expected_yomi.translate(kat2hir) if expected_yomi else None
+        self._furigana_errors = []
+        self._check_furigana()
 
     @classmethod
-    def from_simple_text(cls, text):
-        return cls(text, token_list=[cls.TextToken.from_token(tok) for tok in cls.tokenizer.tokenize(text)])
+    def from_text(cls, text, expected_yomi=None):
+        token_list = []
 
-    def furigana(self, kind='bracket'):
+        for tok in cls.tokenizer.tokenize(text):
+                token_list.extend(cls.TextToken.get_sub_token(tok.surface, tok.reading))
+
+        return cls(text, token_list=token_list, expected_yomi=expected_yomi)
+
+    @classmethod
+    def from_ruby(cls, text):
+        token_list = []
+        pattern_all = r'(<ruby>.+?</ruby>)'
+        pattern_sub = r'<ruby>(.+?)<rt>(.*?)</rt></ruby>'
+        for item in re.split(pattern_all, text):
+            if not item:
+                pass
+            elif item[:6] == '<ruby>' and item[-7:] == '</ruby>':
+                match_obj = re.match(pattern_sub, item)
+                token_list.extend(cls.TextToken.get_sub_token(match_obj[1], match_obj[2]))
+            else:
+                token_list.append(cls.TextToken(item))
+
+        return cls(text, token_list=token_list)
+
+    @classmethod
+    def from_furigana_format(cls, furigana_format, text=None, expected_yomi=None):
+        token_list = []
+        pattern_all = r'(\[.+?\|.+?\|f\])'
+        pattern_sub = r'\[(.+?)\|(.+?)\|f\]'
+        for item in re.split(pattern_all, furigana_format):
+            if not item:
+                pass
+            elif item[:1] == '[' and item[-1:] == ']':
+                match_obj = re.match(pattern_sub, item)
+                token_list.extend(cls.TextToken.get_sub_token(match_obj[1], match_obj[2]))
+            else:
+                token_list.append(cls.TextToken(item))
+
+        return cls(text, token_list=token_list, expected_yomi=expected_yomi)
+
+    def furigana(self, kind='bracket', exclude=None):
         """
         Return the Japanese text with its furigana
 
-        :param kind: The type of furigana, possible value: bracket, ruby, none
+        :param kind: The type of furigana, possible value:
+            bracket: '[漢字|かんじ|f] - the 'native' form of the class
+            ruby: '<ruby>漢字<rt>かんじ</rt></ruby>'
+            none: '漢字' (the initial text, no furigana)
+            simple: '漢字[かんじ]' - understood by Anki, space between blocks
+        :param exclude: list of words to exclude from the
         :return: The text with the furigana
         """
-        return ''.join([getattr(t, 'furigana_' + kind)() for t in self.token_list])
+        exclusion_list = exclude or []
+        return ''.join([getattr(t, 'furigana_' + (kind if t.origin not in exclusion_list else 'none'))()
+                        for t in self.token_list]).strip()
+
+    def hiragana(self):
+        """
+        Return the word converted to hiragana (no kanji)
+        :return: String
+        """
+        return ''.join([t.hiragana() for t in self.token_list])
+
+    def _check_furigana(self):
+        self._furigana_errors = []
+        reconverted = self.furigana('none')
+        if self.text != reconverted:
+            self._furigana_errors.append('元の文章を復元出来ない: 「{}」'.format(reconverted))
+        if self.expected_yomi:
+            if self.hiragana() != self.expected_yomi:
+                self._furigana_errors.append('推測振り仮名と元の読み方が合致しない')
+
+    def get_furigana_errors(self):
+        return self._furigana_errors
