@@ -11,6 +11,7 @@ import requests
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.db.models import Count, Q
+from django.http import QueryDict
 from django.test import Client
 from django.test import TestCase
 from django.urls import reverse
@@ -502,7 +503,6 @@ class KotowazaFormTest(TestCase):
         Example.objects.create(word='閲覧', yomi='エツラン', kotowaza=self.kotowaza, is_joyo=False, ex_kind=Example.KOTOWAZA)
 
     def test_form(self):
-
         form_data = {'kotowaza': '閲覧の風月', 'yomi': 'えつらんのふうげつ',
                      'furigana': '[閲覧|えつらん|f]の[風月|ふうげつ|f]',
                      'definition': '説明'}
@@ -827,3 +827,71 @@ class TestFilters(TestCase):
         search_obj = re.search('value(.*)', line)
         self.assertIsNotNone(search_obj)
         self.assertEqual("'{}'".format('Test%20%22%23%24%25%26%27%28%29%22'), search_obj[0][7:-2])
+
+
+class TestIndexView(TestCase):
+    fixtures = ['baseline', '閲', '覧', '斌', '劉', '遥']
+
+    def setUp(self):
+        User.objects.create_user('test_user', password='pwd')
+        self.client = Client()
+        self.client.post('/login/', {'username': 'test_user', 'password': 'pwd'})
+
+    def assertCheckResponse(self, view_name, data, expected_query_string):
+        response = self.client.post(reverse('kukan:index'), follow=True, data=data)
+        base_url = reverse('kukan:{}'.format(view_name))
+        if expected_query_string is None:
+            self.assertRedirects(response, base_url)
+        else:
+            expected_query_string = urllib.parse.quote(expected_query_string, safe='=&')
+            self.assertRedirects(response, '{}?{}'.format(base_url, expected_query_string))
+        # Check the filters are correct
+        request_keys = QueryDict(urllib.parse.unquote(response.request['QUERY_STRING'])).keys()
+        view_filters = [x.label for x in response.context_data['view'].filters]
+        self.assertTrue(all(k in view_filters for k in request_keys))
+
+    def test_search_yoji(self):
+        for search_text, expected_query_string in [
+            ('', None), ('せいせい', '読み=せいせい_位含'), ('生生流転', '漢字=生生流転')
+        ]:
+            with self.subTest(search_text=search_text):
+                if expected_query_string is not None:
+                    expected_query_string = '{}&日課=日課に出る'.format(expected_query_string)
+                self.assertCheckResponse('yoji_list',
+                                         {'search': search_text, 'yoji': '四字熟語'},
+                                         expected_query_string)
+
+    def test_search_kotowaza(self):
+        for search_text, expected_query_string in [
+            ('', None), ('閲覧', '諺=閲覧'), ('覧閲', '諺=覧閲')
+        ]:
+            with self.subTest(search_text=search_text):
+                self.assertCheckResponse('kotowaza_list',
+                                         {'search': search_text, 'kotowaza': '諺'},
+                                         expected_query_string)
+
+    def test_search_example(self):
+        for search_text, expected_query_string in [
+            ('', None), ('せ', '単語=せ'), ('生生流転', '単語=生生流転')
+        ]:
+            with self.subTest(search_text=search_text):
+                self.assertCheckResponse('example_list',
+                                         {'search': search_text, 'example': '諺'},
+                                         expected_query_string)
+
+    def test_search_kanji(self):
+        for search_text, expected_query_string in [
+            ('', None), ('生生流転', '漢字=生生流転'), ('こだわるル', '読み=こだわるる_位始_読両_常全')
+        ]:
+            with self.subTest(search_text=search_text):
+                self.assertCheckResponse('kanji_list',
+                                         {'search': search_text, 'kanji': '漢字'},
+                                         expected_query_string)
+
+        for search_text in [
+            '閲', '閲する', '閲すル'
+        ]:
+            with self.subTest(search_text=search_text):
+                response = self.client.post(reverse('kukan:index'), follow=True, data={'search': search_text})
+                base_url = reverse('kukan:{}'.format('kanji_detail'), args='閲')
+                self.assertRedirects(response, base_url)

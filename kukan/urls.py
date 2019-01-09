@@ -4,7 +4,7 @@ from . import views
 
 app_name = 'kukan'
 urlpatterns = [
-    path('', views.Index.as_view()),
+    path('', views.Index.as_view(), name='index'),
     path('stats', views.StatsPage.as_view(), name='stats'),
 
     path('kanji/list/', views.KanjiListFilter.as_view(), name='kanji_list'),

@@ -31,7 +31,10 @@ class Index(LoginRequiredMixin, generic.FormView):
         if 'yoji' in self.request.POST:
             self.success_url = reverse('kukan:yoji_list')
             if search != '':
-                self.success_url += '?漢字=' + search + '&Anki=Anki'
+                if search.translate(jau.kat2hir).translate(jau.hir2nul) == '':
+                    self.success_url += '?読み=' + search + '_位含' + '&日課=日課に出る'
+                else:
+                    self.success_url += '?漢字=' + search + '&日課=日課に出る'
         elif 'kotowaza' in self.request.POST:
             self.success_url = reverse('kukan:kotowaza_list')
             if search != '':
@@ -43,10 +46,11 @@ class Index(LoginRequiredMixin, generic.FormView):
         else:
             self.success_url = reverse('kukan:kanji_list')
             if search != '':
-                if len(search) == 1 and Kanji.objects.filter(kanji=search).exists():
-                    self.success_url = reverse('kukan:kanji_detail', args=search)
-                elif search.translate(jau.kat2hir).translate(jau.hir2nul) == '':
-                    self.success_url += '?読み=' + search + '_位始_読両_常全'
+                search_no_kana = search.translate(jau.kat2hir).translate(jau.hir2nul)
+                if len(search_no_kana) == 1 and Kanji.objects.filter(kanji=search_no_kana).exists():
+                    self.success_url = reverse('kukan:kanji_detail', args=search_no_kana)
+                elif search_no_kana == '':
+                    self.success_url += '?読み=' + search.translate(jau.kat2hir) + '_位始_読両_常全'
                 else:
                     self.success_url += '?漢字=' + search
         return super().form_valid(form)
@@ -226,7 +230,6 @@ class AjaxList(LoginRequiredMixin, generic.TemplateView):
     def get_extra_json(self, p, page, qry):
         return {}
 
-    # noinspection PyUnusedLocal
     def get_stats(self, qry, p, start_time, end_time):
         return [str(p.count) + ' ' + self.object_counter,
                 'Q:' + '{:d}'.format(int((end_time - start_time)*1000))]
