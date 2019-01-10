@@ -518,7 +518,7 @@ class KotowazaFormTest(TestCase):
 
         response = self.client.post(reverse('kukan:kotowaza_update', args=[self.kotowaza.pk]),
                                     form_data)
-
+        self.assertEqual(response.status_code, 200)
         self.assertFormError(response, 'form', 'furigana', '元の文章を復元出来ない: 「閲覧の風月」')
         self.assertFormError(response, 'form', 'furigana', '推測振り仮名と元の読み方が合致しない')
 

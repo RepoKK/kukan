@@ -491,7 +491,7 @@ def get_yomi(request):
         for ex_map in ExMap.objects.filter(example__pk=ex_id).order_by('map_order'):
             if ex_map.is_ateji:
                 kj_readings[ex_map.kanji.kanji].append((ExMap.ateji_option_disp, 'Ateji_' + ex_map.kanji.kanji))
-            else:
+            elif ex_map.reading:
                 kj_readings[ex_map.kanji.kanji].append((ex_map.reading.reading, ex_map.reading.pk))
 
     joyo_members = {e.map_order: e
