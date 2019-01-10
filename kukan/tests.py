@@ -550,9 +550,9 @@ class TestExport(TestCase):
         """
         if ex_kind == Example.HYOGAI:
             kanji_list = [(kj, r) for kj, r in kanji_list
-                          if (Kanji[kj].kanken >= Kanken['準１級']
+                          if (Kanji.qget(kj).kanken >= Kanken.qget('準１級')
                               or
-                              Reading.objects.get(kanji=kj, reading_simple=r).joyo == YomiJoyo['表外'])]
+                              Reading.objects.get(kanji=kj, reading_simple=r).joyo == YomiJoyo.qget('表外'))]
         if len(kanji_list):
             word = ''.join([x[0] for x in kanji_list])
             reading_selected = ','.join(['Ateji_' + x[0] if x[1] == 'Ateji'

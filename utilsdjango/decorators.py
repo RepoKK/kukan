@@ -29,12 +29,10 @@ class OrderFromAttr:
 class QuickGetKey:
     """
     Class decorator for Django model adding quick access to objects based on a single primary key.
-    Two ways are provided: as a quick get classmethod (qget) and as a square item getter ([])
 
     Example: by adding the @QuickGetKey('reference') decorator to a Book Model, the following statements are equivalent:
         Book.objects.get(reference='ABC')       # Normal Django syntax
         Book.qget('ABC')
-        Book['ABC']
     """
     def __init__(self, key_field):
         self.key_field = key_field
@@ -44,9 +42,6 @@ class QuickGetKey:
             return cls.objects.get(**{cls.key_field: key})
 
         decorated_class.key_field = self.key_field
-        # Adding a getitem on the Metaclass allow for selecting the quick key with brackets
-        if getattr(ModelBase, '__getitem__', None) is None:
-            ModelBase.__getitem__ = _qget
         decorated_class.qget = classmethod(_qget)
 
         return decorated_class
