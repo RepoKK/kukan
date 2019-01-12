@@ -453,6 +453,19 @@ class ExampleFormTest(TestCase):
         ex_map.save()
         self.assertTrue(self.call_get_yomi('覧閲', '覧閲', '', [None, None]).json()['reading_data'][1]['joyo'])
 
+    def test_get_yomi_exmap_no_reading(self):
+        """
+        Test for issue #42: exception in case an Example has link to kanji, but not to the actual reading
+        These examples come from automatic import of website tests, and didn't have reading attached.
+        """
+        ex = Example.objects.create(word='劉遥', yomi='リュウヨウ', sentence='劉遥を含む文', is_joyo=False)
+        ExMap.objects.create(example=ex, kanji=Kanji.qget('劉'), is_ateji=False, in_joyo_list=False, map_order=1)
+
+        response = self.call_get_yomi('劉遥', '劉遥')
+
+        self.assertEqual(2, len(response.json()['reading_data']))
+        self.assertListEqual([None, None], response.json()['reading_selected'])
+
 
 class TestFixtureFunctions(TestCase):
     fixtures = ['baseline', '閲', '渚', '渚']
