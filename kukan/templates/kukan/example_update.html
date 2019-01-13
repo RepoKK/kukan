@@ -231,7 +231,7 @@
             ].join('&')
             axios.get(`/ajax/set_yomi/?${params}`)
                 .then(({ data }) => {
-                    if (data.candidate) {
+                    if (Array.isArray(data.candidate) && data.candidate.length) {
                         this.reading_selected = data.candidate
                     } else {
                         this.$toast.open({
