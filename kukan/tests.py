@@ -466,6 +466,39 @@ class ExampleFormTest(TestCase):
         self.assertEqual(2, len(response.json()['reading_data']))
         self.assertListEqual([None, None], response.json()['reading_selected'])
 
+    def test_get_yomi_missing_args(self):
+        expected = {'reading_selected': [], 'reading_data': []}
+        for data in [
+            {'word': '', 'ex_id': 2, 'reading_selected': [7463, 6422]},
+            {'word': '', 'ex_id': 2},
+            {},
+            {'reading_selected': [7463, 6422]},
+            {'ex_id': 2, 'reading_selected': [7463, 6422]},
+        ]:
+            with self.subTest(data):
+                response = self.client.get('/ajax/get_yomi/', data=data)
+                self.assertEqual(200, response.status_code)
+                self.assertEqual(expected, response.json())
+
+    def test_set_yomi(self):
+        for data, expected in [
+            ({'word': '閲覧', 'yomi': 'えつらん'}, {'candidate': [7463, 6422]}),
+            ({'word': '閲覧', 'yomi': 'エツラン'}, {'candidate': [7463, 6422]}),
+            ({'word': '閲覧', 'word_native': '閲覧する', 'yomi': 'えつらん'}, {'candidate': [7463, 6422]}),
+            ({'word': '閲覧閲覧', 'yomi': 'エツランエツラン'}, {'candidate': [7463, 6422, 7463, 6422]}),
+            ({'word': '閲する', 'yomi': 'けみする'}, {'candidate': [7464]}),
+            ({'word': '', 'yomi': ''}, {'candidate': []}),
+            ({'word': ''}, {'candidate': []}),
+            ({'word': '閲覧'}, {'candidate': []}),
+            ({'yomi': ''}, {'candidate': []}),
+            ({'yomi': 'エツラン'}, {'candidate': []}),
+            ({}, {'candidate': []}),
+        ]:
+            with self.subTest(data):
+                response = self.client.get('/ajax/set_yomi/', data=data)
+                self.assertEqual(200, response.status_code)
+                self.assertEqual(expected, response.json())
+
 
 class TestFixtureFunctions(TestCase):
     fixtures = ['baseline', '閲', '渚', '渚']
@@ -615,12 +648,10 @@ class TestExport(TestCase):
         Test that above assert_export_file helper does return a proper Assertion with list of calls output
         (mostly for test coverage...)
         """
-        with patch('builtins.print') as mock_print, \
-                self.assertRaises(AssertionError):
+        with patch('builtins.print'),  self.assertRaises(AssertionError):
             self.assert_export_file(Exporter('anki_kaki', 'Fred'), 3,
                                     Example.objects.filter(ex_kind__in=[Example.KAKI, Example.RUIGI, Example.TAIGI]),
                                     self.output_templt_kaki_hyogai)
-            mock_print.assert_called_once()
 
     def test_export_issue_9(self):
         with StringIO() as out:

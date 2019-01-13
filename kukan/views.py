@@ -1,3 +1,5 @@
+import itertools as it
+import re
 import time
 from collections import defaultdict, deque
 from functools import reduce
@@ -107,8 +109,9 @@ class TableData:
                 'visible': True
             }
             self.get_choice_display = None
-            if in_props['name'] in [x.name for x in model._meta.get_fields()]:
-                fld = model._meta.get_field(in_props['name'])
+            meta = getattr(model, '_meta')
+            if in_props['name'] in [x.name for x in meta.get_fields()]:
+                fld = meta.get_field(in_props['name'])
                 if self.props['type'] == '':
                     var_type = ''
                     if fld.get_internal_type() == 'BooleanField':
@@ -230,6 +233,7 @@ class AjaxList(LoginRequiredMixin, generic.TemplateView):
     def get_extra_json(self, p, page, qry):
         return {}
 
+    # noinspection PyUnusedLocal
     def get_stats(self, qry, p, start_time, end_time):
         return [str(p.count) + ' ' + self.object_counter,
                 'Q:' + '{:d}'.format(int((end_time - start_time)*1000))]
@@ -473,11 +477,9 @@ def yoji_anki(request):
 
 @login_required
 def get_yomi(request):
-    word = request.GET.get('word_native', None)
-    if word is None or word == '':
-        word = request.GET.get('word', None)
+    word = request.GET.get('word', '')
     ex_id = request.GET.get('ex_id', None)
-    readings_input = request.GET.get('reading_selected', None)
+    readings_input = request.GET.get('reading_selected', '')
     kj_readings = defaultdict(deque)
 
     if readings_input.replace(',', '') != '':
@@ -500,10 +502,7 @@ def get_yomi(request):
     readings_output = []
     list_of_reading_data = []
     for idx, kj in enumerate(word):
-        try:
-            kanji = Kanji.objects.get(kanji=kj)
-        except Kanji.DoesNotExist:
-            continue
+        kanji = Kanji.qget(kj)
         reading_data = {
             'kanji': kj, 'kyu': kanji.kanken.kyu,
             'example_num': kanji.exmap_set.exclude(example__sentence='').count(),
@@ -535,32 +534,14 @@ def get_yomi(request):
 
 @login_required
 def set_yomi(request):
-    word = request.GET.get('word', None)
-    word_native = request.GET.get('word_native', None)
-    if word_native is not None and word_native != '':
-        word = word_native
-    yomi = request.GET.get('yomi', None)
-    yomi = yomi.translate(jau.hir2kat)
+    word = request.GET.get('word', '')
+    yomi = request.GET.get('yomi', '').translate(jau.hir2kat)
 
-    lst_reading = []
-    lst_id = []
-    for kj in word:
-        readings = [x.reading.translate(jau.hir2kat).translate({ord(c): None for c in '（）'})
-                    for x in Reading.objects.filter(kanji=kj)]
-        if readings:
-            lst_reading.append(readings)
-            lst_id.append([x.id for x in Reading.objects.filter(kanji=kj)])
+    data = {'candidate': []}
+    for candidate in it.product(*filter(None, (Reading.objects.filter(kanji=kj) for kj in word))):
+        if ''.join([re.sub('[（）]', '', r.reading.translate(jau.hir2kat)) for r in candidate]) == yomi:
+            data = {'candidate': [r.id for r in candidate]}
 
-    candidate = reduce(lambda a, b: [x + y for x in a for y in b], lst_reading)
-    candidate_id = reduce(lambda a, b: [([x] if isinstance(x, int) else x) + [y] for x in a for y in b], lst_id)
-    data = {'candidate': None}
-    if yomi in candidate:
-        idx = candidate.index(yomi)
-        ids = candidate_id[idx]
-        # For the case there's only one element - will not be included in a list, so add it here
-        if not type(ids) is list:
-            ids = [ids]
-        data = {'candidate': ids}
     return JsonResponse(data)
 
 
