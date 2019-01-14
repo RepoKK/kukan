@@ -502,7 +502,10 @@ def get_yomi(request):
     readings_output = []
     list_of_reading_data = []
     for idx, kj in enumerate(word):
-        kanji = Kanji.qget(kj)
+        try:
+            kanji = Kanji.qget(kj)
+        except Kanji.DoesNotExist:
+            continue
         reading_data = {
             'kanji': kj, 'kyu': kanji.kanken.kyu,
             'example_num': kanji.exmap_set.exclude(example__sentence='').count(),

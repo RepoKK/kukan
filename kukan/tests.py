@@ -466,6 +466,19 @@ class ExampleFormTest(TestCase):
         self.assertEqual(2, len(response.json()['reading_data']))
         self.assertListEqual([None, None], response.json()['reading_selected'])
 
+    def test_get_yomi_okurigana(self):
+        """
+        Test for issue #44
+        """
+        response = self.client.get('/ajax/get_yomi/', data={'word': '閲する覧'})
+        self.assertEqual(200, response.status_code)
+        self.assertListEqual([None, None], response.json()['reading_selected'])
+
+        response = self.client.get('/ajax/get_yomi/',
+                                   data={'word': '閲する覧', 'reading_selected': '7463, 6422'})
+        self.assertEqual(200, response.status_code)
+        self.assertListEqual([7463, 6422], response.json()['reading_selected'])
+
     def test_get_yomi_missing_args(self):
         expected = {'reading_selected': [], 'reading_data': []}
         for data in [
