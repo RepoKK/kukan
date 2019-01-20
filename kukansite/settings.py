@@ -37,9 +37,9 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'widget_tweaks',
     'django.forms',
     'kukan',
+    'utils_django'
 ]
 
 MIDDLEWARE = [
@@ -138,6 +138,40 @@ X_FRAME_OPTIONS = 'DENY'
 # Redirect to home URL after login (Default redirects to /accounts/profile/)
 LOGIN_URL = '/login'
 LOGIN_REDIRECT_URL = '/'
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'default_file': {
+            'level': 'DEBUG',
+            'class': 'logging.handlers.TimedRotatingFileHandler',
+            'filename': os.path.join(BASE_DIR, 'logs', 'info.log'),
+            'encoding': 'utf-8',
+            'when': 'W0',
+            'backupCount': 5,
+            'formatter': 'default_format',
+        },
+        'mail_admins': {
+            'level': 'ERROR',
+            'class': 'django.utils.log.AdminEmailHandler',
+        }
+    },
+    'formatters': {
+          'default_format': {
+              'format': '{asctime}.{msecs:03.0f} {levelname:<8} [{module}.{funcName}] {message}',
+              'datefmt': '%Y%m%d %H:%M:%S',
+              'style': '{',
+          }
+    },
+    'loggers': {
+        'kukan': {
+            'handlers': ['default_file', 'mail_admins'],
+            'level': 'DEBUG',
+            'propagate': True,
+        },
+    },
+}
 
 try:
     from kukansite.settings_prod import *

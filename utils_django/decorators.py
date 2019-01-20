@@ -1,6 +1,3 @@
-from django.db.models.base import ModelBase
-
-
 class OrderFromAttr:
     """
     Class decorator adding rich comparison methods based on one attribute of the class

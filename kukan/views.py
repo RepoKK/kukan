@@ -1,4 +1,5 @@
 import itertools as it
+import logging
 import re
 import time
 from collections import defaultdict, deque
@@ -22,6 +23,8 @@ from kukan.onlinepedia import DefinitionWordBase
 from .filters import *
 from .forms import SearchForm, ExampleForm, ExportForm, KotowazaForm
 from .models import Kanji, Reading, Example, ExMap, Yoji, TestResult, Kotowaza
+
+logger = logging.getLogger(__name__)
 
 
 class Index(LoginRequiredMixin, generic.FormView):
@@ -574,6 +577,8 @@ def get_goo(request):
         word = request.GET.get('word', None)
     link = request.GET.get('link', None)
 
+    logger.info('word: [{}], link: [{}]'.format(word, link))
+
     if link:
         definition_word = DefinitionWordBase.from_link(link)
     else:
@@ -585,6 +590,8 @@ def get_goo(request):
         definition, yomi, candidates = None, None, []
 
     data = {'definition': definition, 'reading': yomi, 'candidates': candidates if len(candidates) > 0 else ''}
+
+    logger.info('data: {}'.format(data))
 
     return JsonResponse(data)
 

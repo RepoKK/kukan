@@ -20,6 +20,7 @@
           <option value="django.db.models.fields.related.ForeignKey.kyu" />
           <option value="kukan.models.KoukiBushu.objects" />
           <option value="kukan.models.Kotowaza.objects" />
+          <option value="utils_django.models.ManagementCommandRun.objects" />
         </list>
       </option>
     </inspection_tool>

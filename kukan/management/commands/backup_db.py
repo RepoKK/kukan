@@ -1,5 +1,6 @@
 import bz2
 import datetime
+import logging
 import os
 import subprocess
 
@@ -7,6 +8,9 @@ import dropbox
 from django.conf import settings
 from django.core.management.base import BaseCommand
 from django.db import connection
+from dropbox import exceptions, files
+
+logger = logging.getLogger(__name__)
 
 
 # Backup strategy:
@@ -31,8 +35,9 @@ class DbBackup:
         self.filename = 'db.sqlite3_{}'.format(self.backup_date)
         self.backup_path = os.path.join(settings.DB_BACKUP, self.filename)
         self.compressed_backup = self.backup_path + '.bz2'
-        self.daily_keep_cutoff = (
-                today - datetime.timedelta(days=self.daily_days_to_keep)).strftime('%Y-%m-%d')
+        self.string_format = (today - datetime.timedelta(days=self.daily_days_to_keep)).strftime('%Y-%m-%d')
+        self.daily_keep_cutoff = self.string_format
+        logger.info('Backup %s, remove daily backup older than %s', self.backup_date, self.daily_keep_cutoff)
 
     def _db_backup(self):
         os_cmd = 'sqlite3 {} ".backup \'{}\'"'.format(self.db_name, self.backup_path)
@@ -43,15 +48,18 @@ class DbBackup:
                 f.write(tar_bz2_contents)
         except subprocess.CalledProcessError as err:
             print('*** Failed to backup database', err.stdout)
+            logger.error('Failed to backup database: %s', err.output)
             raise
 
     def _upload_file_to_dropbox(self, source_file, destination_dir):
         with open(source_file, 'rb') as f:
             data = f.read()
         try:
-            self.dbx.files_upload(data, destination_dir, dropbox.files.WriteMode.overwrite, mute=True)
-        except dropbox.exceptions.ApiError as err:
+            self.dbx.files_upload(data, destination_dir, files.WriteMode.overwrite, mute=True)
+        except exceptions.ApiError as err:
             print('*** Dropbox API error', err)
+            # TODO https://www.dropboxforum.com/t5/API-Support-Feedback/How-do-I-make-apiError-as-a-string/td-p/224964
+            logger.error('Dropbox API error: %s', err)
             raise
 
     def _upload_to_dropbox(self):
@@ -66,6 +74,7 @@ class DbBackup:
         for e in ([e for e in self.dbx.files_list_folder(self.dbx_daily_folder).entries
                    if e.name[-14:-4] < self.daily_keep_cutoff]):
             self.dbx.files_delete_v2(e.path_lower)
+            logger.error('Remove file: %s', e.path_lower)
 
     def backup_and_upload(self):
         self._set_backup_day()

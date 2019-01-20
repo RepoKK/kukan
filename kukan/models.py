@@ -10,7 +10,7 @@ from django.urls import reverse
 from django.utils.functional import cached_property
 
 import kukan.jautils as jau
-from utilsdjango.decorators import OrderFromAttr, QuickGetKey
+from utils_django.decorators import OrderFromAttr, QuickGetKey
 
 
 class Classification(models.Model):
