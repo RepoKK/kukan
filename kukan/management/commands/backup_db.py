@@ -6,9 +6,10 @@ import subprocess
 
 import dropbox
 from django.conf import settings
-from django.core.management.base import BaseCommand
 from django.db import connection
 from dropbox import exceptions, files
+
+from utils_django.management_command import FBaseCommand
 
 logger = logging.getLogger(__name__)
 
@@ -82,11 +83,11 @@ class DbBackup:
         self._upload_to_dropbox()
 
 
-class Command(BaseCommand):
+class Command(FBaseCommand):
     help = 'Backup SQLite file to Dropbox'
 
     def add_arguments(self, parser):
         pass
 
-    def handle(self, *args, **options):
+    def handle_cmd(self, *args, **options):
         DbBackup().backup_and_upload()
