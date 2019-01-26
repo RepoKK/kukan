@@ -55,7 +55,7 @@ class Command(FBaseCommand):
             except KeyError as e:
                 self.stdout.write('Key {} not found in config: {}'.format(e, cfg))
                 return ''
-        return '\n'.join(list_cfg_string)
+        return '\n'.join(list_cfg_string) + '\n'
 
     def handle_cmd(self, *args, **options):
         cron_content = self.get_all_configs()

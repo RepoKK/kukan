@@ -325,7 +325,7 @@ class TestSetCron(TestCase):
             self.assertEqual(
                 ('Generated cron:\n' +
                  '05 12 * * 1-5 source {v}; python base/manage.py test_cmd --arg_a U --arg_b 1\n' +
-                 '01 12 * * 1-5 source {v}; python base/manage.py cmd2 --arg_a V\n' +
+                 '01 12 * * 1-5 source {v}; python base/manage.py cmd2 --arg_a V\n\n' +
                  'Use the --exec flag to replace existing cron\n').format(v=self.virtual_env),
                 out.getvalue()
             )
@@ -342,7 +342,7 @@ class TestSetCron(TestCase):
 
             self.assertEqual(
                 ('Generated cron:\n' +
-                 '05 12 * * 1-5 source {}; python base/manage.py test_cmd\n' +
+                 '05 12 * * 1-5 source {}; python base/manage.py test_cmd\n\n' +
                  'Use the --exec flag to replace existing cron\n').format(self.virtual_env),
                 out.getvalue()
             )
@@ -366,7 +366,7 @@ class TestSetCron(TestCase):
             call_command('set_cron', stdout=out)
             self.assertEqual(
                 ('Generated cron:\n' +
-                 '05 12 * * 1-5 my_own_cmd --A 1\n' +
+                 '05 12 * * 1-5 my_own_cmd --A 1\n\n' +
                  'Use the --exec flag to replace existing cron\n').format(self.virtual_env),
                 out.getvalue()
             )
@@ -377,9 +377,9 @@ class TestSetCron(TestCase):
             with patch('utils_django.management.commands.set_cron.subprocess') as mock_sp:
                 call_command('set_cron', '--exec', stdout=out)
                 self.assertEqual(
-                    (b'05 12 * * 1-5 source e:\\django\\kukan\\venv\\bin\\activate; '
-                     b'python base/manage.py test_cmd'),
-                    mock_sp.Popen.mock_calls[1][1][0]
+                    ('05 12 * * 1-5 source {}; '
+                     'python base/manage.py test_cmd\n'.format(self.virtual_env)),
+                    mock_sp.Popen.mock_calls[1][1][0].decode()
                 )
 
             self.assertEqual(
