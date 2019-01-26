@@ -75,7 +75,7 @@ class DbBackup:
         for e in ([e for e in self.dbx.files_list_folder(self.dbx_daily_folder).entries
                    if e.name[-14:-4] < self.daily_keep_cutoff]):
             self.dbx.files_delete_v2(e.path_lower)
-            logger.error('Remove file: %s', e.path_lower)
+            logger.info('Remove file: %s', e.path_lower)
 
     def backup_and_upload(self):
         self._set_backup_day()

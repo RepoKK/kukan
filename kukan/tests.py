@@ -16,6 +16,7 @@ from django.test import Client
 from django.test import TestCase
 from django.urls import reverse
 
+from kukan.apps import kukanConfig
 from kukan.exporting import Exporter
 from kukan.forms import ExampleForm, KotowazaForm
 from kukan.jautils import JpnText, hir2kat
@@ -24,6 +25,11 @@ from kukan.templatetags.ja_tags import furigana_ruby, furigana_remove, furigana_
 from kukan.test_helpers import FixtureAppLevel, FixtureKukan, FixWebKukan, PatchRequestsGet
 from kukan.test_helpers import FixtureKanji
 from kukan.jautils import kat2hir
+
+
+class TestUtilsDjangoApps(TestCase):
+    def test_apps(self):
+        self.assertEqual(kukanConfig.name, 'kukan')
 
 
 class FuriganaTest(TestCase):

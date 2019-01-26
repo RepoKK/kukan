@@ -1,8 +1,8 @@
 import logging
 import os
 import time
+from contextlib import contextmanager
 
-from decorator import contextmanager
 from django.conf import settings
 from django.core.management import BaseCommand
 
@@ -65,8 +65,8 @@ class FBaseCommand(BaseCommand):
         if rec:
             self.logger.error('Failed to run {}, already running command: {}'.format(self.cmd_name, rec))
             raise self.CommandInProgress(rec)
-        ManagementCommandRun.objects.get_or_create(cmd_name=self.cmd_name, cmd_pid=os.getpid())
         try:
+            ManagementCommandRun.objects.create(cmd_name=self.cmd_name, cmd_pid=os.getpid())
             self.set_command_logger()
             yield None
         finally:

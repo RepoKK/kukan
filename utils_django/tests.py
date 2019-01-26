@@ -2,13 +2,15 @@ import datetime
 import glob
 import logging
 import os
-from unittest import TestCase
+import sys
+import unittest
+from contextlib import contextmanager
+from io import StringIO
 from unittest.mock import patch
 
-from decorator import contextmanager
 from django.conf import settings
 from django.core.management import call_command
-from django.test import SimpleTestCase
+from django.test import SimpleTestCase, override_settings, TestCase
 from freezegun import freeze_time
 from pyfakefs.fake_filesystem_unittest import TestCaseMixin
 
@@ -294,9 +296,94 @@ class TestFBaseCommand(TestCase, TestCaseMixin):
         self.assertFalse(ManagementCommandRun.objects.exists())
 
 
-class TestVacuum(TestCase, TestCaseMixin):
+class TestVacuum(unittest.TestCase, TestCaseMixin):
     def setUp(self):
         self.setUpPyfakefs()
 
     def test_vacuum(self):
         call_command('vacuum_sqlite')
+
+
+@override_settings(BASE_DIR='base')
+class TestSetCron(TestCase):
+    def setUp(self):
+        self.virtual_env = os.path.join(sys.exec_prefix, 'bin', 'activate')
+
+    def test_get_cron_stings(self):
+        test_setting = [
+            {'schedule': '05 12 * * 1-5',
+             'command': 'test_cmd',
+             'arguments': {'arg_a': 'U', 'arg_b': 1}},
+            {'schedule': '01 12 * * 1-5',
+             'command': 'cmd2',
+             'arguments': {'arg_a': 'V'}}
+        ]
+        with override_settings(CRON_CFG=test_setting):
+            out = StringIO()
+            call_command('set_cron', stdout=out)
+
+            self.assertEqual(
+                ('Generated cron:\n' +
+                 '05 12 * * 1-5 source {v}; python base/manage.py test_cmd --arg_a U --arg_b 1\n' +
+                 '01 12 * * 1-5 source {v}; python base/manage.py cmd2 --arg_a V\n' +
+                 'Use the --exec flag to replace existing cron\n').format(v=self.virtual_env),
+                out.getvalue()
+            )
+
+    def test_get_cron_stings_no_args(self):
+        test_setting = [
+            {'schedule': '05 12 * * 1-5',
+             'command': 'test_cmd'}
+        ]
+
+        with override_settings(CRON_CFG=test_setting):
+            out = StringIO()
+            call_command('set_cron', stdout=out)
+
+            self.assertEqual(
+                ('Generated cron:\n' +
+                 '05 12 * * 1-5 source {}; python base/manage.py test_cmd\n' +
+                 'Use the --exec flag to replace existing cron\n').format(self.virtual_env),
+                out.getvalue()
+            )
+
+    def test_missing_key(self):
+        with override_settings(CRON_CFG=[{'command': 'test_cmd'}]):
+            out = StringIO()
+            call_command('set_cron', stdout=out)
+
+            self.assertEqual(
+                "Key 'schedule' not found in config: {'command': 'test_cmd'}\n",
+                out.getvalue()
+            )
+
+    def test_non_django(self):
+        with override_settings(CRON_CFG=[{'schedule': '05 12 * * 1-5',
+                                          'command': 'my_own_cmd',
+                                          'non_django': True,
+                                          'arguments': {'A': 1}}]):
+            out = StringIO()
+            call_command('set_cron', stdout=out)
+            self.assertEqual(
+                ('Generated cron:\n' +
+                 '05 12 * * 1-5 my_own_cmd --A 1\n' +
+                 'Use the --exec flag to replace existing cron\n').format(self.virtual_env),
+                out.getvalue()
+            )
+
+    def test_exec(self):
+        with override_settings(CRON_CFG=[{'schedule': '05 12 * * 1-5', 'command': 'test_cmd'}]):
+            out = StringIO()
+            with patch('utils_django.management.commands.set_cron.subprocess') as mock_sp:
+                call_command('set_cron', '--exec', stdout=out)
+                self.assertEqual(
+                    (b'05 12 * * 1-5 source e:\\django\\kukan\\venv\\bin\\activate; '
+                     b'python base/manage.py test_cmd'),
+                    mock_sp.Popen.mock_calls[1][1][0]
+                )
+
+            self.assertEqual(
+                ('Set cron as:\n' +
+                 '05 12 * * 1-5 source {}; python base/manage.py test_cmd\n').format(self.virtual_env),
+                out.getvalue()
+            )

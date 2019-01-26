@@ -139,6 +139,28 @@ X_FRAME_OPTIONS = 'DENY'
 LOGIN_URL = '/login'
 LOGIN_REDIRECT_URL = '/'
 
+CRON_CFG = [
+    {
+        'schedule': '03 03  * * 0-6',
+        'command': 'backup_db',
+    },
+    {
+        'schedule': '04 04  * * 0-6',
+        'command': 'sync_anki',
+    },
+    {
+        'schedule': '23 01 15 * *  ',
+        'command': 'certbot renew',
+        'non_django': True,
+        'arguments': {
+            'config-dir': '/home/fred/letsencrypt/config',
+            'work-dir': '/home/fred/letsencrypt/work/',
+            'logs-dir': '/home/fred/letsencrypt/logs/',
+            'post-hook': '"sudo systemctl restart httpd.service"'
+        }
+    },
+]
+
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
@@ -147,6 +169,7 @@ LOGGING = {
             'level': 'DEBUG',
             'class': 'logging.handlers.TimedRotatingFileHandler',
             'filename': os.path.join(BASE_DIR, 'logs', 'info.log'),
+            'delay': True,
             'encoding': 'utf-8',
             'when': 'W0',
             'backupCount': 5,
