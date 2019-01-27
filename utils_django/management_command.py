@@ -15,6 +15,8 @@ class FBaseCommand(BaseCommand):
     # The time, in minute, before a warning is raised (note: currently the warning is raised once the task finishes)
     warning_time = 5
     backup_count = 20
+    use_lock = True
+
     default_handler_name = 'default_file'
     log_dir = os.path.join(settings.BASE_DIR, 'logs')
 
@@ -73,9 +75,16 @@ class FBaseCommand(BaseCommand):
             ManagementCommandRun.objects.all().delete()
             self.remove_command_logger()
 
+    @contextmanager
+    def log_only(self):
+        self.set_command_logger()
+        yield None
+        self.remove_command_logger()
+
     def handle(self, *args, **options):
         start_time = time.time()
-        with self.command_lock():
+        lock_function = self.command_lock if self.use_lock else self.log_only
+        with lock_function():
             self.logger.info("Start execution of command %s", self.cmd_name)
             self.logger.info("Options: %s", options)
             self.handle_cmd(self, *args, **options)

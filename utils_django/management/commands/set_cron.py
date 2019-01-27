@@ -17,6 +17,7 @@ class Command(FBaseCommand):
             'arguments': {
                 'arg_1': 'value',
                 'arg_2': 'value',
+                'arg_flag': None,           # For flag-type arguments, without value
             }
         },
         ...
@@ -45,7 +46,7 @@ class Command(FBaseCommand):
         else:
             base = self.base_string.format(cfg['schedule'], settings.BASE_DIR, cfg['command'])
 
-        return ' '.join([base] + ['--{} {}'.format(k, v) for k, v in cfg.get('arguments', {}).items()])
+        return ' '.join([base] + [f'--{k}{" " + str(v) if v else ""}' for k, v in cfg.get('arguments', {}).items()])
 
     def get_all_configs(self):
         list_cfg_string = []

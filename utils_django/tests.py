@@ -316,7 +316,7 @@ class TestSetCron(TestCase):
              'arguments': {'arg_a': 'U', 'arg_b': 1}},
             {'schedule': '01 12 * * 1-5',
              'command': 'cmd2',
-             'arguments': {'arg_a': 'V'}}
+             'arguments': {'arg_a': 'V', 'arg_flag': None}}
         ]
         with override_settings(CRON_CFG=test_setting):
             out = StringIO()
@@ -325,7 +325,7 @@ class TestSetCron(TestCase):
             self.assertEqual(
                 ('Generated cron:\n' +
                  '05 12 * * 1-5 source {v}; python base/manage.py test_cmd --arg_a U --arg_b 1\n' +
-                 '01 12 * * 1-5 source {v}; python base/manage.py cmd2 --arg_a V\n\n' +
+                 '01 12 * * 1-5 source {v}; python base/manage.py cmd2 --arg_a V --arg_flag\n\n' +
                  'Use the --exec flag to replace existing cron\n').format(v=self.virtual_env),
                 out.getvalue()
             )
@@ -387,3 +387,13 @@ class TestSetCron(TestCase):
                  '05 12 * * 1-5 source {}; python base/manage.py test_cmd\n').format(self.virtual_env),
                 out.getvalue()
             )
+
+
+class TestClearCmdLock(TestCase):
+    def setUp(self):
+        ManagementCommandRun.objects.create(cmd_name='test_cmd', cmd_pid=1234)
+
+    def test_command(self):
+        self.assertTrue(ManagementCommandRun.objects.exists())
+        call_command('clear_cmd_lock')
+        self.assertFalse(ManagementCommandRun.objects.exists())
