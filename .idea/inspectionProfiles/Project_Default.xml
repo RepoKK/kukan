@@ -21,6 +21,7 @@
           <option value="kukan.models.KoukiBushu.objects" />
           <option value="kukan.models.Kotowaza.objects" />
           <option value="utils_django.models.ManagementCommandRun.objects" />
+          <option value="kukan.models.Example.exmap_set" />
         </list>
       </option>
     </inspection_tool>

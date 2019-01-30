@@ -1,10 +1,11 @@
 import json
 import random
 import re
+import itertools as it
 
 import markdown
 from django.core.exceptions import ValidationError
-from django.db import models
+from django.db import models, transaction
 from django.db.models import Max
 from django.urls import reverse
 from django.utils.functional import cached_property
@@ -326,6 +327,9 @@ class Example(models.Model):
             if self.ex_kind == Example.KOTOWAZA:
                 if Example.objects.filter(word=self.word, yomi=self.yomi, sentence=self.sentence).exists():
                     raise ValidationError('この諺は既に登録されている。')
+            elif self.ex_kind in [Example.RUIGI, Example.TAIGI]:
+                if Example.objects.filter(word=self.word, yomi=self.yomi, sentence=self.sentence).exists():
+                    raise ValidationError('この対義語・類義語は既に登録されている。')
             else:
                 if Example.objects.filter(word=self.word, yomi=self.yomi, ex_kind=self.ex_kind).exists():
                     raise ValidationError('この言葉は既に登録されている。')
@@ -378,6 +382,67 @@ class Example(models.Model):
                  <= Kanken.objects.get(kyu='２級'))
                 and
                 (self.kanken >= Kanken.objects.get(kyu='準１級')))
+
+    @transaction.atomic
+    def create_exmap(self, reading_selected):
+        self.save()
+        map_list = []
+        idx = 0
+
+        # self.word is actually a str, not CharField
+        # noinspection PyTypeChecker
+        for kj in self.word:
+            try:
+                kanji = Kanji.objects.get(kanji=kj)
+                # check if the reading is a Joyo one - in which case it can't be changed
+                try:
+                    ex_map = self.exmap_set.get(kanji=kanji,
+                                                example=self,
+                                                map_order=idx,
+                                                in_joyo_list=True)
+                except ExMap.DoesNotExist:
+                    if reading_selected[idx][:6] == 'Ateji_':
+                        ex_map, create = self.exmap_set.get_or_create(kanji=kanji,
+                                                                      example=self,
+                                                                      map_order=idx,
+                                                                      is_ateji=True,
+                                                                      in_joyo_list=False)
+                    else:
+                        reading = Reading.objects.get(kanji=kj, id=reading_selected[idx])
+                        ex_map, create = self.exmap_set.get_or_create(kanji=kanji,
+                                                                      reading=reading,
+                                                                      example=self,
+                                                                      map_order=idx,
+                                                                      is_ateji=False,
+                                                                      in_joyo_list=False)
+                map_list.append(ex_map.id)
+                idx += 1
+            except Kanji.DoesNotExist:
+                # Not a Kanji (kana, or kanji not in the list)
+                pass
+        # Delete the maps not relevant anymore
+        extra_maps = ExMap.objects.filter(example=self).exclude(id__in=map_list)
+        extra_maps.delete()
+        # Save again to trigger the update of the Kyu done part of Example.save (issue #27)
+        self.save()
+
+    @staticmethod
+    def find_yomi_pk(word, yomi):
+        """
+        Given a word (kanji) and its yomi (kana), return a matching combination a Reading IDs.
+        The first matching combination is returned, which could lead to incorrect answer in rare case.
+
+        :param word: word in kanji
+        :param yomi: its reading in Kana
+        :return: list of Reading objects ids, which lead to the word / yomi
+        """
+        data = []
+        yomi = yomi.translate(jau.hir2kat)
+        for candidate in it.product(*filter(None, (Reading.objects.filter(kanji=kj) for kj in word))):
+            if ''.join([re.sub('[（）]', '', r.reading.translate(jau.hir2kat)) for r in candidate]) == yomi:
+                data = [r.id for r in candidate]
+                break
+        return data
 
 
 class ExMap(models.Model):

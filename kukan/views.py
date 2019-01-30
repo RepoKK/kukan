@@ -1,6 +1,4 @@
-import itertools as it
 import logging
-import re
 import time
 from collections import defaultdict, deque
 from functools import reduce
@@ -541,14 +539,8 @@ def get_yomi(request):
 @login_required
 def set_yomi(request):
     word = request.GET.get('word', '')
-    yomi = request.GET.get('yomi', '').translate(jau.hir2kat)
-
-    data = {'candidate': []}
-    for candidate in it.product(*filter(None, (Reading.objects.filter(kanji=kj) for kj in word))):
-        if ''.join([re.sub('[（）]', '', r.reading.translate(jau.hir2kat)) for r in candidate]) == yomi:
-            data = {'candidate': [r.id for r in candidate]}
-
-    return JsonResponse(data)
+    yomi = request.GET.get('yomi', '')
+    return JsonResponse({'candidate': Example.find_yomi_pk(word, yomi)})
 
 
 @login_required
