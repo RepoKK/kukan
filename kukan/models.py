@@ -78,7 +78,7 @@ class Bushu(models.Model):
     reading = models.CharField('READING', max_length=3)
 
     def __str__(self):
-        return '{}　()'.format(self.bushu, self.reading)
+        return f'{self.bushu}　({self.reading})'
 
 
 class KoukiBushu(models.Model):
@@ -89,7 +89,7 @@ class KoukiBushu(models.Model):
     kakusu = models.IntegerField()
 
     def __str__(self):
-        return '{}　()'.format(self.bushu, self.reading)
+        return f'{self.bushu}　({self.reading})'
 
 
 class JisClass(models.Model):

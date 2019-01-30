@@ -20,7 +20,7 @@ from kukan.apps import kukanConfig
 from kukan.exporting import Exporter
 from kukan.forms import ExampleForm, KotowazaForm
 from kukan.jautils import JpnText, hir2kat
-from kukan.models import Kanji, Example, Reading, ExMap, Kanken, YomiJoyo, Kotowaza
+from kukan.models import Kanji, Example, Reading, ExMap, Kanken, YomiJoyo, Kotowaza, Bushu
 from kukan.templatetags.ja_tags import furigana_ruby, furigana_remove, furigana_bracket, furigana_html
 from kukan.test_helpers import FixtureAppLevel, FixtureKukan, FixWebKukan, PatchRequestsGet
 from kukan.test_helpers import FixtureKanji
@@ -667,7 +667,7 @@ class TestExport(TestCase):
         Test that above assert_export_file helper does return a proper Assertion with list of calls output
         (mostly for test coverage...)
         """
-        with patch('builtins.print'),  self.assertRaises(AssertionError):
+        with patch('builtins.print'), self.assertRaises(AssertionError):
             self.assert_export_file(Exporter('anki_kaki', 'Fred'), 3,
                                     Example.objects.filter(ex_kind__in=[Example.KAKI, Example.RUIGI, Example.TAIGI]),
                                     self.output_templt_kaki_hyogai)
@@ -958,3 +958,15 @@ class TestIndexView(TestCase):
                 response = self.client.post(reverse('kukan:index'), follow=True, data={'search': search_text})
                 base_url = reverse('kukan:{}'.format('kanji_detail'), args='閲')
                 self.assertRedirects(response, base_url)
+
+
+class TestBushu(TestCase):
+    fixtures = ['baseline']
+
+    def test_bushu_str(self):
+        Bushu.objects.create(bushu='⺌', reading='しょう')
+        self.assertEqual('⺌　(しょう)', str(Bushu.objects.first()))
+
+    def test_kouki_bushu_str(self):
+        Bushu.objects.create(bushu='匕', reading='ヒ さじ さじのひ')
+        self.assertEqual('匕　(ヒ さじ さじのひ)', str(Bushu.objects.first()))
