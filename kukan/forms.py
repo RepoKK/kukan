@@ -151,8 +151,17 @@ class ExampleForm(BForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         ex = kwargs['instance']
+        # Bypass the check that a kanji part of the word is only present once in the sentence (issue #50)
+        self.ignore_duplicate_kanji = False
         if ex and ex.is_joyo:
             self.fields['word'].widget.attrs['readonly'] = True
+
+    def clean_sentence(self):
+        sentence = self.cleaned_data['sentence']
+        if sentence[0] == 'x':
+            self.ignore_duplicate_kanji = True
+            sentence = sentence[1:]
+        return sentence
 
     def clean(self):
         cleaned_data = super(ExampleForm, self).clean()
@@ -179,12 +188,12 @@ class ExampleForm(BForm):
                                                code='invalid',
                                                params={'word': word}))
             no_word_sentence = sentence.replace(word, '')
-            for kj in word:
-                if Kanji.objects.filter(kanji=kj).count() > 0:
-                    if kj in no_word_sentence:
+            if not self.ignore_duplicate_kanji:
+                for kj in word:
+                    if Kanji.objects.filter(kanji=kj).exists() and kj in no_word_sentence:
                         self.add_error('sentence',
                                        ValidationError(
-                                           _('漢字「%(kj)s」は単語「%(word)s」以外では使えない。'),
+                                           _('漢字「%(kj)s」は単語「%(word)s」以外では使えない。(\'x\'で無視可)'),
                                            code='invalid',
                                            params={'kj': kj, 'word': word}))
             if sentence.count(word) > 1:

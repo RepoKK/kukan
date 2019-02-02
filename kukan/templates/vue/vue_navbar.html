@@ -16,7 +16,6 @@
                                        name="search" type="search" placeholder="検索" icon="magnify"
                                        @focus="searchFocused = true" @blur="searchFocused = false"
                                         v-model="searchVal">
-                                </input>
                                 <div class="button" :class="color" @click="searchVal=''" v-if="dispSearchBtn">
                                     <b-icon icon="close-circle-outline"></b-icon>
                                 </div>
@@ -59,7 +58,7 @@
                         <a class="navbar-item" href="{% url 'kukan:example_list' %}">
                             例文一覧
                         </a>
-                        <a class="navbar-item" href="{% url 'kukan:example-add' %}">
+                        <a class="navbar-item" href="{% url 'kukan:example_add' %}">
                             例文作成
                         </a>
                         <div class="navbar-divider"></div>

@@ -303,6 +303,15 @@ class ExampleFormTest(TestCase):
         self.assertTrue(form.is_valid())
         form.save()
 
+    @staticmethod
+    def get_reading_selected(list_readings):
+        """
+        Create reading_selected field, which
+        :param list_readings: list of tuples (kanji, yomi in katakana)
+        :return: comma-separated list of readings id
+        """
+        return ','.join([str(Reading.objects.get(kanji=k, reading=y).id) for k, y in list_readings])
+
     def testChangeKyuByReading(self):
         self.example = Example.objects.get(word='閲する')
         self.form_data = {'word': '閲する', 'yomi': 'けみする', 'sentence': '膨大な資料を閲する',
@@ -517,6 +526,45 @@ class ExampleFormTest(TestCase):
                 response = self.client.get('/ajax/set_yomi/', data=data)
                 self.assertEqual(200, response.status_code)
                 self.assertEqual(expected, response.json())
+
+    def test_duplicate_kanji(self):
+        expected_error = '漢字「閲」は単語「閲覧」以外では使えない。(\'x\'で無視可)'
+
+        test_word = {'word': '閲覧', 'yomi': 'えつらん', 'sentence': '閲を閲覧する',
+                     'definition': '言葉の定義', 'ex_kind': Example.KAKI, 'yomi_native': '',
+                     'reading_selected': self.get_reading_selected([('閲', 'エツ'), ('覧', 'ラン')])}
+
+        # To test the case the word is overridden by word_native.
+        test_word_native = {**test_word, 'word': '劉遥', 'word_native': '閲覧'}
+
+        for sub_test in ['test_word', 'test_word_native']:
+            form_data = locals()[sub_test]
+            with self.subTest(sub_test):
+                response = self.client.post(reverse('kukan:example_add'), form_data)
+                self.assertFormError(response, 'form', 'sentence', expected_error)
+                self.assertEqual({'sentence': [expected_error]}, response.context['form'].errors)
+
+                # Check that the duplicate error can be skipped by prefixing the sentence with x
+                form = ExampleForm(data={**form_data, 'sentence': 'x閲を閲覧する'}, instance=None)
+                self.assertTrue(form.is_valid())
+                form.save()
+
+                # Check the correct sentence (stripped from the x prefix) is in the database
+                ex = Example.objects.last()
+                self.assertEqual('閲を閲覧する', ex.sentence)
+
+                # Test that updating without putting again the prefix fails
+                form = ExampleForm(data={**form_data, 'sentence': '閲を閲覧'}, instance=ex)
+                self.assertEqual({'sentence': [expected_error]}, form.errors)
+
+                # But works with the prefix
+                form = ExampleForm(data={**form_data, 'sentence': 'x閲を閲覧'}, instance=ex)
+                form.save()
+                ex.refresh_from_db()
+                self.assertTrue(form.is_valid())
+                self.assertEqual('閲を閲覧', ex.sentence)
+
+                ex.delete()
 
 
 class TestFixtureFunctions(TestCase):

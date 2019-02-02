@@ -16,13 +16,13 @@ urlpatterns = [
 
     path('example/list/', views.ExampleList.as_view(), name='example_list'),
     path('example/<int:pk>/', views.ExampleDetail.as_view(), name='example_detail'),
-    path('example/add/', views.ExampleCreate.as_view(), name='example-add'),
+    path('example/add/', views.ExampleCreate.as_view(), name='example_add'),
     path('example/update/<int:pk>/', views.ExampleUpdate.as_view(), name='example_update'),
     path('example/delete/<int:pk>/', views.ExampleDelete.as_view(), name='example_delete'),
 
     path('kotowaza/list/', views.KotowazaList.as_view(), name='kotowaza_list'),
     path('kotowaza/<int:pk>/', views.KotowazaDetail.as_view(), name='kotowaza_detail'),
-    path('kotowaza/add/', views.KotowazaCreate.as_view(), name='kotowaza-add'),
+    path('kotowaza/add/', views.KotowazaCreate.as_view(), name='kotowaza_add'),
     path('kotowaza/update/<int:pk>/', views.KotowazaUpdate.as_view(), name='kotowaza_update'),
 
     path('ajax/get_similar_word/', views.get_similar_word, name='get_similar_word'),
