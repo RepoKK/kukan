@@ -1,10 +1,12 @@
 import csv
+import itertools as it
 import json
 import os
 import re
 import urllib.parse
-from collections import Counter
+from collections import Counter, namedtuple
 from io import StringIO
+from unittest import TestCase
 from unittest.mock import mock_open, patch, MagicMock
 
 import requests
@@ -20,11 +22,11 @@ from kukan.apps import kukanConfig
 from kukan.exporting import Exporter
 from kukan.forms import ExampleForm, KotowazaForm
 from kukan.jautils import JpnText, hir2kat
+from kukan.jautils import kat2hir
 from kukan.models import Kanji, Example, Reading, ExMap, Kanken, YomiJoyo, Kotowaza, Bushu
 from kukan.templatetags.ja_tags import furigana_ruby, furigana_remove, furigana_bracket, furigana_html
 from kukan.test_helpers import FixtureAppLevel, FixtureKukan, FixWebKukan, PatchRequestsGet
 from kukan.test_helpers import FixtureKanji
-from kukan.jautils import kat2hir
 
 
 class TestUtilsDjangoApps(TestCase):
@@ -325,9 +327,7 @@ class ExampleFormTest(TestCase):
     def testCreateNewExample(self):
         self.form_data = {'word': '閲覧', 'yomi': 'えつらん', 'sentence': '膨大な資料を閲覧する',
                           'definition': '言葉の定義', 'ex_kind': Example.KAKI, 'yomi_native': '',
-                          'reading_selected': ','.join([str(x) for x in
-                                                        [Reading.objects.get(kanji='閲', reading='エツ').id,
-                                                         Reading.objects.get(kanji='覧', reading='ラン').id]])}
+                          'reading_selected': self.get_reading_selected([('閲', 'エツ'), ('覧', 'ラン')])}
         form = ExampleForm(self.form_data, instance=None)
         self.assertTrue(form.is_valid())
         form.save()
@@ -336,9 +336,8 @@ class ExampleFormTest(TestCase):
         # Test for issue 22
         self.form_data = {'word': '遥遥', 'yomi': 'ハルバル', 'sentence': '遥遥',
                           'definition': '言葉の定義', 'ex_kind': Example.KAKI, 'yomi_native': '',
-                          'reading_selected': ','.join([str(x) for x in
-                                                        [Reading.objects.get(kanji='遥', reading='はる（か）').id,
-                                                         Reading.objects.get(kanji='遥', reading='はる（か）').id]])}
+                          'reading_selected': self.get_reading_selected([('遥', 'はる（か）')] * 2)}
+
         form = ExampleForm(self.form_data, instance=None)
         self.assertTrue(form.is_valid())
         form.save()
@@ -1025,3 +1024,131 @@ class TestBushu(TestCase):
     def test_kouki_bushu_str(self):
         Bushu.objects.create(bushu='匕', reading='ヒ さじ さじのひ')
         self.assertEqual('匕　(ヒ さじ さじのひ)', str(Bushu.objects.first()))
+
+
+class TestExampleCreateExmap(TestCase):
+    fixtures = ['baseline', '閲', '覧', '斌', '劉', '遥']
+
+    msg_assert_change = 'Existing Joyo reading cannot be modified'
+    msg_assert_num_mis = 'Reading number mismatch'
+
+    TestDef = namedtuple('TestDef', 'result sub_test word readings  args', defaults=(None,))
+
+    @staticmethod
+    def get_reading_id_from_reading(readings):
+        """
+        Return a list of Reading id from a list of reading (hardcoded in reading_id_map).
+        :param readings: list of reading as string
+                          'A<kanji>' would create the Ateji_<kanji> reading
+        :return: list of Reading objects ids, of the same length as readings
+        """
+        reading_id_map = {'エツ': 7463, 'へ（る）': 7465, 'ラン': 6422, 'ヒン': 9575}
+        res = []
+        for reading in readings:
+            if str(reading)[0] == 'A':
+                res.append('Ateji_' + reading[1])
+            else:
+                res.append(str(reading_id_map[reading]))
+        return res
+
+    def check_database_after_create_exmap(self, example, word, readings, is_joyo=it.repeat(False)):
+        """
+        Ensure that the database entries for ExMap are matching the expected result
+        :param example: the Example instance
+        :param word: word containing Kanji and potentially kana / other (will be cleaned)
+        :param readings: the readings corresponding to word, potentially 'A' for Ateji
+        :param is_joyo: iterable of boolean, defining if the corresponding reading is a Joyo one.
+        """
+        cleaned_word = ''.join([x for x in word if Kanji.objects.filter(kanji=x).exists()])
+        for pos, (kj, reading, joyo) in enumerate(zip(cleaned_word, readings, is_joyo)):
+            if reading[0] == 'A':
+                exmap = ExMap.objects.get(example=example, kanji=cleaned_word[pos], map_order=pos)
+                self.assertTrue(exmap.is_ateji)
+                self.assertIsNone(exmap.reading)
+            else:
+                exmap = ExMap.objects.get(
+                    example=example, reading__reading=reading, kanji=cleaned_word[pos], map_order=pos)
+            self.assertEqual(joyo, exmap.in_joyo_list)
+        self.assertEqual(ExMap.objects.count(), len(readings))
+
+    def check_success(self, example, word, reading, is_joyo=it.repeat(False)):
+        example.create_exmap(self.get_reading_id_from_reading(reading))
+        self.check_database_after_create_exmap(example, word, reading, is_joyo)
+
+    def check_assert(self, example, _, reading, assertion_msg):
+        with self.assertRaisesMessage(AssertionError, assertion_msg):
+            example.create_exmap(self.get_reading_id_from_reading(reading))
+
+    def run_tests(self, example, test):
+        with self.subTest(f'{test.result} - {test.sub_test}'):
+            args = test.args or []
+            if not isinstance(args, list):
+                args = [args]
+            example.word = test.word
+            example.word_native = ''
+            example.save()
+            getattr(self, f'check_{test.result}')(example, test.word, test.readings, *args)
+            # Test with the native word as well
+            example.word = '遥dummy'
+            example.word_native = test.word
+            example.save()
+            getattr(self, f'check_{test.result}')(example, test.word, test.readings, *args)
+
+    def test_create_exmap_joyo(self):
+        # Test target: 閲覧, 閲is part of the Joyo table
+        example = Example.objects.create(word='閲覧', is_joyo=True)
+        ExMap.objects.create(example=example, kanji=Kanji.qget('閲'),
+                             reading=Reading.objects.get(kanji='閲', reading='エツ'),
+                             map_order=0, is_ateji=False, in_joyo_list=True)
+
+        test_definitions = [
+            ['success', 'Set the second reading',    '閲覧',   ('エツ', 'ラン'),          (True, False)],
+            ['success', 'Set second as Ateji',       '閲覧',   ('エツ', 'A覧'),           (True, False)],
+            ['assert',  'Change the Joyo reading',  '閲覧',   ('へ（る）', 'ラン'),      self.msg_assert_change],
+            ['assert',  'Change the Joyo to Ateji', '閲覧',   ('A閲', 'ラン'),           self.msg_assert_change],
+            ['assert',  'Change Joyo position',      '覧閲覧', ('ラン', 'エツ', 'ラン'), self.msg_assert_change],
+            ['assert',  'Delete the Joyo',            '覧',     ('ラン',),                 self.msg_assert_change],
+        ]
+
+        for test_definition in test_definitions:
+            self.run_tests(example, self.TestDef(*test_definition))
+
+    def test_create_exmap_joyo_ateji(self):
+        # Same as test_create_exmap_joyo, but the Joyo part is 覧 and is an Ateji
+        Example.objects.create(word='閲', is_joyo=True)  # Dummy
+        example = Example.objects.create(word='閲覧', is_joyo=True)
+        ExMap.objects.create(example=example, kanji=Kanji.qget('覧'),
+                             map_order=1, is_ateji=True, in_joyo_list=True)
+
+        test_definitions = [
+            ['success', 'Set the first reading',   '閲覧',   ('エツ', 'A覧'),          (False, True)],
+            ['success', 'Set first Ateji',          '閲覧',   ('A閲', 'A覧'),           (False, True)],
+            ['assert',  'Change the Joyo reading', '閲覧',   ('エツ', 'ラン'),         self.msg_assert_change],
+            ['assert',  'Change Joyo position',    '覧閲覧', ('ラン', 'エツ', 'A覧'),  self.msg_assert_change],
+            ['assert',  'Delete the Joyo',          '閲',     ('エツ',),                  self.msg_assert_change],
+            ['assert',  'Too few readings',         '閲覧',   ('エツ',),                  self.msg_assert_num_mis],
+            ['assert',  'Too many readings',        '閲覧',   ('エツ', 'ラン', 'ラン'), self.msg_assert_num_mis]
+        ]
+
+        for test_definition in test_definitions:
+            self.run_tests(example, self.TestDef(*test_definition))
+
+    def test_create_exmap_non_joyo(self):
+        example = Example.objects.create(word='閲覧斌', is_joyo=False)
+
+        test_definitions = [
+            ['success',   'Simple',         '閲',         ('エツ',)],
+            ['success',   'Multiple',       '閲覧斌',    ('エツ', 'ラン', 'ヒン')],
+            ['success',   'Ateji',          '閲斌斌',     ('エツ', 'ヒン', 'A斌')],
+            ['assert',    'Extra chars 1', '閲hあア斌', ('エツ', *['エツ']*3, 'ヒン'), self.msg_assert_num_mis],
+            ['success',   'Extra chars 2', '閲hあア斌', ('エツ', 'ヒン')],
+            ['success',    'Single again',  '閲',         ('へ（る）',)],
+        ]
+
+        for test_definition in test_definitions:
+            self.run_tests(example, self.TestDef(*test_definition))
+
+    def test_create_exmap_no_kanji(self):
+        # Not really possible to run any test for no kanji case due to following
+        with self.assertRaises(Kanken.DoesNotExist):
+            Example.objects.create(word='a', is_joyo=False)

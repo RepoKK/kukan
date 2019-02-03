@@ -1,10 +1,11 @@
-from django.forms import Form, ModelForm, CharField, TextInput, ChoiceField, Select, ValidationError
-from .models import Kanji, Reading, Example, ExMap, Kotowaza
-from django.utils.translation import gettext_lazy as _
-import kukan.jautils as jau
 from django.db import transaction
+from django.forms import Form, ModelForm, CharField, TextInput, ChoiceField, Select, ValidationError
+from django.utils.translation import gettext_lazy as _
+
+import kukan.jautils as jau
 from kukan.anki_dj import AnkiProfile
 from kukan.jautils import JpnText
+from .models import Kanji, Example, Kotowaza
 
 
 class SearchForm(Form):
@@ -210,45 +211,7 @@ class ExampleForm(BForm):
             self.instance.is_joyo = False
         example = super().save(commit=False)
         if commit:
-            example.save()
-            reading_selected = self.cleaned_data['reading_selected'].split(',')
-            map_list = []
-            idx = 0
-            for kj in example.get_word_native():
-                try:
-                    kanji = Kanji.objects.get(kanji=kj)
-                    # check if the reading is a Joyo one - in which case it can't be changed
-                    try:
-                        ex_map = example.exmap_set.get(kanji=kanji,
-                                                       example=example,
-                                                       map_order=idx,
-                                                       in_joyo_list=True)
-                    except ExMap.DoesNotExist:
-                        if reading_selected[idx][:6] == 'Ateji_':
-                            ex_map, create = example.exmap_set.get_or_create(kanji=kanji,
-                                                                             example=example,
-                                                                             map_order=idx,
-                                                                             is_ateji=True,
-                                                                             in_joyo_list=False)
-                        else:
-                            reading = Reading.objects.get(kanji=kj, id=reading_selected[idx])
-                            ex_map, create = example.exmap_set.get_or_create(kanji=kanji,
-                                                                             reading=reading,
-                                                                             example=example,
-                                                                             map_order=idx,
-                                                                             is_ateji=False,
-                                                                             in_joyo_list=False)
-                    map_list.append(ex_map.id)
-                    idx += 1
-                except Kanji.DoesNotExist:
-                    # Not a Kanji (kana, or kanji not in the list)
-                    pass
-            # Delete the maps not relevant anymore
-            extra_maps = ExMap.objects.filter(example=example).exclude(id__in=map_list)
-            extra_maps.delete()
-            # Save again to trigger the update of the Kyu done part of Example.save (issue #27)
-            example.save()
-
+            example.create_exmap(self.cleaned_data['reading_selected'].split(','))
         return example
 
 

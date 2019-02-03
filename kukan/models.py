@@ -1,7 +1,8 @@
+import itertools as it
 import json
+import logging
 import random
 import re
-import itertools as it
 
 import markdown
 from django.core.exceptions import ValidationError
@@ -12,6 +13,8 @@ from django.utils.functional import cached_property
 
 import kukan.jautils as jau
 from utils_django.decorators import OrderFromAttr, QuickGetKey
+
+logger = logging.getLogger(__name__)
 
 
 class Classification(models.Model):
@@ -355,7 +358,7 @@ class Example(models.Model):
         return link
 
     def get_word_native(self):
-        return self.word_native if self.word_native != '' else self.word
+        return str(self.word_native or self.word)
 
     def goo_link(self):
         link = ''
@@ -384,47 +387,68 @@ class Example(models.Model):
                 (self.kanken >= Kanken.objects.get(kyu='準１級')))
 
     @transaction.atomic
-    def create_exmap(self, reading_selected):
-        self.save()
-        map_list = []
-        idx = 0
+    def create_exmap(self, reading_selected: list):
+        """
+        Recreate the links between the word and the Reading. Old mappings not relevant anymore are deleted
+        :param reading_selected: list of Reading ID, in the order of the kanji of the word.
+                "Ateji_<kanji>" can be used as well. Example: "1245, Ateji_宴"
+        """
 
-        # self.word is actually a str, not CharField
-        # noinspection PyTypeChecker
-        for kj in self.word:
-            try:
-                kanji = Kanji.objects.get(kanji=kj)
-                # check if the reading is a Joyo one - in which case it can't be changed
-                try:
-                    ex_map = self.exmap_set.get(kanji=kanji,
-                                                example=self,
-                                                map_order=idx,
-                                                in_joyo_list=True)
-                except ExMap.DoesNotExist:
-                    if reading_selected[idx][:6] == 'Ateji_':
-                        ex_map, create = self.exmap_set.get_or_create(kanji=kanji,
-                                                                      example=self,
-                                                                      map_order=idx,
-                                                                      is_ateji=True,
-                                                                      in_joyo_list=False)
-                    else:
-                        reading = Reading.objects.get(kanji=kj, id=reading_selected[idx])
-                        ex_map, create = self.exmap_set.get_or_create(kanji=kanji,
-                                                                      reading=reading,
-                                                                      example=self,
-                                                                      map_order=idx,
-                                                                      is_ateji=False,
-                                                                      in_joyo_list=False)
-                map_list.append(ex_map.id)
-                idx += 1
-            except Kanji.DoesNotExist:
-                # Not a Kanji (kana, or kanji not in the list)
-                pass
+        self.save()
+
+        # Filter out all characters not in the Kanji database (Kana, ...)
+        word = [x for x in self.get_word_native() if Kanji.objects.filter(kanji=x).exists()]
+
+        if len(word) != len(reading_selected):
+            logger.error(f'Kanji and reading number mismatch for {self}({self.pk}); '
+                         f'{len(word)} kanji and {len(reading_selected)} readings; '
+                         f'word: {word}, reading_selected: {reading_selected}')
+            raise AssertionError('Reading number mismatch')
+
+        # Ensure we're not trying to change readings of a Joyo Kanji
+        joyo_exmaps = ExMap.objects.filter(example=self, in_joyo_list=True).order_by('map_order')
+        joyo_exmaps_per_order = {x.map_order: x for x in joyo_exmaps}
+        try:
+            for joyo_exmap in joyo_exmaps:
+                i = joyo_exmap.map_order
+                if joyo_exmap.is_ateji:
+                    reading_match = reading_selected[i] == f'Ateji_{joyo_exmap.kanji}'
+                else:
+                    reading_match = reading_selected[i] == str(joyo_exmap.reading.id)
+                if not (joyo_exmap.kanji.kanji == word[i] and reading_match):
+                    raise AssertionError
+        except (AssertionError, IndexError):
+            logger.error(f'Trying to modify a Joyo reading for {self}({self.pk}); '
+                         f'word: {word}, reading_selected: {reading_selected}')
+            raise AssertionError('Existing Joyo reading cannot be modified')
+
+        map_list = []
+        for map_order, (kj, reading) in enumerate(zip(word, reading_selected)):
+            kanji = Kanji.qget(kj)
+
+            if map_order in joyo_exmaps_per_order.keys():
+                ex_map = joyo_exmaps_per_order[map_order]
+            elif reading[:6] == 'Ateji_':
+                ex_map, create = self.exmap_set.get_or_create(kanji=kanji,
+                                                              example=self,
+                                                              map_order=map_order,
+                                                              is_ateji=True,
+                                                              in_joyo_list=False)
+            else:
+                ex_map, create = self.exmap_set.get_or_create(kanji=kanji,
+                                                              reading=Reading.objects.get(kanji=kj, id=reading),
+                                                              example=self,
+                                                              map_order=map_order,
+                                                              is_ateji=False,
+                                                              in_joyo_list=False)
+            map_list.append(ex_map.id)
+
         # Delete the maps not relevant anymore
-        extra_maps = ExMap.objects.filter(example=self).exclude(id__in=map_list)
-        extra_maps.delete()
+        ExMap.objects.filter(example=self).exclude(id__in=map_list).delete()
+
         # Save again to trigger the update of the Kyu done part of Example.save (issue #27)
         self.save()
+        logger.info(f'Modified {self}({self.pk}) with reading_selected: {reading_selected}')
 
     @staticmethod
     def find_yomi_pk(word, yomi):
