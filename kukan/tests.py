@@ -566,6 +566,13 @@ class ExampleFormTest(TestCase):
 
                 ex.delete()
 
+    def test_no_sentence(self):
+        form_data = {'word': '閲覧', 'yomi': 'えつらん', 'sentence': '',
+                     'definition': '', 'ex_kind': Example.KAKI, 'yomi_native': '',
+                     'reading_selected': self.get_reading_selected([('閲', 'エツ'), ('覧', 'ラン')])}
+        form = ExampleForm(data=form_data, instance=None)
+        self.assertTrue(form.is_valid())
+
 
 class TestFixtureFunctions(TestCase):
     fixtures = ['baseline', '閲', '渚', '渚']

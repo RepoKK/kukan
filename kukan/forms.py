@@ -158,7 +158,7 @@ class ExampleForm(BForm):
 
     def clean_sentence(self):
         sentence = self.cleaned_data['sentence']
-        if sentence[0] == 'x':
+        if sentence and sentence[0] == 'x':
             self.ignore_duplicate_kanji = True
             sentence = sentence[1:]
         return sentence
