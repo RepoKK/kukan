@@ -3,13 +3,13 @@ import os
 import pandas as pd
 from django.conf import settings
 from django.core.mail import send_mail
-from django.core.management.base import BaseCommand
 
 from kukan.anki_dj import AnkiProfile
 from kukan.exporting import Exporter
+from utils_django.management_command import FBaseCommand
 
 
-class Command(BaseCommand):
+class Command(FBaseCommand):
     help = 'Sync Anki'
 
     def add_arguments(self, parser):
@@ -21,13 +21,13 @@ class Command(BaseCommand):
         )
         parser.add_argument(
             '--max_delete_count',
-            type=int,
             dest='max_delete_count',
-            default='5',
+            type=int,
+            default=5,
             help='Maximum number of card which can be deleted',
         )
 
-    def handle(self, *args, **options):
+    def handle_cmd(self, *args, **options):
         res_dfs = {}
         for profile in options['profile'].split() or AnkiProfile.profile_list():
             dir_to_clear = settings.ANKI_IMPORT_DIR

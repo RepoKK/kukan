@@ -30,7 +30,7 @@ class AnkiProfile:
         'Test2': {'syncKey': r'B41alyqIHCZPnWsO', 'hostNum': '2', 'decks': deck_list},
     }
 
-    def __init__(self, profile, max_delete_count):
+    def __init__(self, profile, max_delete_count=0):
         self.name = profile
         self.profile = self.profiles[profile]
         self.max_delete_count = max_delete_count
