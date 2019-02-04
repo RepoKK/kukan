@@ -1,21 +1,21 @@
-import sys, os, re
-import pandas as pd
-from collections import namedtuple
+import logging
+import os
+import re
 import weakref
+from collections import namedtuple
 
+import pandas as pd
+from anki import Collection
+from anki.importing.csvfile import TextImporter
+from anki.sync import RemoteServer, Syncer, FullSyncer
+from anki.utils import ids2str
 from django.conf import settings
 
-sys.path.append(settings.ANKI_SRC)
-from anki import Collection
-from anki.sync import RemoteServer, Syncer, FullSyncer
-from anki.importing.csvfile import TextImporter
-from anki.utils import ids2str
-
 Deck = namedtuple('Deck', ['name', 'model', 'file_name'])
+logger = logging.getLogger(__name__)
 
 
 class AnkiProfile:
-
     deck_list = [Deck(x, m, y + '.csv') for x, m, y in [
         ('四字熟語', 'Cloze Yoji', 'dj_anki_yoji'),
         ('書き取り', 'Kakitori', 'dj_anki_kaki'),
@@ -30,9 +30,10 @@ class AnkiProfile:
         'Test2': {'syncKey': r'B41alyqIHCZPnWsO', 'hostNum': '2', 'decks': deck_list},
     }
 
-    def __init__(self, profile):
+    def __init__(self, profile, max_delete_count):
         self.name = profile
         self.profile = self.profiles[profile]
+        self.max_delete_count = max_delete_count
         self.col = None
         self._finalizer = weakref.finalize(self, self.close_collection)
 
@@ -95,11 +96,13 @@ class AnkiProfile:
         len_del = len(ids_to_del)
         if len_del == 0:
             pass
-        elif len_del > 5:
+        elif len_del > self.max_delete_count:
             len_del = 'Too many cards to delete ({})'.format(len_del)
             print('Too many cards to delete ({})'.format(len_del))
+            logger.warning(f'Too many card to delete from deck {deck}: {len_del} (max: {self.max_delete_count}')
         else:
             print('Delete {} card(s)'.format(len_del))
+            logger.info(f'Delete {len_del} cards from deck {deck}')
             self.col.remNotes(ids_to_del)
         return len_del
 
