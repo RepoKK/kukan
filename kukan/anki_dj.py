@@ -97,12 +97,12 @@ class AnkiProfile:
         if len_del == 0:
             pass
         elif len_del > self.max_delete_count:
-            len_del = 'Too many cards to delete ({})'.format(len_del)
             print('Too many cards to delete ({})'.format(len_del))
-            logger.warning(f'Too many card to delete from deck {deck}: {len_del} (max: {self.max_delete_count}')
+            logger.error(f'{self.profile}: Too many cards to delete from deck {deck.name} '
+                         f'({len_del}, max: {self.max_delete_count})')
         else:
             print('Delete {} card(s)'.format(len_del))
-            logger.info(f'Delete {len_del} cards from deck {deck}')
+            logger.info(f'{self.profile}: Delete {len_del} cards from deck {deck.name}')
             self.col.remNotes(ids_to_del)
         return len_del
 
