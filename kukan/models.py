@@ -541,6 +541,7 @@ class TestResult(models.Model):
         ('2K1', '漢字検定試験問題集２級－平成３０年版'),
         ('2K2', '漢字検定インターネット問題例'),
         ('2K3', '漢検過去問題集２級－平成３０年度版'),
+        ('J1K1', '漢検過去問題集準１級－2019年度版'),
     )
 
     kanken = models.ForeignKey(Kanken, on_delete=models.CASCADE, verbose_name='漢検')
