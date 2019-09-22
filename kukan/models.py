@@ -550,7 +550,7 @@ class TestResult(models.Model):
 
     kanken = models.ForeignKey(Kanken, on_delete=models.CASCADE, verbose_name='漢検')
     date = models.DateField(verbose_name='日付')
-    test_source = models.CharField(max_length=4, choices=TEST_SOURCE_CHOICES, verbose_name='問題集')
+    test_source = models.CharField(max_length=8, choices=TEST_SOURCE_CHOICES, verbose_name='問題集')
     test_number = models.IntegerField(default=0, verbose_name='問題番号')
     name = models.CharField(max_length=4, choices=NAME_CHOICES, verbose_name='名前')
 
