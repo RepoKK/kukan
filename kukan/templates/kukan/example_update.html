@@ -133,16 +133,21 @@
 
     <!--<input readonly="readonly" class="input is-static" type="text" v-model="reading_selected">-->
     <input readonly="readonly" name="reading_selected" class="input is-static" type="hidden" v-model="reading_selected">
-    <template v-if="ex_kind!='KOTOWAZA'">
+    <template v-if="ex_kind==='KOTOWAZA'">
+        {% render_single_field form.kotowaza %}
+    </template><template v-else-if="ex_kind==='JUKUICHI'">
+    </template><template v-else>
         {% render_single_field form.sentence %}
         <div class="buttons is-centered">
             <span class="button is-small is-info" @click="insertFurigana"><b-icon icon="code-brackets"></b-icon>　振り仮名</span>
         </div>
-    </template><template v-else>
-        {% render_single_field form.kotowaza %}
     </template>
 
     {% render_single_field form.definition %}
+    <template v-if="ex_kind==='JUKUICHI'">
+        {% render_single_field form.definition2 %}
+    </template>
+
     <div class="buttons is-centered">
         <span class="button is-small is-info" @click="insertBreak"><b-icon icon="format-page-break"></b-icon>　分離線</span>
         <span class="button is-small is-info" @click="insertElem"><b-icon icon="code-brackets"></b-icon>　項目</span>

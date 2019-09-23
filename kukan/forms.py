@@ -43,6 +43,12 @@ class Katakana(Kana):
     kana_type = '片仮名'
 
 
+class KatakanaPlus(Kana):
+    translate_function = jau.hir2kat
+    kana_chart = (jau.katakana_chart + 'ー・')
+    kana_type = '片仮名'
+
+
 class Hiragana(Kana):
     translate_function = jau.kat2hir
     kana_chart = jau.hiragana_chart
@@ -131,7 +137,7 @@ class ExampleForm(BForm):
     class Meta:
         model = Example
         fields = ['word', 'word_native', 'word_variation', 'yomi', 'yomi_native', 'sentence', 'definition',
-                  'ex_kind', 'kotowaza']
+                  'definition2', 'ex_kind', 'kotowaza']
         widgets = {
             'word': TextInput(attrs={'placeholder': '単語（漢字・仮名）', '@blur': 'onChangeWord'}),
             'word_native': TextInput(attrs={'placeholder': '例文中の語形'}),
@@ -140,11 +146,13 @@ class ExampleForm(BForm):
             'sentence': TextInput(attrs={'placeholder': '単語を含む例文を入力ください。'}),
             'definition': TextInput(attrs={'type': 'textarea', 'rows': '12',
                                            'placeholder': '単語の意味・説明の文章を入力ください。'}),
+            'definition2': TextInput(attrs={'type': 'textarea', 'rows': '8',
+                                              'placeholder': '単語の意味・説明の文章を入力ください。'}),
             'kotowaza': Select(attrs={'expanded': 'true'}),
         }
         field_classes = {
-            'yomi': Katakana,
-            'yomi_native': Katakana,
+            'yomi': KatakanaPlus,
+            'yomi_native': KatakanaPlus,
         }
         label_length_groups = [['word', 'yomi'],
                                ['word_native', 'yomi_native', 'word_variation']]
@@ -159,9 +167,12 @@ class ExampleForm(BForm):
 
     def clean_sentence(self):
         sentence = self.cleaned_data['sentence']
-        if sentence and sentence[0] == 'x':
-            self.ignore_duplicate_kanji = True
-            sentence = sentence[1:]
+        if self.data.get('ex_kind') == Example.JUKUICHI:
+            sentence = self.cleaned_data.get('word')
+        else:
+            if sentence and sentence[0] == 'x':
+                self.ignore_duplicate_kanji = True
+                sentence = sentence[1:]
         return sentence
 
     def clean(self):

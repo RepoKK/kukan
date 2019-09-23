@@ -288,6 +288,7 @@ class Example(models.Model):
     TAIGI = 'TAIGI'
     RUIGI = 'RUIGI'
     KOTOWAZA = 'KOTOWAZA'
+    JUKUICHI = 'JUKUICHI'
     EX_KIND_CHOICES = (
         (KAKI, '書き取り'),
         (YOMI, '読み'),
@@ -295,6 +296,7 @@ class Example(models.Model):
         (TAIGI, '対義語'),
         (RUIGI, '類義語'),
         (KOTOWAZA, '故事・諺'),
+        (JUKUICHI, '熟語と一字訓'),
     )
 
     ex_kind = models.CharField(max_length=8, verbose_name='種類', choices=EX_KIND_CHOICES, default=KAKI)
@@ -313,8 +315,25 @@ class Example(models.Model):
     word_variation = models.CharField('他の書き方', max_length=20, blank=True)
     sentence = models.CharField('例文', max_length=300, blank=True)
     definition = models.CharField('意味', max_length=10000, blank=True)
+    definition2 = models.CharField('意味（乙）', max_length=10000, blank=True)
     is_joyo = models.BooleanField('常表例')
     kanken = models.ForeignKey(Kanken, on_delete=models.CASCADE, verbose_name='漢検')
+
+    @property
+    def word1(self):
+        return self.split_and_get(self.word, 0)
+
+    @property
+    def word2(self):
+        return self.split_and_get(self.word, 1)
+
+    @property
+    def yomi1(self):
+        return self.split_and_get(self.yomi, 0)
+
+    @property
+    def yomi2(self):
+        return self.split_and_get(self.yomi, 1)
 
     class Meta:
         indexes = [
@@ -324,6 +343,14 @@ class Example(models.Model):
 
     def __str__(self):
         return self.word
+
+    @staticmethod
+    def split_and_get(field, index):
+        try:
+            return field.split('・')[index]
+        except IndexError:
+            return ''
+
 
     def validate_unique(self, exclude=None):
         if not self.pk:
@@ -378,6 +405,9 @@ class Example(models.Model):
 
     def get_definition_html(self):
         return markdown.markdown(self.definition)
+
+    def get_definition2_html(self):
+        return markdown.markdown(self.definition2)
 
     def is_hyogai(self):
         return ((Kanken.objects.get(id=Kanji.objects.filter(kanji__in=self.word).

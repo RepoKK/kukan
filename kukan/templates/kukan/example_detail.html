@@ -28,11 +28,20 @@
                     {{ example.kotowaza.get_definition_html|safe  }}
                 </div>
             {% endif %}
-            <div class="content">
-                <h2 class="title is-5">単語の意味</h2>
-                {{ example.get_definition_html|safe|furigana_bracket  }}
-            </div>
-            {{ example.goo_link_exact|safe}}
+            {% if example.ex_kind == example.JUKUICHI %}
+                <div class="content">
+                    <h2 class="title is-5">「{{example.word1}}」の意味</h2>
+                    {{ example.get_definition_html|safe|furigana_bracket  }}
+                    <h2 class="title is-5">「{{example.word2}}」の意味</h2>
+                    {{ example.get_definition2_html|safe|furigana_bracket  }}
+                </div>
+            {% else %}
+                <div class="content">
+                    <h2 class="title is-5">単語の意味</h2>
+                    {{ example.get_definition_html|safe|furigana_bracket  }}
+                </div>
+                {{ example.goo_link_exact|safe}}
+            {% endif %}
         </div>
         <div class="column">
             <div class="content"><h2 class="title is-5">情報</h2></div>
@@ -76,4 +85,5 @@
                 </table>
             </div>
         </div>
+    </div>
 {% endblock %}

@@ -98,6 +98,15 @@ class Exporter:
             word = example.word_native if example.word_native != "" else example.word
             yomi = example.yomi_native if example.yomi_native != "" else example.yomi
             hyogai_tag = '<span class=tag_hyogai>表外</span>' if example.is_hyogai() else ''
+            if example.ex_kind == example.JUKUICHI:
+                definition = (f'<p><strong>「{example.word1}（{example.yomi1}）」：</strong></p>' +
+                              example.get_definition_html() +
+                              '<br>' +
+                              f'<p><strong>「{example.word2}（{example.yomi2}）」：</strong></p>' +
+                              example.get_definition2_html())
+            else:
+                definition = example.get_definition_html()
+
             sentence = furigana_ruby(hyogai_tag + example.sentence.replace(
                 word, '<span class="font-color01">' + word + '</span>'))
 
@@ -113,7 +122,7 @@ class Exporter:
             writer.writerow([example.id,
                              sentence,
                              yomi,
-                             example.get_definition_html()])
+                             definition])
 
     @staticmethod
     def export_anki_kotowaza(writer):
