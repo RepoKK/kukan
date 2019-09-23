@@ -491,7 +491,7 @@ class Example(models.Model):
         :return: list of Reading objects ids, which lead to the word / yomi
         """
         data = []
-        yomi = yomi.translate(jau.hir2kat)
+        yomi = yomi.translate(jau.hir2kat).replace('・', '')
         for candidate in it.product(*filter(None, (Reading.objects.filter(kanji=kj) for kj in word))):
             if ''.join([re.sub('[（）]', '', r.reading.translate(jau.hir2kat)) for r in candidate]) == yomi:
                 data = [r.id for r in candidate]

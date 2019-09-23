@@ -178,6 +178,7 @@ class ExampleForm(BForm):
     def clean(self):
         cleaned_data = super(ExampleForm, self).clean()
         sentence = cleaned_data.get('sentence')
+        yomi = cleaned_data.get('yomi')
         word = cleaned_data.get('word_native')
         if word == '':
             word = cleaned_data.get('word')
@@ -214,6 +215,22 @@ class ExampleForm(BForm):
                                    _('単語「%(word)s」は一回しか使えない。'),
                                    code='invalid',
                                    params={'word': word}))
+
+        if cleaned_data.get('ex_kind') == Example.JUKUICHI:
+            if not '・' in word:
+                self.add_error('word',
+                               ValidationError(
+                                   _('単語「%(word)s」には「・」が含まれていない'),
+                                   code='invalid',
+                                   params={'word': word}))
+
+            if not '・' in yomi:
+                self.add_error('yomi',
+                               ValidationError(
+                                   _('読み「%(yomi)s」には「・」が含まれていない'),
+                                   code='invalid',
+                                   params={'yomi': yomi}))
+
         return self.cleaned_data
 
     @transaction.atomic
