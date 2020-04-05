@@ -5,7 +5,7 @@
   "main": "index.js",
   "dependencies": {
     "@mdi/font": "^2.7.94",
-    "axios": "^0.18.0",
+    "axios": "^0.18.1",
     "buefy": "^0.6.6",
     "vue": "^2.5.13"
   },
