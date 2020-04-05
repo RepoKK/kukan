@@ -559,28 +559,26 @@ class Yoji(models.Model):
         return re.sub(r'（', '-（', str(self.reading)).split('-')
 
 
+class TestSource(models.Model):
+    series = models.CharField(max_length=50, verbose_name='問題集')
+    kyu = models.CharField(max_length=20, verbose_name='級')
+    year = models.CharField(max_length=20, verbose_name='年度')
+    section = models.CharField(max_length=20, verbose_name='区分', blank=True, default='')
+
+    def __str__(self):
+        return f'{self.series} - {self.kyu} - {self.year}' \
+               + ('' if not self.section else f' ({self.section})')
+
+
 class TestResult(models.Model):
     NAME_CHOICES = (
         ('OGU', '大具'),
         ('COGU', '小具'),
     )
-    TEST_SOURCE_CHOICES = (
-        ('TEST', '試験'),
-        ('3K1', '漢字検定試験問題集３級－平成２９年版'),
-        ('J2K1', '漢字検定試験問題集準２級－平成２９年版'),
-        ('2K1', '漢字検定試験問題集２級－平成３０年版'),
-        ('2K2', '漢字検定インターネット問題例'),
-        ('2K3', '漢検２級　過去問題集－平成３０年度版'),
-        ('J1K1', '漢字検定試験問題集準１級－2019年度版'),
-        ('1KJ1K1', '漢検１／準１級　過去問題集－2019年度版'),
-        ('1KJ1K2', '漢検１／準１級　過去問題集－平成３０年度版'),
-        ('1KJ1K2', '漢検１／準１級　過去問題集－平成２９年度版'),
-        ('1KJ1K3', '漢検１／準１級　過去問題集－平成２８年度版'),
-    )
 
     kanken = models.ForeignKey(Kanken, on_delete=models.CASCADE, verbose_name='漢検')
     date = models.DateField(verbose_name='日付')
-    test_source = models.CharField(max_length=8, choices=TEST_SOURCE_CHOICES, verbose_name='問題集')
+    source = models.ForeignKey(TestSource, on_delete=models.PROTECT, verbose_name='問題元')
     test_number = models.IntegerField(default=0, verbose_name='問題番号')
     name = models.CharField(max_length=4, choices=NAME_CHOICES, verbose_name='名前')
 
@@ -604,4 +602,4 @@ class TestResult(models.Model):
         super().save(*args, **kwargs)
 
     def __str__(self):
-        return '{} {} {}{}'.format(self.name, self.kanken.kyu, self.test_number, self.date)
+        return '{} {} {} - {}'.format(self.name, self.kanken.kyu, self.test_number, self.date)

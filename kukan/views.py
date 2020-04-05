@@ -369,10 +369,12 @@ class KotowazaList(AjaxList):
 class TestResultList(AjaxList):
     model = TestResult
     template_name = 'kukan/test_result_list.html'
-    default_sort = 'date'
+    default_sort = '-date'
     filters = [
         FGenericCheckbox('名前', 'name', model),
         FGenericCheckbox('漢検', 'kanken__kyu', model, order='-kanken__difficulty'),
+        FGenericCheckbox('問題集', 'source__series', model),
+        FGenericMinMax('問題番号', 'test_number'),
         FGenericDateRange('日付', 'date'),
     ]
     table_data = TableData(model, [
@@ -380,7 +382,7 @@ class TestResultList(AjaxList):
         'kanken',
         'item_01', 'item_02', 'item_03', 'item_04', 'item_05', 'item_06', 'item_07', 'item_08', 'item_09', 'item_10',
         'score',
-        'test_source', 'test_number',
+        'source', 'test_number',
         {'name': 'date', 'format': TableData.FieldProps.format_date}
     ])
 
