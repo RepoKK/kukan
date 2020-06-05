@@ -2,7 +2,7 @@ certifi==2018.11.29
 chardet==3.0.4
 coverage==4.5.2
 decorator==4.3.0
-Django==2.1.5
+Django==2.2.13
 dropbox==9.3.0
 freezegun==0.3.11
 html2text==2018.1.9
