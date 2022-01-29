@@ -39,7 +39,8 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'django.forms',
     'kukan',
-    'utils_django'
+    'utils_django',
+    'wtrack'
 ]
 
 MIDDLEWARE = [
@@ -189,6 +190,11 @@ LOGGING = {
     },
     'loggers': {
         'kukan': {
+            'handlers': ['default_file', 'mail_admins'],
+            'level': 'DEBUG',
+            'propagate': True,
+        },
+        'wtrack': {
             'handlers': ['default_file', 'mail_admins'],
             'level': 'DEBUG',
             'propagate': True,
