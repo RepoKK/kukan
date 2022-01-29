@@ -44,9 +44,8 @@ class CommWithings:
         )
 
     def connect(self) -> bool:
-        if path.isfile(self.CREDENTIALS_FILE):
-            logger.info(f'Attempting to load credentials from:'
-                        f' {self.CREDENTIALS_FILE}')
+        if Settings.objects.first().token:
+            logger.info(f'Attempting to load credentials from database:')
             self.api = WithingsApi(self._load_credentials(),
                                    refresh_cb=self._save_credentials)
             try:
@@ -92,16 +91,18 @@ class CommWithings:
     @classmethod
     def _save_credentials(cls, credentials: CredentialsType) -> None:
         """Save credentials to a file."""
-        logger.info(f'Saving credentials in: {cls.CREDENTIALS_FILE}')
-        with open(cls.CREDENTIALS_FILE, "wb") as file_handle:
-            pickle.dump(credentials, file_handle)
+        logger.info(f'Saving credentials in database')
+        withings_settings = Settings.objects.first()
+        withings_settings.token = pickle.dumps(credentials)
+        withings_settings.save()
 
     @classmethod
     def _load_credentials(cls) -> CredentialsType:
         """Load credentials from a file."""
-        logger.info(f'Using credentials saved in: {cls.CREDENTIALS_FILE}')
-        with open(cls.CREDENTIALS_FILE, "rb") as file_handle:
-            return cast(CredentialsType, pickle.load(file_handle))
+        logger.info(f'Using credentials from database')
+
+        return cast(CredentialsType,
+                    pickle.loads(Settings.objects.first().token))
 
     def import_data(self):
         assert self.api is not None

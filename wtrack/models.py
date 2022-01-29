@@ -18,6 +18,7 @@ class Settings(models.Model):
     default_scale = models.ForeignKey(Scale, on_delete=models.PROTECT,
                                       verbose_name='基本体重計',
                                       blank=True, null=True)
+    token = models.BinaryField('API Token', null=True)
 
     def validate_single(self):
         if not self.pk:

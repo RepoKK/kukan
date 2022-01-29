@@ -21,7 +21,7 @@ def withings_auth_cb(request):
     logger.info(f'Getting credentials with auth code {auth_code}')
     api.save_credentials(auth_code)
 
-    return redirect(reverse('wtrack_main'))
+    return redirect(reverse('wtrack:wtrack_main'))
 
 
 def withings_auth_request(_):
