@@ -25,5 +25,5 @@ requests-oauth==0.4.1
 requests-oauthlib==1.3.0
 six==1.12.0
 typing_extensions==4.0.1
-urllib3==1.24.1
+urllib3==1.26.5
 withings-api==2.3.2
