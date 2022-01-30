@@ -4,7 +4,6 @@ import pickle
 from os import path
 from typing import cast, Tuple
 
-import arrow
 from django.conf import settings
 from django.core.mail import mail_admins
 from django.utils.html import strip_tags
@@ -44,7 +43,8 @@ class CommWithings:
         )
 
     def connect(self) -> bool:
-        if Settings.objects.first().token:
+        withings_settings = Settings.objects.first()
+        if withings_settings.token:
             logger.info(f'Attempting to load credentials from database:')
             self.api = WithingsApi(self._load_credentials(),
                                    refresh_cb=self._save_credentials)
@@ -57,7 +57,8 @@ class CommWithings:
                 assert orig_access_token \
                        != self.api.get_credentials().access_token
             except (MissingTokenError, AuthFailedException):
-                os.remove(self.CREDENTIALS_FILE)
+                withings_settings.token = None
+                withings_settings.save()
                 self.api = None
                 logger.info('Credentials in file are expired.')
                 raise CommWithings.NotAuthorized
@@ -137,8 +138,7 @@ class CommWithings:
         logger.debug(f'Values from Withings API: {dict_meas}')
 
         db_values = list(Measurement.objects.filter(
-            scale=self.scale,
-            measure_date__gte=date_from.datetime
+            measure_date__range=[date_from.datetime, date_to.datetime]
         ).values('measure_date', *api_to_django.values()))
         logger.debug(f'Values from Django DB: {db_values}')
 
@@ -153,7 +153,7 @@ class CommWithings:
                 results['add'] += 1
             if i not in dict_meas:
                 logger.info(f'Delete from DB: {i}')
-                Measurement.objects.get(scale=self.scale, **i).delete()
+                Measurement.objects.get(**i).delete()
                 results['del'] += 1
 
         logger.info(f'Import results: {results["add"]} addition,'

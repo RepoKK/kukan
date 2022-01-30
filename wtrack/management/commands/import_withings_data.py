@@ -1,6 +1,7 @@
 import arrow
 
 from utils_django.management_command import FBaseCommand
+from django.conf import settings
 from wtrack.comm_withings import CommWithings
 
 
@@ -34,7 +35,9 @@ class Command(FBaseCommand):
         comm = CommWithings()
         try:
             comm.connect()
-            comm.import_data(arrow.get(options['start_date']),
-                             arrow.get(options['end_date']))
+            comm.import_data(
+                arrow.get(options['start_date'], tzinfo=settings.TIME_ZONE),
+                arrow.get(options['end_date'], tzinfo=settings.TIME_ZONE)
+            )
         except CommWithings.NotAuthorized:
             comm.authorize_request()
