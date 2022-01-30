@@ -160,6 +160,10 @@ CRON_CFG = [
             'post-hook': '"sudo systemctl restart httpd.service"'
         }
     },
+    {
+        'schedule': '*/5 * * * *',
+        'command': 'import_withings_data',
+    },
 ]
 
 LOGGING = {

@@ -104,15 +104,13 @@ class CommWithings:
         return cast(CredentialsType,
                     pickle.loads(Settings.objects.first().token))
 
-    def import_data(self):
+    def import_data(self, date_from, date_to):
         assert self.api is not None
         assert self.api.user_get_device() is not None
 
-        date_from = arrow.utcnow().shift(days=-21)
-
         meas_result = self.api.measure_get_meas(
             startdate=date_from,
-            enddate=arrow.utcnow().shift(days=2),
+            enddate=date_to,
             # lastupdate=1601478000,
             lastupdate=None,
             category=MeasureGetMeasGroupCategory.REAL)
