@@ -1,10 +1,51 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Weight Tracker</title>
-</head>
-<body>
-WEIGHT TRACKER
-</body>
-</html>
+
+
+{{ object_list.last.measure_date|date }}
+({{ object_list.last.measure_date|date:"D" }})
+{{ object_list.last.measure_date|date:"f" }} -
+{{ object_list.last.weight }}kg
+<div>
+  <canvas id="myChart" height="600"></canvas>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js/dist/chart.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+<script>
+  const data = {
+    datasets: [{
+      label: '体重',
+      backgroundColor: 'rgb(255, 99, 132)',
+      borderColor: 'rgb(255, 99, 132)',
+      data: [
+{% for article in object_list %}
+  {x: new Date({{ article.measure_date|date:"U" }}000), y: {{ article.weight }}},
+{% endfor %}
+      ],
+    }]
+  };
+
+  const config = {
+    type: 'line',
+    data: data,
+    options: {
+      maintainAspectRatio: false,
+        scales: {
+            x: {
+                type: 'time',
+                time: {
+                    displayFormats: {
+                        days: 'MMM YYYY'
+                    }
+                }
+            }
+        }
+    }
+  };
+</script>
+
+<script>
+  const myChart = new Chart(
+    document.getElementById('myChart'),
+    config
+  );
+</script>
