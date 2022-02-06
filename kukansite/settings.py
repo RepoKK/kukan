@@ -40,7 +40,8 @@ INSTALLED_APPS = [
     'django.forms',
     'kukan',
     'utils_django',
-    'wtrack'
+    'wtrack',
+    'bustime'
 ]
 
 MIDDLEWARE = [

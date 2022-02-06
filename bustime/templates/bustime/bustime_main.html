@@ -1,0 +1,111 @@
+{% extends 'kukan/base.html' %}
+{% block body %}
+    {% block banner %}{% endblock %}
+    <section class="section" style="padding-top: 1rem;padding-bottom: 1rem">
+        <main>
+            <div class="container" v-bind:class="containerSize">
+                {% block content %}
+
+
+                <div class="columns is-mobile is-vcentered">
+                  <div class="column">
+                    <span class="is-primary subtitle">先発</span>
+                  </div>
+                  <div class="column is-4">
+                      <p>
+                    <span class="title is-1" id="next_time">13:45</span>
+                      </p>
+                  </div>
+                  <div class="column">
+                    <span class="subtitle">後</span>
+                  </div>
+                  <div class="column is-4">
+                    <span class="title is-1" id="next_after">0:45</span>
+                  </div>
+                </div>
+
+                <div class="columns is-mobile is-vcentered">
+                  <div class="column">
+                    <span class="subtitle">次発</span>
+                  </div>
+                  <div class="column is-4">
+                    <span class="title is-1" id="next_next_time">13:45</span>
+                  </div>
+                  <div class="column">
+                    <span class="subtitle">後</span>
+                  </div>
+                  <div class="column is-4">
+                    <span class="title is-1" id="next_next_after">0:45</span>
+                  </div>
+                </div>
+
+                <ul>
+                {% for bus_time in list_times %}
+                    <li>{{bus_time|time}}</li>
+                {% endfor %}
+                </ul>
+                {% endblock %}
+            </div>
+        </main>
+    </section>
+{% endblock body%}
+
+{% block mixin_ext %}
+    var mixin_ext = {
+        data: function () {
+            return {
+                showNavBar: true,
+            }
+        },
+    }
+{% endblock %}
+
+{% block script %}
+    {% block extra_script %}
+<script>
+const jstimes = [
+{% for bus_time in list_times %}
+  {{ bus_time|date:"U" }}000,
+{% endfor %}
+]
+
+function msToTime(s) {
+  let ms = s % 1000;
+  s = (s - ms) / 1000;
+  let secs = s % 60;
+  s = (s - secs) / 60;
+  let mins = s % 60;
+  let hrs = (s - mins) / 60;
+
+  if (hrs > 0) {
+    return hrs + ':' + mins + ':' + secs;
+  } else {
+    if (secs > 9 ) {
+        return mins + ':' + secs;
+    } else {
+        return mins + ':' + '0' + secs;
+    }
+  }
+}
+
+function myFunction() {
+    now = Date.now()
+    let next_time = new Date(jstimes.find(o => o > now));
+    let time_to_next = (next_time - now);
+    document.getElementById("next_after").innerHTML = msToTime(time_to_next)
+    document.getElementById("next_time").innerHTML = next_time.toTimeString().substr(0, 5);
+
+    let next_next_time = new Date(jstimes.find(o => o > next_time));
+    time_to_next = (next_next_time - now);
+    document.getElementById("next_next_after").innerHTML = msToTime(time_to_next)
+    document.getElementById("next_next_time").innerHTML = next_next_time.toTimeString().substr(0, 5);
+}
+
+setInterval(myFunction, 1000)
+console.log(jstimes[0])
+</script>
+
+{% endblock %}
+    {% block vue_component %}{% endblock %}
+{% endblock script%}
+

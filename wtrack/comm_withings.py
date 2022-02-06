@@ -19,9 +19,6 @@ logger = logging.getLogger(__name__)
 
 
 class CommWithings:
-    CREDENTIALS_FILE = path.abspath(
-        path.join(path.dirname(path.abspath(__file__)), "../.credentials")
-    )
 
     class NotAuthorized(Exception):
         pass
@@ -93,6 +90,7 @@ class CommWithings:
     def _save_credentials(cls, credentials: CredentialsType) -> None:
         """Save credentials to a file."""
         logger.info(f'Saving credentials in database')
+        cls._log_credentials(credentials)
         withings_settings = Settings.objects.first()
         withings_settings.token = pickle.dumps(credentials)
         withings_settings.save()
@@ -102,8 +100,20 @@ class CommWithings:
         """Load credentials from a file."""
         logger.info(f'Using credentials from database')
 
-        return cast(CredentialsType,
-                    pickle.loads(Settings.objects.first().token))
+        credentials = cast(CredentialsType,
+                           pickle.loads(Settings.objects.first().token))
+        cls._log_credentials(credentials)
+
+    @staticmethod
+    def _log_credentials(credentials: CredentialsType):
+        logger.info(
+            f'Credential properties: '
+            f'  Token:         {credentials.access_token}'
+            f'  Refresh Token: {credentials.refresh_token}'
+            f'  Client ID: {credentials.client_id}'
+            f'  Expiry: {credentials.token_expiry}'
+        )
+
 
     def import_data(self, date_from, date_to):
         assert self.api is not None

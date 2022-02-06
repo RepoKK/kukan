@@ -22,6 +22,7 @@ from django.conf.urls import url
 
 urlpatterns = [
     path('wtrack/', include('wtrack.urls')),
+    path('bustime/', include('bustime.urls')),
     path('', include('kukan.urls')),
     url(r'^login/$', auth_views.LoginView.as_view(), name='login'),
     url(r'^logout/$', auth_views.LogoutView.as_view(), {'next_page': 'login'}, name='logout'),
