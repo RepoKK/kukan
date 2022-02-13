@@ -1,3 +1,5 @@
+import requests
+import datetime
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.http import JsonResponse
 from django.views.generic import TemplateView
@@ -13,10 +15,10 @@ import pytz
 
 
 def get_bus_time(url, station, line, direction):
-    page = urllib.request.urlopen(url)
-    df_all = pd.read_html(url)
+    page = urllib.request.urlopen(url).read().decode()
+    df_all = pd.read_html(page)
     today_type = re.search('(..)ダイヤ</a>で運行しております。',
-                           page.read().decode())[1]
+                           page)[1]
 
     tz = pytz.timezone('Asia/Tokyo')
     list_times = []
@@ -49,14 +51,20 @@ def get_bus_time(url, station, line, direction):
 
 
 def get_time_to_next_hana(_):
+    requests
     url = 'https://tobus.jp/blsys/navi?LCD=&VCD=cresultrsi&ECD=aprslt&slst=1235'
-    status = pd.read_html(url)[2]
+    page = requests.get(
+        url,
+        headers={'Cache-Control': 'max-age=0'}
+    ).content.decode('UTF-8')
+
+    status = pd.read_html(page)[2]
     is_soon = status.iloc[0, 1] == '新宿駅西口行まもなく'
     time_list = status.iloc[0].str.extract(r'新宿駅西口行([0-9]+)分待').dropna()
 
     if is_soon:
         bus_stop = 0
-        bus_wait = '-'
+        bus_wait = 0
     else:
         try:
             bus_stop = int(time_list.iloc[0].name / 2)
@@ -94,11 +102,9 @@ class BusTimeMain(TemplateView):
         line = '白６１'
         direction = '練馬駅・練馬車庫前' if from_shinjuku else '新宿駅西口'
         context['list_times'] = get_bus_time(url, stationMain, line, direction)
-        context['busStopMain'] = f'{{name: "stationMain",' \
-                                 f' class: "{class_main}"}}'
         context['busStopMain'] = {'name': stationMain,
                                   'class': class_main}
-        context['busStopOther'] = f'{{name: "{stationOther}",' \
-                                  f' class: "{class_other}"}}'
+        context['busStopOther'] = {'name': stationOther,
+                                   'class': class_other}
         return context
 
