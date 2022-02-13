@@ -1,4 +1,5 @@
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.http import JsonResponse
 from django.views.generic import TemplateView
 
 import urllib.request
@@ -47,6 +48,29 @@ def get_bus_time(url, station, line, direction):
     return list_times
 
 
+def get_time_to_next_hana(_):
+    url = 'https://tobus.jp/blsys/navi?LCD=&VCD=cresultrsi&ECD=aprslt&slst=1235'
+    status = pd.read_html(url)[2]
+    is_soon = status.iloc[0, 1] == '新宿駅西口行まもなく'
+    time_list = status.iloc[0].str.extract(r'新宿駅西口行([0-9]+)分待').dropna()
+
+    if is_soon:
+        bus_stop = 0
+        bus_wait = '-'
+    else:
+        try:
+            bus_stop = int(time_list.iloc[0].name / 2)
+            bus_wait = f'{int(time_list.iloc[0])}'
+        except IndexError:
+            bus_stop = -1
+            bus_wait = '-'
+
+    return JsonResponse({
+        'real_next_bus_stop': bus_stop,
+        'real_next_bus_wait': bus_wait,
+    })
+
+
 class BusTimeMain(TemplateView):
     template_name = "bustime/bustime_main.html"
 
@@ -70,8 +94,10 @@ class BusTimeMain(TemplateView):
         line = '白６１'
         direction = '練馬駅・練馬車庫前' if from_shinjuku else '新宿駅西口'
         context['list_times'] = get_bus_time(url, stationMain, line, direction)
-        context['busStopMain'] = f'{{name: "{stationMain}",' \
+        context['busStopMain'] = f'{{name: "stationMain",' \
                                  f' class: "{class_main}"}}'
+        context['busStopMain'] = {'name': stationMain,
+                                  'class': class_main}
         context['busStopOther'] = f'{{name: "{stationOther}",' \
                                   f' class: "{class_other}"}}'
         return context

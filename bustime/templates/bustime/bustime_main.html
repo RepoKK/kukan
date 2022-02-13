@@ -1,4 +1,5 @@
 {% extends 'kukan/base.html' %}
+{% block title %}{{busStopMain.name}}停留所時刻{% endblock %}
 {% block body %}
 <main>
     <section class="hero is-small" v-bind:class="busStopMain.class">
@@ -27,6 +28,22 @@
 
     <div class="container is-widescreen">
         <section class="hero has-background-light is-small">
+            <div v-if="real_next_bus_stop!=-2" class="hero-body has-background-warning is-warning">
+                <span v-if="real_next_bus_stop!=-1">
+                    <p>接近情報：<span class="title">[[real_next_bus_stop]]</span>停前</p>
+                    <p v-if="real_next_bus_stop==0">
+                        <span class="subtitle">まもなく到着</span>
+                    </p>
+                    <p v-else>
+                        待ち時間：約
+                        <span class="title">[[real_next_bus_wait]]</span>
+                        <span class="subtitle">分</span>
+                    </p>
+                </span>
+                <div v-else>
+                    <p>接近情報: 該当なし</p>
+                </div>
+            </div>
             <div class="hero-body ">
                 <nav v-if="next_time" class="level is-mobile">
                     <!-- Left side -->
@@ -72,6 +89,7 @@
             </div>
         </section>
 
+
         <section class="hero has-background-light is-small">
             <div v-if="next2_time" class="hero-body ">
                 <nav class="level is-mobile">
@@ -79,7 +97,7 @@
                     <div class="level-left">
                         <div class="level-item">
                             <div class="block">
-                                <p>先発</p>
+                                <p>次発</p>
                                 <p><span
                                         class="title is-4">[[next2_time]]</span>
                                 </p>
@@ -144,6 +162,8 @@
             time_to_next: '',
             next2_time: '',
             time_to_next2: '',
+            real_next_bus_stop: -2,
+            real_next_bus_wait: '-',
         }
     },
     methods: {
@@ -196,10 +216,27 @@
             setTimeout(() => {
                 this.updateTimer()
             }, 1000);
-        }
+        },
+        getNextTimeTimer() {
+            axios.get(`/bustime/get_time_to_next_hana`)
+                    .then(({ data }) => {
+                        this.real_next_bus_stop = data.real_next_bus_stop
+                        this.real_next_bus_wait = data.real_next_bus_wait
+                    })
+                    .catch((error) => {
+                            this.real_next_bus_stop = -1
+                    })
+
+            setTimeout(() => {
+                this.getNextTimeTimer()
+            }, 10000);
+        },
     },
     created: function () {
-        this.updateTimer()
+        this.updateTimer();
+        if ('{{busStopMain.name}}' == '花園町') {
+            this.getNextTimeTimer();
+        };
     }
 {% endblock vue_data%}
 
