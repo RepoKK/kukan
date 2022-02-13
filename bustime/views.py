@@ -47,7 +47,7 @@ def get_bus_time(url, station, line, direction):
     return list_times
 
 
-class BusTimeMain(LoginRequiredMixin, TemplateView):
+class BusTimeMain(TemplateView):
     template_name = "bustime/bustime_main.html"
 
     def get_context_data(self, **kwargs):
