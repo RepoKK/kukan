@@ -1,38 +1,40 @@
 {% extends 'kukan/base.html' %}
 {% block body %}
-    {% block banner %}{% endblock %}
-    <section class="section" style="padding-top: 1rem;padding-bottom: 1rem">
-        <main>
-            <div class="container" v-bind:class="containerSize">
-                {% block content %}
+<main>
+    <section class="hero is-small" v-bind:class="busStopMain.class">
+        <div class="hero-body">
+            <nav class="level is-mobile">
+                <!-- Left side -->
+                <div class="level-left">
+                    <div class="level-item title">
+                        [[busStopMain.name]]
+                    </div>
+                </div>
+                <!-- Right side -->
+                <div class="level-right">
+                    <div class="level-item">
+                        <a class="button is-small"
+                           v-bind:class="busStopOther.class"
+                           v-bind:href="['{% url 'bustime:bustime_main' %}?station=' + busStopOther.name]"
+                        >
+                            [[busStopOther.name]]
+                        </a>
+                    </div>
+                </div>
+            </nav>
+        </div>
+    </section>
 
-                <nav class="level is-mobile">
+    <div class="container is-widescreen">
+        <section class="hero has-background-light is-small">
+            <div class="hero-body ">
+                <nav v-if="next_time" class="level is-mobile">
                     <!-- Left side -->
                     <div class="level-left">
                         <div class="level-item">
-                            <div class="column is-3">
+                            <div class="block">
                                 <p>先発</p>
-                                <p><span class="title is-4"
-                                         id="next_time">--:--</span></p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Right side -->
-                    <div class="level-right">
-                        <p class="level-item"><strong>後</strong></p>
-                        <p><span class="title is-1" id="next_after">--:--</span>
-                        </p>
-                    </div>
-                </nav>
-
-                <nav class="level is-mobile">
-                    <!-- Left side -->
-                    <div class="level-left">
-                        <div class="level-item">
-                            <div class="column is-3">
-                                <p>次発</p>
-                                <p><span class="title is-4" id="next_next_time">--:--</span>
+                                <p><span class="title is-4">[[next_time]]</span>
                                 </p>
                             </div>
                         </div>
@@ -40,80 +42,164 @@
 
                     <!-- Right side -->
                     <div class="level-right">
-                        <p class="level-item"><strong>後</strong></p>
-                        <p><span class="title is-3"
-                                 id="next_next_after">--:--</span></p>
+                        <p class="level-item">後</p>
+                        <table class="title is-1">
+                            <tr style="visibility:collapse;">
+                                <td>4</td>
+                                <td>:</td>
+                                <td>4</td>
+                                <td>4</td>
+                            </tr>
+                            <tr>
+                                <td style="text-align: right">
+                                    [[time_to_next.substr(0, time_to_next.length
+                                    - 3)]]
+                                </td>
+                                <td>:</td>
+                                <td style="text-align: center">
+                                    [[time_to_next.charAt(time_to_next.length -
+                                    2)]]
+                                </td>
+                                <td style="text-align: center">
+                                    [[time_to_next.charAt(time_to_next.length -
+                                    1)]]
+                                </td>
+                            </tr>
+                        </table>
                     </div>
                 </nav>
-
-                <ul>
-                {% for bus_time in list_times %}
-                    <li>{{bus_time|time}}</li>
-                {% endfor %}
-                </ul>
-                {% endblock %}
+                <div v-else　class="subtitle">本日運行終了</div>
             </div>
-        </main>
-    </section>
+        </section>
+
+        <section class="hero has-background-light is-small">
+            <div v-if="next2_time" class="hero-body ">
+                <nav class="level is-mobile">
+                    <!-- Left side -->
+                    <div class="level-left">
+                        <div class="level-item">
+                            <div class="block">
+                                <p>先発</p>
+                                <p><span
+                                        class="title is-4">[[next2_time]]</span>
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right side -->
+                    <div class="level-right">
+                        <p class="level-item">後</p>
+                        <table class="title is-3">
+                            <tr style="visibility:collapse;">
+                                <td>4</td>
+                                <td>:</td>
+                                <td>4</td>
+                                <td>4</td>
+                            </tr>
+                            <tr>
+                                <td style="text-align: right">
+                                    [[time_to_next2.substr(0,
+                                    time_to_next2.length - 3)]]
+                                </td>
+                                <td>:</td>
+                                <td style="text-align: center">
+                                    [[time_to_next2.charAt(time_to_next2.length
+                                    - 2)]]
+                                </td>
+                                <td style="text-align: center">
+                                    [[time_to_next2.charAt(time_to_next2.length
+                                    - 1)]]
+                                </td>
+                            </tr>
+                        </table>
+                    </div>
+                </nav>
+            </div>
+        </section>
+
+        <section class="section" style="padding-top: 1rem;padding-bottom: 1rem">
+            <div class="columns is-multiline is-mobile">
+                <div v-for="t in jstimes.slice(2)"
+                     class="column is-one-quarter">
+                    [[new Date(t).toTimeString().substr(0, 5)]]
+                </div>
+            </div>
+        </section>
+    </div>
+</main>
 {% endblock body%}
 
-{% block mixin_ext %}
-    var mixin_ext = {
-        data: function () {
-            return {
-                showNavBar: true,
+{% block vue_data %}
+    data() {
+        return {
+            busStopMain: {{busStopMain|safe}},
+            busStopOther: {{busStopOther|safe}},
+            jstimes: [
+                {% for bus_time in list_times %}
+                  {{ bus_time|date:"U" }}000,
+                {% endfor %}
+                ],
+            next_time: '',
+            time_to_next: '',
+            next2_time: '',
+            time_to_next2: '',
+        }
+    },
+    methods: {
+         msToTime(s) {
+            let ms = s % 1000;
+            s = (s - ms) / 1000;
+            let secs = s % 60;
+            s = (s - secs) / 60;
+            let mins = s % 60;
+            let hrs = (s - mins) / 60;
+
+            if (secs < 10) {
+                secs = '0' + secs;
+            }
+
+            if (hrs > 0) {
+                if (mins < 10) {
+                    mins = '0' + mins;
+                }
+                return hrs + ':' + mins + ':' + secs;
+            } else {
+                 return mins + ':' + secs;
             }
         },
+        updateTimer() {
+            let now = Date.now();
+
+            this.jstimes = this.jstimes.filter(o => o > now)
+
+            let next = this.jstimes.find(o => o > now);
+            if (next) {
+                next = new Date(next)
+                this.next_time = next.toTimeString().substr(0, 5);
+                this.time_to_next = this.msToTime(next - now);
+            } else {
+                this.next_time = null;
+                this.time_to_next = null;
+            }
+
+            let next2 = this.jstimes.find(o => o > next);
+            if (next2) {
+                next2 = new Date(next2)
+                this.next2_time = next2.toTimeString().substr(0, 5);
+                this.time_to_next2 = this.msToTime(next2 - now);
+            } else {
+                this.next2_time = null;
+                this.time_to_next2 = null;
+            }
+
+            setTimeout(() => {
+                this.updateTimer()
+            }, 1000);
+        }
+    },
+    created: function () {
+        this.updateTimer()
     }
-{% endblock %}
-
-{% block script %}
-    {% block extra_script %}
-<script>
-const jstimes = [
-{% for bus_time in list_times %}
-  {{ bus_time|date:"U" }}000,
-{% endfor %}
-]
-
-function msToTime(s) {
-  let ms = s % 1000;
-  s = (s - ms) / 1000;
-  let secs = s % 60;
-  s = (s - secs) / 60;
-  let mins = s % 60;
-  let hrs = (s - mins) / 60;
-
-  if (hrs > 0) {
-    return hrs + ':' + mins + ':' + secs;
-  } else {
-    if (secs > 9 ) {
-        return mins + ':' + secs;
-    } else {
-        return mins + ':' + '0' + secs;
-    }
-  }
-}
-
-function myFunction() {
-    now = Date.now()
-    let next_time = new Date(jstimes.find(o => o > now));
-    let time_to_next = (next_time - now);
-    document.getElementById("next_after").innerHTML = msToTime(time_to_next)
-    document.getElementById("next_time").innerHTML = next_time.toTimeString().substr(0, 5);
-
-    let next_next_time = new Date(jstimes.find(o => o > next_time));
-    time_to_next = (next_next_time - now);
-    document.getElementById("next_next_after").innerHTML = msToTime(time_to_next)
-    document.getElementById("next_next_time").innerHTML = next_next_time.toTimeString().substr(0, 5);
-}
-
-myFunction()
-setInterval(myFunction, 1000)
-console.log(jstimes[0])
-</script>
-
-{% endblock %}
-    {% block vue_component %}{% endblock %}
-{% endblock script%}
+{% endblock vue_data%}
 

@@ -21,13 +21,9 @@ def get_bus_time(url, station, line, direction):
     list_times = []
 
     for df in df_all:
-        print(df)
         header = {re.sub('\.[0-9]+', '', str(c))
                   for c in df.columns if c != '時'}
-        print(header)
-        print(f'【{station}】 {line} {direction}行（{today_type}）')
         if header == {f'【{station}】 {line} {direction}行（{today_type}）'}:
-            print('IN RIGHT DF')
 
             now = tz.localize(dt.datetime.now())
 
@@ -56,12 +52,27 @@ class BusTimeMain(LoginRequiredMixin, TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        url = 'https://tobus.jp/blsys/navi?LCD=&VCD=SelectDest&ECD=SelectDest' \
-              '&slst=702&pl=8&RTMCD=122'
-        station = '新宿駅西口'
+        stationMain = self.request.GET.get('station', '新宿駅西口')
+        from_shinjuku = stationMain == '新宿駅西口'
+        stationOther = '花園町' if from_shinjuku else '新宿駅西口'
+
+        if from_shinjuku:
+            url = 'https://tobus.jp/blsys/navi?LCD=&VCD=cresultttbl&ECD=show' \
+                  '&slst=702&pl=8&RTMCD=122&lrid=2&tgo=1'
+            class_main = 'is-info'
+            class_other = 'is-success'
+        else:
+            url = 'https://tobus.jp/blsys/navi?LCD=&VCD=cresultttbl&ECD=show' \
+                  '&slst=1235&pl=1&RTMCD=122&lrid=1&tgo=1'
+            class_main = 'is-success'
+            class_other = 'is-info'
+
         line = '白６１'
-        direction = '練馬駅・練馬車庫前'
-        context['list_times'] = get_bus_time(url, station, line, direction)
-        context['list_times']
+        direction = '練馬駅・練馬車庫前' if from_shinjuku else '新宿駅西口'
+        context['list_times'] = get_bus_time(url, stationMain, line, direction)
+        context['busStopMain'] = f'{{name: "{stationMain}",' \
+                                 f' class: "{class_main}"}}'
+        context['busStopOther'] = f'{{name: "{stationOther}",' \
+                                  f' class: "{class_other}"}}'
         return context
 
