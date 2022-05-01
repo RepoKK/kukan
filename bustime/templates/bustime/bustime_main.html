@@ -50,14 +50,15 @@
         <section class="hero has-background-light is-small">
             <div v-if="real_next_bus_stop!=-2" class="hero-body has-background-warning is-warning">
                 <span v-if="real_next_bus_stop!=-1">
+                    <p>リアルタイム情報</p>
                     <p>接近情報：<span class="title">[[real_next_bus_stop]]</span>停前</p>
                     <p v-if="real_next_bus_stop==0">
-                        <span class="subtitle">まもなく到着</span>
+                        <span class="subtitle is-3">まもなく到着</span>
                     </p>
                     <p v-else>
-                        待ち時間：約
-                        <span class="title">[[real_next_bus_wait]]</span>
-                        <span class="subtitle">分</span>
+                        <span class="subtitle is-3">待ち時間：約</span>
+                        <span class="title is-1">[[real_next_bus_wait]]</span>
+                        <span class="subtitle is-3">分</span>
                     </p>
                 </span>
                 <div v-else>
@@ -80,7 +81,8 @@
                     <!-- Right side -->
                     <div class="level-right">
                         <p class="level-item">後</p>
-                        <table class="title is-1">
+                        <table class="title"
+                               :class="real_next_bus_stop!=-2 ? 'is-3' : 'is-1'">
                             <tr style="visibility:collapse;">
                                 <td>4</td>
                                 <td>:</td>
