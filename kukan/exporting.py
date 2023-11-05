@@ -33,7 +33,8 @@ class Exporter:
 
     def _export_all(self):
         for kind in self.profile.kind_list:
-            self._export_kind(kind)
+            if kind[0] != Example.JUKUICHI:
+                self._export_kind(kind)
 
     def _export_kind(self, choice):
         with open(os.path.join(self.out_dir, 'dj_' + choice + '.csv'),

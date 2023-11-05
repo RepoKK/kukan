@@ -234,8 +234,8 @@ class TestFBaseCommand(TestCase, TestCaseMixin):
         with open(os.path.join(self.log_dir, cmd_log_name), 'r') as f:
             self.assertEqual((
                 'TTT Start execution of command test_f_base_cmd\n'
-                "TTT Options: {'no_color': False, 'pythonpath': None, 'settings': None, "
-                "'traceback': False, 'verbosity': 1, 'skip_checks': True}\n"
+                "TTT Options: {'verbosity': 1, 'settings': None, 'pythonpath': None, "
+                "'traceback': False, 'no_color': False, 'skip_checks': True}\n"
                 'TTT Test\n'
                 'TTT End execution, took 0 minutes\n'
             ), str(f.read()))

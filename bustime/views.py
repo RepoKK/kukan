@@ -24,7 +24,7 @@ def get_bus_time(url, station, line, direction):
     list_times = []
 
     for df in df_all:
-        header = {re.sub('\.[0-9]+', '', str(c))
+        header = {re.sub('\\.[0-9]+', '', str(c))
                   for c in df.columns if c != '時'}
         if header == {f'【{station}】 {line} {direction}行（{today_type}）'}:
 

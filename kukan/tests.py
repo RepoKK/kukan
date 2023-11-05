@@ -691,7 +691,8 @@ class TestExport(TestCase):
     def create_example_all_kinds(self, kanji_list):
         res = []
         for idx, ex_kind in enumerate(Example.EX_KIND_CHOICES):
-            res.append(self.create_example_with_reading(kanji_list * (idx + 1), ex_kind[0]))
+            if ex_kind[0] != Example.JUKUICHI:
+                res.append(self.create_example_with_reading(kanji_list * (idx + 1), ex_kind[0]))
         return res
 
     def assert_export_file(self, exporter, number_line, qry, output_template, **kwargs):
@@ -779,7 +780,8 @@ class TestExport(TestCase):
         # Check that each Kyu / Kind has exactly one example (HYOGAI are special - cannot have low Kanken)
         self.assertEqual([{'kanken__kyu': kanken.kyu, 'ex_kind': ex_kind, 'kanken__count': 1}
                           for kanken in Kanken.objects.all()
-                          for ex_kind in [x[0] for x in Example.EX_KIND_CHOICES if x[0] is not Example.HYOGAI]],
+                          for ex_kind in [x[0] for x in Example.EX_KIND_CHOICES
+                                          if not x[0] in [Example.HYOGAI, Example.JUKUICHI]]],
                          list(Example.objects.exclude(ex_kind=Example.HYOGAI).values('kanken__kyu', 'ex_kind')
                               .annotate(Count('kanken')).order_by('pk')))
         self.assertEqual([{'kanken__kyu': kanken.kyu, 'ex_kind': ex_kind, 'kanken__count': 1}
