@@ -133,7 +133,6 @@ TOP_DIR = os.path.dirname(BASE_DIR)
 DB_BACKUP = os.path.join(TOP_DIR, r'db_backup')
 
 ANKI_DIR = os.path.join(TOP_DIR, r'anki')
-ANKI_SRC = os.path.join(ANKI_DIR, r'anki-2.1.4')
 ANKI_IMPORT_DIR = os.path.join(ANKI_DIR, r'import')
 
 FIXTURE_DIRS = [os.path.join(BASE_DIR, 'kukan', 'fixtures', 'Kanji')]
