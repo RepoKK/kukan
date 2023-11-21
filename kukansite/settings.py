@@ -19,6 +19,7 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # See https://docs.djangoproject.com/en/2.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
+# (below is a dummy)
 # noinspection SpellCheckingInspection
 SECRET_KEY = '-x1d#d4*ruehq!!bu(u$-ye_umoe%h2esul@-hl#2s)u2clh=y'
 
@@ -119,6 +120,8 @@ USE_TZ = True
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/2.0/howto/static-files/
+
+DEFAULT_AUTO_FIELD = "django.db.models.AutoField"
 
 STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'static')

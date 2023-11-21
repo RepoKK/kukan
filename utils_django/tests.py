@@ -235,7 +235,8 @@ class TestFBaseCommand(TestCase, TestCaseMixin):
             self.assertEqual((
                 'TTT Start execution of command test_f_base_cmd\n'
                 "TTT Options: {'verbosity': 1, 'settings': None, 'pythonpath': None, "
-                "'traceback': False, 'no_color': False, 'skip_checks': True}\n"
+                "'traceback': False, 'no_color': False, "
+                "'force_color': False, 'skip_checks': True}\n"
                 'TTT Test\n'
                 'TTT End execution, took 0 minutes\n'
             ), str(f.read()))

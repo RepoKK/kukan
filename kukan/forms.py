@@ -108,7 +108,7 @@ class BForm(ModelForm):
 
 class KotowazaForm(BForm):
 
-    class Meta:
+    class Meta(BForm.Meta):
         model = Kotowaza
         fields = ['kotowaza', 'yomi', 'furigana', 'definition']
         widgets = {
@@ -134,7 +134,7 @@ class KotowazaForm(BForm):
 class ExampleForm(BForm):
     reading_selected = CharField(label='reading_selected', max_length=100)
 
-    class Meta:
+    class Meta(BForm.Meta):
         model = Example
         fields = ['word', 'word_native', 'word_variation', 'yomi', 'yomi_native', 'sentence', 'definition',
                   'definition2', 'ex_kind', 'kotowaza']
