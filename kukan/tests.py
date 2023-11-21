@@ -28,6 +28,9 @@ from kukan.templatetags.ja_tags import furigana_ruby, furigana_remove, furigana_
 from kukan.test_helpers import FixtureAppLevel, FixtureKukan, FixWebKukan, PatchRequestsGet
 from kukan.test_helpers import FixtureKanji
 
+# Override SECURE_SSL_REDIRECT to avoid redirection of non-secured requests
+settings.SECURE_SSL_REDIRECT = False
+
 
 class TestUtilsDjangoApps(TestCase):
     def test_apps(self):
