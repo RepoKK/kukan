@@ -103,6 +103,7 @@ class CommWithings:
         credentials = cast(CredentialsType,
                            pickle.loads(Settings.objects.first().token))
         cls._log_credentials(credentials)
+        return credentials
 
     @staticmethod
     def _log_credentials(credentials: CredentialsType):
