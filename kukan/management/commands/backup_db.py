@@ -96,7 +96,6 @@ class DbBackup:
             self.dbx.files_delete_v2(e.path_lower)
             logger.info('Remove file: %s', e.path_lower)
 
-        
         for e in self.dbx.files_list_folder(self.dbx_base_dir).entries:
             year = re.match('(20[0-9][0-9])', e.name)
             if year: 
@@ -124,4 +123,3 @@ class Command(FBaseCommand):
             if acc_details['backup']:
                 DbBackup(Path(settings.ANKI_DB_DIR) / account / anki_db_name,
                          'Anki/' + account).backup_and_upload()
-
