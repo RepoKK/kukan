@@ -5,9 +5,9 @@ import weakref
 from collections import namedtuple
 
 import pandas as pd
-from anki import Collection
+from anki.collection import Collection
 from anki.importing.csvfile import TextImporter
-from anki.sync import RemoteServer, Syncer, FullSyncer
+from anki.sync_pb2 import SyncStatusResponse
 from anki.utils import ids2str
 from django.conf import settings
 
@@ -25,10 +25,21 @@ class AnkiProfile:
     ]]
 
     profiles = {
-        'Ayumi': {'syncKey': r'AKkTW8E20gyPnhXB', 'hostNum': '3', 'decks': deck_list},
-        'Fred': {'syncKey': r'5cewjKL7Ji0bxmEI', 'hostNum': '3', 'decks': deck_list},
-        'Test2': {'syncKey': r'B41alyqIHCZPnWsO', 'hostNum': '2', 'decks': deck_list},
+        'Ayumi': {'syncKey': r'AKkTW8E20gyPnhXB',
+                  'hostNum': '3', 'decks': deck_list},
+        'Fred': {'syncKey': r'5cewjKL7Ji0bxmEI',
+                 'hostNum': '3', 'decks': deck_list},
+        'Test2': {'syncKey': r'B41alyqIHCZPnWsO',
+                  'hostNum': '2', 'decks': deck_list},
     }
+
+    # TODO: puts in settings_prod
+    settings.ANKI_ACCOUNTS = {
+        'Ayumi': {'user': 'xx', 'password': 'yy', 'decks': deck_list},
+        'Fred': {'user': 'xx', 'password': 'yy', 'decks': deck_list},
+        'Test2': {'user': 'xx', 'password': 'yy', 'decks': deck_list}
+    }
+    settings.ANKI_DB_DIR = ''
 
     def __init__(self, profile, max_delete_count=0):
         self.name = profile
@@ -75,48 +86,59 @@ class AnkiProfile:
         ti.run()
         res = ('N/A', 'N/A', 'N/A')
         if ti.log:
-            m = re.match(r'(\d+) notes? added, (\d+) notes? updated, (\d+) notes? unchanged.', ti.log[0])
+            m = re.match(r'(\d+) notes? added, (\d+)'
+                         r' notes? updated, (\d+) notes? unchanged.', ti.log[0])
             if m:
                 res = (m[1], m[2], m[3])
         return res
 
     def delete_missing_notes(self, deck, file_name):
         lst_db_notes = pd.DataFrame(list(self.col.db.execute(
-            "select id, flds from notes where id in " + ids2str(self.col.findNotes("deck:" + deck.name)))))
-        lst_db_notes.iloc[:, 1] = lst_db_notes.iloc[:, 1].str.split('\x1f').str.get(0)
+            "select id, flds from notes where id in "
+            + ids2str(self.col.findNotes("deck:" + deck.name)))))
+        lst_db_notes.iloc[:, 1] = lst_db_notes.iloc[:, 1].str.split(
+            '\x1f').str.get(0)
         lst_db_notes.columns = ['db_key', 'anki_key']
         lst_db_notes = lst_db_notes.set_index('anki_key').sort_index()
 
-        lst_new_keys = pd.read_csv(file_name, sep='\t', header=None, usecols=[0], dtype=str)
+        lst_new_keys = pd.read_csv(
+            file_name, sep='\t', header=None, usecols=[0], dtype=str)
         lst_new_keys['csv'] = 'csv'
         lst_new_keys = lst_new_keys.set_index(0).sort_index()
 
         lst_db_notes['csv'] = lst_new_keys['csv']
-        ids_to_del = lst_db_notes[lst_db_notes['csv'] != 'csv']['db_key'].tolist()
+        ids_to_del = lst_db_notes[
+            lst_db_notes['csv'] != 'csv']['db_key'].tolist()
         len_del = len(ids_to_del)
         if len_del == 0:
             pass
         elif len_del > self.max_delete_count:
             print('Too many cards to delete ({})'.format(len_del))
-            logger.error(f'{self.profile}: Too many cards to delete from deck {deck.name} '
+            logger.error(f'{self.profile}: Too many cards to delete '
+                         f'from deck {deck.name} '
                          f'({len_del}, max: {self.max_delete_count})')
         else:
             print('Delete {} card(s)'.format(len_del))
-            logger.info(f'{self.profile}: Delete {len_del} cards from deck {deck.name}')
+            logger.info(f'{self.profile}: Delete {len_del} cards '
+                        f'from deck {deck.name}')
             self.col.remNotes(ids_to_del)
         return len_del
 
     def sync_server(self):
-        server = RemoteServer(self.profile['syncKey'], self.profile['hostNum'])
-        client = Syncer(self.col, server)
-        res = client.sync()
-        if res in ['success', 'noChanges']:
-            pass
-        elif res == 'fullSync':
-            print('FULL SYNC')
-            client = FullSyncer(self.col, self.profile['syncKey'], server.client, self.profile['hostNum'])
-            client.download()
-            self.col.reopen()
+        auth = self.col.sync_login(self.profile['user'],
+                                   self.profile['password'])
+
+        if sync_status := self.col.sync_status(auth).required == \
+                SyncStatusResponse.NORMAL_SYNC:
+            logger.info('Sync from server: Need normal sync')
+            logger.info(self.col.sync_collection(auth, True))
+        elif sync_status == SyncStatusResponse.NO_CHANGES:
+            logger.info('Sync from server: No change')
+        elif sync_status == SyncStatusResponse.FULL_SYNC:
+            logger.info('Sync from server: Need Full sync')
+            Exception('Need Full sync')
+        else:
+            raise Exception('Return value not expected')
 
     def sync(self):
 
@@ -131,9 +153,12 @@ class AnkiProfile:
         # Apply the changes
         for deck in self.profile['decks']:
             file_name = os.path.join(settings.ANKI_IMPORT_DIR, deck.file_name)
-            if os.path.exists(file_name) and deck.name in self.col.decks.allNames():
-                res_df.loc[deck.name, ['added', 'updated', 'unchanged']] = self.import_file(deck, file_name)
-                res_df.loc[deck.name, 'deleted'] = self.delete_missing_notes(deck, file_name)
+            if os.path.exists(file_name) and \
+                    deck.name in self.col.decks.allNames():
+                res_df.loc[deck.name, ['added', 'updated', 'unchanged']] = \
+                    self.import_file(deck, file_name)
+                res_df.loc[deck.name, 'deleted'] = self.delete_missing_notes(
+                    deck, file_name)
 
         # Sync the change back
         self.sync_server()
