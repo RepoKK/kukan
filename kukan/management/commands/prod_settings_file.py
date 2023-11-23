@@ -1,10 +1,10 @@
 import os
 from django.conf import settings
 from utils_django.dropbox import upload, download
-from utils_django.management_command import FBaseCommand
+from django.core.management import BaseCommand
 
 
-class Command(FBaseCommand):
+class Command(BaseCommand):
     help = 'Upload or download the settings_prod.py to Dropbox'
 
     def add_arguments(self, parser):
@@ -21,7 +21,7 @@ class Command(FBaseCommand):
             help='Dropbox API token',
         )
 
-    def handle_cmd(self, *args, **options):
+    def handle(self, *args, **options):
         file_name = 'settings_prod.py'
         file_path = os.path.join(settings.BASE_DIR,
                                  'kukansite',
@@ -30,4 +30,4 @@ class Command(FBaseCommand):
         if options['direction'] == 'upload':
             upload(file_path, dropbox_file, options['token'])
         else:
-            download(dropbox_file, file_path)
+            download(dropbox_file, file_path, options['token'])
