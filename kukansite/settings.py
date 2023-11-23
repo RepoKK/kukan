@@ -216,4 +216,4 @@ LOGGING = {
 try:
     from kukansite.settings_prod import *
 except ImportError as e:
-    pass
+    DROPBOX_TOKEN = 0
