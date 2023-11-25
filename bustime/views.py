@@ -1,22 +1,19 @@
-import requests
-import datetime
-from django.contrib.auth.mixins import LoginRequiredMixin
-from django.http import JsonResponse
-from django.views.generic import TemplateView
-
+import datetime as dt
+import re
 import urllib.request
+from io import StringIO
 
 import numpy as np
 import pandas as pd
-import datetime as dt
-import re
-
 import pytz
+import requests
+from django.http import JsonResponse
+from django.views.generic import TemplateView
 
 
 def get_bus_time(url, station, line, direction):
     page = urllib.request.urlopen(url).read().decode()
-    df_all = pd.read_html(page)
+    df_all = pd.read_html(StringIO(page))
     today_type = re.search('(..)ダイヤ</a>で運行しております。',
                            page)[1]
 
@@ -35,6 +32,7 @@ def get_bus_time(url, station, line, direction):
                   .dropna(axis='columns', how='all')
                   .replace('[^0-9]', '', regex=True)
                   .astype(float))
+            print(df.index)
 
             for r in df.iterrows():
                 hour = r[0]
@@ -51,14 +49,13 @@ def get_bus_time(url, station, line, direction):
 
 
 def get_time_to_next_hana(_):
-    requests
     url = 'https://tobus.jp/blsys/navi?LCD=&VCD=cresultrsi&ECD=aprslt&slst=1235'
     page = requests.get(
         url,
         headers={'Cache-Control': 'max-age=0'}
     ).content.decode('UTF-8')
 
-    status = pd.read_html(page)[2]
+    status = pd.read_html(StringIO(page))[2]
     is_soon = status.iloc[0, 1] == '新宿駅西口行まもなく'
     time_list = status.iloc[0].str.extract(r'新宿駅西口行([0-9]+)分待').dropna()
 
@@ -68,7 +65,7 @@ def get_time_to_next_hana(_):
     else:
         try:
             bus_stop = int(time_list.iloc[0].name / 2)
-            bus_wait = f'{int(time_list.iloc[0])}'
+            bus_wait = f'{int(time_list.iloc[0][0])}'
         except IndexError:
             bus_stop = -1
             bus_wait = '-'
