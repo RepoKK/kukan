@@ -3,7 +3,11 @@ from lxml import html
 import requests
 import re
 import html2text
+import logging
+
 import kukan.jautils as jau
+
+logger = logging.getLogger(__name__)
 
 
 class DefinitionWordBase(ABC):
@@ -49,6 +53,7 @@ class DefinitionWordBase(ABC):
         pass
 
     def _get_page_from_link(self):
+        logger.info(self.word_base_link + self.link)
         page = requests.get(self.word_base_link + self.link)
         self.definition_page = html.fromstring(page.content.decode('utf-8'))
 
@@ -80,9 +85,11 @@ class DefinitionKanjipedia(DefinitionWordBase):
     def search_def(self):
         link = 'https://www.kanjipedia.jp/search?k={}&wt=1&sk=perfect'.format(self.word)
         page = requests.get(link)
+        logger.info(f'Search Kanjipedia: {link}')
 
         try:
-            target = html.fromstring(page.content.decode('utf-8')).xpath('/html/body/div[1]/div[2]/ul[2]/li/a')
+            target = html.fromstring(page.content.decode('utf-8')).xpath(
+                '/html/body/div[1]/div[3]/ul[2]/li/a')
             if len(target) > 1:
                 self.candidates = [{'word': self.word + ' ' + t.getchildren()[-1].text,
                                     'link': t.get('href')} for t in target]
@@ -96,7 +103,9 @@ class DefinitionKanjipedia(DefinitionWordBase):
     def parse_def(self):
         pg = self.definition_page
         try:
-            self.yomi = pg.xpath('/html/body/div[1]/div[2]/div[1]/div/p[2]/text()')[0].translate(jau.hir2kat)
+            self.yomi = pg.xpath(
+                '/html/body/div[1]/div[3]/div[1]/div/p[2]/text()'
+            )[0].translate(jau.hir2kat)
             self.yomi = self.yomi.replace('－', '')
             for i, p in enumerate(pg.xpath('//*[@id="kotobaExplanationSection"]/p')):
                 text = html.tostring(p, encoding='unicode')
@@ -123,21 +132,26 @@ class DefinitionGoo(DefinitionWordBase):
     def search_def(self):
         link = 'https://dictionary.goo.ne.jp/srch/jn/{}/m1u/'.format(self.word)
         page = requests.get(link)
+        logger.info(f'Search Goo: {link}')
 
         tree = html.fromstring(page.content)
-        if len(tree.xpath('//*[@id="NR-main-in"]/section/div/div[2]/div')) == 1:
+        if tree.xpath('//*[@id="NR-main"]/section[1]/div/div[2]/div/div[2]/div'):
             self.definition_page = tree
         else:
-            for block in tree.xpath('//dt[@class="title search-ttl-a"]'):
-                if block.getparent().getparent().get('href')[0:3] == '/jn':
-                    self.candidates.append({'word': block.text, 'link': block.getparent().getparent().get('href')})
+            for block in tree.xpath(
+                    '//*[@id="NR-main-in"]/section/div/div[2]/ul/li/p'):
+                self.candidates.append(
+                    {'word': block.text,
+                     'link': block.getparent().get('href')})
 
     def parse_def(self):
         tree = self.definition_page
 
-        block = tree.xpath('//*[@id="NR-main-in"]/section/div/div[2]/div')
+        block = tree.xpath('//*[@id="NR-main"]/section[1]/div/div[2]/div/div[2]/div')
         text = html.tostring(block[0], encoding='unicode')
-        yomi = tree.xpath('//*[@id="NR-main-in"]/section/div/div[1]/h1/text()')[0]
+        logger.info(text)
+        yomi = tree.xpath('//*[@id="NR-main"]/section[1]/div/div[2]/div/div[1]/h2')[0].text_content()
+        logger.info(yomi)
         yomi = yomi[0:yomi.index('【')].replace('‐', '')
         yomi = yomi.translate(jau.hir2kat)
         yomi = yomi.replace('・', '')

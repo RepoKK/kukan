@@ -6,7 +6,6 @@ import re
 import urllib.parse
 from collections import Counter, namedtuple
 from io import StringIO
-from unittest import TestCase
 from unittest.mock import mock_open, patch, MagicMock
 
 import requests
@@ -24,6 +23,7 @@ from kukan.forms import ExampleForm, KotowazaForm
 from kukan.jautils import JpnText, hir2kat
 from kukan.jautils import kat2hir
 from kukan.models import Kanji, Example, Reading, ExMap, Kanken, YomiJoyo, Kotowaza, Bushu
+from kukan.onlinepedia import DefinitionKanjipedia
 from kukan.templatetags.ja_tags import furigana_ruby, furigana_remove, furigana_bracket, furigana_html
 from kukan.test_helpers import FixtureAppLevel, FixtureKukan, FixWebKukan, PatchRequestsGet
 from kukan.test_helpers import FixtureKanji
@@ -833,6 +833,23 @@ class TestDefinitionFetching(TestCase):
         self.assertNotEqual(-1, self.get_kanjipedia_def_string('枯渇').find('【書きかえ】'))
         self.assertNotEqual(-1, self.get_kanjipedia_def_string('左様').find('【表記】'))
 
+class TestDefinitionReal(TestCase):
+    def test_real_kanjipedia(self):
+        definition_word = DefinitionKanjipedia('団扇')
+        definition, yomi, candidates = definition_word.get_definition()
+        self.assertEqual(
+            candidates,
+            [{'word': '団扇 (うちわ)', 'link': '/kotoba/0004637000'},
+             {'word': '団扇 (ダンセン)', 'link': '/kotoba/0004637700'}]
+        )
+        definition_word = DefinitionKanjipedia('撚糸')
+        definition, yomi, candidates = definition_word.get_definition()
+        self.assertEqual(
+            definition,
+            '糸を二本以上合わせ、よりをかけたもの。\n'
+            '\n**【参考】** 「よりいと」とも読む。')
+        self.assertEqual(yomi, 'ネンシ')
+        self.assertEqual(candidates, [])
 
 class TestPatchRequestGetDecorator(TestCase):
     def test_decorated_class(self):
