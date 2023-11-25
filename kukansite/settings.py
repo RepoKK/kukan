@@ -88,6 +88,9 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
+        "TEST": {
+            "NAME": os.path.join(BASE_DIR, 'db.sqlite3'),
+        },
     }
 }
 
@@ -96,16 +99,20 @@ DATABASES = {
 
 AUTH_PASSWORD_VALIDATORS = [
     {
-        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
+        'NAME': 'django.contrib.auth.password_validation'
+                '.UserAttributeSimilarityValidator',
     },
     {
-        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
+        'NAME': 'django.contrib.auth.password_validation'
+                '.MinimumLengthValidator',
     },
     {
-        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
+        'NAME': 'django.contrib.auth.password_validation'
+                '.CommonPasswordValidator',
     },
     {
-        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
+        'NAME': 'django.contrib.auth.password_validation'
+                '.NumericPasswordValidator',
     },
 ]
 
@@ -136,8 +143,8 @@ CERT_URL = '/.well-known/'
 TOP_DIR = os.path.dirname(BASE_DIR)
 DB_BACKUP = os.path.join(TOP_DIR, r'db_backup')
 
-ANKI_DIR = os.path.join(TOP_DIR, r'anki')
-ANKI_IMPORT_DIR = os.path.join(ANKI_DIR, r'import')
+ANKI_DB_DIR = os.path.join(TOP_DIR, 'db', 'Anki2')
+ANKI_IMPORT_DIR = os.path.join(ANKI_DB_DIR, r'import')
 
 FIXTURE_DIRS = [os.path.join(BASE_DIR, 'kukan', 'fixtures', 'Kanji')]
 
@@ -146,6 +153,8 @@ X_FRAME_OPTIONS = 'DENY'
 # Redirect to home URL after login (Default redirects to /accounts/profile/)
 LOGIN_URL = '/login'
 LOGIN_REDIRECT_URL = '/'
+
+SERVER_EMAIL = 'kukanjiten'
 
 CRON_CFG = [
     {
@@ -167,10 +176,10 @@ CRON_CFG = [
             'post-hook': '"sudo systemctl restart httpd.service"'
         }
     },
-    #{
-    #    'schedule': '*/5 0-2,5-23 * * *',
-    #    'command': 'import_withings_data',
-    #},
+    # {
+    #     'schedule': '*/5 0-2,5-23 * * *',
+    #     'command': 'import_withings_data',
+    # },
 ]
 
 LOGGING = {
@@ -194,7 +203,8 @@ LOGGING = {
     },
     'formatters': {
           'default_format': {
-              'format': '{asctime}.{msecs:03.0f} {levelname:<8} [{module}.{funcName}] {message}',
+              'format': '{asctime}.{msecs:03.0f} {levelname:<8} '
+                        '[{module}.{funcName}] {message}',
               'datefmt': '%Y%m%d %H:%M:%S',
               'style': '{',
           }
@@ -213,7 +223,14 @@ LOGGING = {
     },
 }
 
+# Dummy values to be overriden in prod
+DROPBOX_TOKEN = 0
+ANKI_ACCOUNTS = {
+    'Test2': {'user': 'fr_yjp-test@yahoo.co.jp', 'password': 'decktesting',
+              'backup': False}
+}
+
 try:
     from kukansite.settings_prod import *
 except ImportError as e:
-    DROPBOX_TOKEN = 0
+    pass
