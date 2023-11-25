@@ -32,7 +32,6 @@ def get_bus_time(url, station, line, direction):
                   .dropna(axis='columns', how='all')
                   .replace('[^0-9]', '', regex=True)
                   .astype(float))
-            print(df.index)
 
             for r in df.iterrows():
                 hour = r[0]
