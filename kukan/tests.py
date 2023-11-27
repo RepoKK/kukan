@@ -650,15 +650,15 @@ class TestExport(TestCase):
     kanji_per_kyu = '一万丁不久並丈乏且串茅丐'
     fixtures = ['baseline', '汀', '渚', '渚', '覧'] + list(kanji_per_kyu)
 
-    output_templt_kaki_hyogai = '{pk}\t"<span class=tag_hyogai>表外</span>' \
+    output_templt_kaki_hyogai = 'Kakitori\t書き取り\t{pk}\t"<span class=tag_hyogai>表外</span>' \
                                 + '{kind}:<span class=""font-color01"">{yomi}</span>"\t{word}\t{kanken}\r\n'
     output_templt_kaki = output_templt_kaki_hyogai.replace('<span class=tag_hyogai>表外</span>', '')
 
-    output_templt_yomi_hyogai = ('{pk}\t"<span class=tag_hyogai>表外</span>{kind}:<span class='
+    output_templt_yomi_hyogai = ('Yomi\t読み\t{pk}\t"<span class=tag_hyogai>表外</span>{kind}:<span class='
                                  + '""font-color01"">{word}</span>"\t{yomi}\t<p>{definition}</p>\r\n')
     output_templt_yomi = output_templt_yomi_hyogai.replace('<span class=tag_hyogai>表外</span>', '')
 
-    output_templt_kotowaza = ('{pk}\t"{expected_text}"'
+    output_templt_kotowaza = ('Kotowaza\t諺\t{pk}\t"{expected_text}"'
                               '\t{word}\t<p>{kotowaza_definition}</p>\t{kotowaza_yomi}\r\n')
 
     def setUp(self):
@@ -703,9 +703,9 @@ class TestExport(TestCase):
         with patch('builtins.open', mock_open()) as m:
             exporter.export()
             try:
-                self.assertEqual(number_line + 3, len(m.mock_calls))
+                self.assertEqual(number_line + 7, len(m.mock_calls))
                 for idx, ex in enumerate(qry):
-                    name, m_args, m_kwargs = m.mock_calls[idx + 2]
+                    name, m_args, m_kwargs = m.mock_calls[idx + 6]
                     file_write = m_args[0]
                     if ex.ex_kind == Example.KOTOWAZA:
                         kotowaza_args = {'kotowaza_yomi': ex.kotowaza.yomi,
@@ -735,8 +735,8 @@ class TestExport(TestCase):
         with StringIO() as out:
             writer = csv.writer(out, delimiter='\t', quotechar='"')
             Exporter('anki_kaki', 'Fred').export_anki_kaki(writer)
-            self.assertEqual('1\t"<span class=""font-color01"">テイショ</span>"\t汀渚[汀渚]\t準１級\r\n' +
-                             '2\t"<span class=""font-color01"">テイショ</span>"\t汀渚[汀渚]\t準１級\r\n',
+            self.assertEqual('Kakitori\t書き取り\t1\t"<span class=""font-color01"">テイショ</span>"\t汀渚[汀渚]\t準１級\r\n' +
+                             'Kakitori\t書き取り\t2\t"<span class=""font-color01"">テイショ</span>"\t汀渚[汀渚]\t準１級\r\n',
                              out.getvalue())
 
     def test_export_kaki(self):
@@ -744,7 +744,7 @@ class TestExport(TestCase):
             Exporter('anki_kaki', 'Fred').export()
         handle = m()
         handle.write.assert_any_call(
-            '1\t"<span class=""font-color01"">テイショ</span>"\t汀渚[汀渚]\t準１級\r\n')
+            'Kakitori\t書き取り\t1\t"<span class=""font-color01"">テイショ</span>"\t汀渚[汀渚]\t準１級\r\n')
 
     def test_export_hyogai(self):
         Example.objects.all().delete()
