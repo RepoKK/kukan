@@ -1,0 +1,4 @@
+kukansite/settings_prod.py
+logs/
+static/
+**/__pycache__/
