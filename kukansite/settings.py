@@ -170,7 +170,7 @@ CRON_CFG = [
             'config-dir': '/home/fred/letsencrypt/config',
             'work-dir': '/home/fred/letsencrypt/work/',
             'logs-dir': '/home/fred/letsencrypt/logs/',
-            'post-hook': '"sudo systemctl restart httpd.service"'
+            'post-hook': '"sudo systemctl restart Apache.service"'
         }
     },
     # {
