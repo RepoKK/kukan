@@ -138,7 +138,7 @@ CERT_ROOT = os.path.join(BASE_DIR, '.well-known')
 CERT_URL = '/.well-known/'
 
 TOP_DIR = os.path.dirname(BASE_DIR)
-DB_BACKUP = os.path.join(TOP_DIR, r'db_backup')
+DB_BACKUP = os.path.join(TOP_DIR, 'db', '_backup')
 
 ANKI_DB_DIR = os.path.join(TOP_DIR, 'db', 'Anki2')
 ANKI_IMPORT_DIR = os.path.join(ANKI_DB_DIR, r'import')
