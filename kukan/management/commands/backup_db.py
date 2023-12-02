@@ -59,18 +59,17 @@ class DbBackup:
             with open(self.compressed_backup, "wb") as f:
                 f.write(tar_bz2_contents)
         except subprocess.CalledProcessError as err:
-            print('*** Failed to backup database', err.stdout)
             logger.error('Failed to backup database: %s', err.output)
             raise
 
     def _upload_file_to_dropbox(self, source_file, destination_dir):
+        logger.info(f'Upload file {source_file} to {destination_dir}')
         with open(source_file, 'rb') as f:
             data = f.read()
         try:
             self.dbx.files_upload(data, destination_dir,
                                   files.WriteMode.overwrite, mute=True)
         except exceptions.ApiError as err:
-            print('*** Dropbox API error', err)
             logger.error('Dropbox API error: %s', err)
             raise
 
@@ -83,7 +82,7 @@ class DbBackup:
         if self.backup_date[-2:] in ['01', '11', '21']:
             self._upload_file_to_dropbox(
                 self.compressed_backup,
-                f'/{self.dbx_base_dir}'
+                f'{self.dbx_base_dir}'
                 f'/{self.backup_date[0:4]}'
                 f'/{self.backup_date[5:7]}'
                 f'/{dbx_filename}')
