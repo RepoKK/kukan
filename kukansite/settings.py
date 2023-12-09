@@ -206,6 +206,10 @@ LOGGING = {
               'style': '{',
           }
     },
+    'root': {
+        'handlers': ['default_file', 'mail_admins'],
+        'level': 'DEBUG',
+    },
     'loggers': {
         'kukan': {
             'handlers': ['default_file', 'mail_admins'],
