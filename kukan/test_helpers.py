@@ -127,7 +127,7 @@ class FixWebContents(TestHelpers):
     To be used with Mock for testing
 
     Example:
-        link = 'https://www.kanjipedia.jp//kotoba/0002049900'
+        link = 'https://www.kanjipedia.jp/kotoba/0002049900'
         WebPageContents('kukan', r'Web\Kanjipedia').store_page(link, 'def_枯渇')
     """
     def __init__(self, app):

@@ -833,6 +833,7 @@ class TestDefinitionFetching(TestCase):
         self.assertNotEqual(-1, self.get_kanjipedia_def_string('枯渇').find('【書きかえ】'))
         self.assertNotEqual(-1, self.get_kanjipedia_def_string('左様').find('【表記】'))
 
+
 class TestDefinitionReal(TestCase):
     def test_real_kanjipedia(self):
         definition_word = DefinitionKanjipedia('団扇')

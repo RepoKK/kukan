@@ -6,6 +6,7 @@ import sys
 import unittest
 from contextlib import contextmanager
 from io import StringIO
+from pathlib import Path
 from unittest.mock import patch
 
 from django.conf import settings
@@ -173,10 +174,12 @@ class TestPerRunFileHandler(SimpleTestCase, TestCaseMixin):
 
 class TestFBaseCommand(TestCase, TestCaseMixin):
     def setUp(self):
+        current_dir = Path.cwd()
         self.setUpPyfakefs()
+        self.fs.add_real_directory(current_dir / 'venv')
         self.log_dir = os.path.join(settings.BASE_DIR, 'logs')
         os.makedirs(self.log_dir)
-        self.info_log_path = os.path.join(self.log_dir, 'info.log')
+        self.info_log_path = os.path.join(self.log_dir, 'info_test.log')
 
         self.logger = logging.getLogger(__name__.split('.')[0])
         self.logger.setLevel(logging.DEBUG)
@@ -185,7 +188,7 @@ class TestFBaseCommand(TestCase, TestCaseMixin):
         self.handler.setLevel(logging.DEBUG)
         formatter = logging.Formatter('TTT %(message)s')
         self.handler.setFormatter(formatter)
-        self.logger.addHandler(self.handler)
+        logging.getLogger().addHandler(self.handler)
 
         ManagementCommandRun.objects.all().delete()
 
@@ -224,25 +227,29 @@ class TestFBaseCommand(TestCase, TestCaseMixin):
         @TestFBaseCommand.MakeTestCmd()
         class Command(FBaseCommand):
             def handle_cmd(self, *args, **options):
-                self.logger.info(test_text)
+                logger = logging.getLogger()
+                logger.info(test_text)
 
         # The call_command does accept a Command object as well as a string
         call_command(Command())
 
         cmd_log_name = '{}_{}.log'.format(Command.cmd_name, "20190114-032134")
 
+        start_string = (
+            'TTT Start execution of command test_f_base_cmd\n'
+            "TTT Options: {'verbosity': 1, 'settings': None, "
+            "'pythonpath': None, 'traceback': False, 'no_color': False, "
+            "'force_color': False, 'skip_checks': True}\n"
+        )
+        end_string = 'TTT End execution, took 0 minutes\n'
+
         with open(os.path.join(self.log_dir, cmd_log_name), 'r') as f:
-            self.assertEqual((
-                'TTT Start execution of command test_f_base_cmd\n'
-                "TTT Options: {'verbosity': 1, 'settings': None, 'pythonpath': None, "
-                "'traceback': False, 'no_color': False, "
-                "'force_color': False, 'skip_checks': True}\n"
-                'TTT Test\n'
-                'TTT End execution, took 0 minutes\n'
-            ), str(f.read()))
+            self.assertEqual(
+                start_string + 'TTT Test\n' + end_string,
+                str(f.read()))
 
         with open(os.path.join(self.info_log_path)) as f:
-            self.assertEqual('', str(f.read()))
+            self.assertEqual(start_string + end_string, str(f.read()))
 
     def test_warning_time(self):
         with freeze_time(datetime.datetime.now()) as frozen_datetime:

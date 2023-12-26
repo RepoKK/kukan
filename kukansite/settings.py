@@ -227,6 +227,8 @@ LOGGING = {
 # Dummy values to be overriden in prod
 DROPBOX_TOKEN = 0
 ANKI_ACCOUNTS = {
+    'Ayumi': {'user': 'name@dom.com', 'password': 'pwd', 'backup': True},
+    'Fred': {'user': 'name@dom.com', 'password': 'pwd', 'backup': True},
     'Test2': {'user': 'fr_yjp-test@yahoo.co.jp', 'password': 'decktesting',
               'backup': False}
 }
