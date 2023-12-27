@@ -43,7 +43,8 @@ INSTALLED_APPS = [
     'kukan',
     'utils_django',
     'wtrack',
-    'bustime'
+    'bustime',
+    'tempmon'
 ]
 
 if sys.platform == 'linux':
