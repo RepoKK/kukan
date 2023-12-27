@@ -5,12 +5,8 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="290048a5-330e-41de-998e-fc777b82ceed" name="Changes" comment="Add PlaySession class and associated tests">
-      <change afterPath="$PROJECT_DIR$/tempmon/templates/tempmon/playsession_detail.html" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/tempmon/urls.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/kukansite/urls.py" beforeDir="false" afterPath="$PROJECT_DIR$/kukansite/urls.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tempmon/models.py" beforeDir="false" afterPath="$PROJECT_DIR$/tempmon/models.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tempmon/tests.py" beforeDir="false" afterPath="$PROJECT_DIR$/tempmon/tests.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/kukansite/settings.py" beforeDir="false" afterPath="$PROJECT_DIR$/kukansite/settings.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/tempmon/views.py" beforeDir="false" afterPath="$PROJECT_DIR$/tempmon/views.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -57,7 +53,7 @@
     "RunOnceActivity.OpenProjectViewOnStart": "true",
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "SHARE_PROJECT_CONFIGURATION_FILES": "true",
-    "git-widget-placeholder": "temp__monit",
+    "git-widget-placeholder": "master",
     "last_opened_file_path": "D:/Django/kukan/kukan/fixtures/Web/Kanjipedia/def_枯渇",
     "settings.editor.selected.configurable": "com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable",
     "two.files.diff.last.used.file": "D:/Django/kukan/kukan/fixtures/Web/Kanjipedia/def_枯渇"
@@ -215,6 +211,10 @@
           <url>file://$PROJECT_DIR$/kukan/onlinepedia.py</url>
           <line>60</line>
           <option name="timeStamp" value="5" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/tempmon/models.py</url>
+          <option name="timeStamp" value="11" />
         </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>

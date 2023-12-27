@@ -1,6 +1,7 @@
 import json
 import logging
 
+from django.conf import settings
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
@@ -19,7 +20,7 @@ def add_temp_point(request):
         logger.info(f'New add_temp_point request, body: {request.body}')
         body = json.loads(request.body)
 
-        if body.pop('API_KEY', None) != 'ABCD0001':
+        if body.pop('API_KEY', None) != settings.TEMPMON_API_KEY:
             return JsonResponse({'result': f'Failure - wrong API_KEY'})
 
         pt = DataPoint(**body)
