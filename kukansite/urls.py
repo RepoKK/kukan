@@ -27,5 +27,6 @@ urlpatterns = [
     re_path(r'^logout/$', auth_views.LogoutView.as_view(),
             {'next_page': 'login'}, name='logout'),
     path('admin/', admin.site.urls),
+    path('tempmon/', include('tempmon.urls')),
 ]
 urlpatterns += static(settings.CERT_URL, document_root=settings.CERT_ROOT)
