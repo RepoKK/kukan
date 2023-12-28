@@ -58,7 +58,7 @@ def add_temp_point(request):
 
         print(psn.get_current_game())
         pt = DataPoint(**body)
-        PlaySession.add_point(pt)
+        PlaySession.add_point(pt, psn.get_current_game())
 
         return JsonResponse({'result': 'OK'})
     except Exception as e:
