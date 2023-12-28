@@ -71,3 +71,6 @@ class PlaySession(models.Model):
 class PsGame(models.Model):
     title_id = models.TextField(max_length=12, verbose_name='Title ID')
     name = models.TextField(max_length=2000, verbose_name='Name')
+
+    def __str__(self):
+        return f'{self.name}'

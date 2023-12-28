@@ -12,7 +12,8 @@
 </ul>
 <div>
   <canvas id="myChart"></canvas>
-    GAMES: {{games_legend}}
+    GAMES: {{games_legend}}<br>
+    BACKGROUND: {{graph_background}}
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -25,13 +26,7 @@ const plugin = {
   beforeDraw(chart, args, options) {
     const {ctx, chartArea: {left, top, width, bottom}, scales: {x, y}} = chart;
     console.log('XXX', y.min, y.max)
-    const colorBands = [[0, 10, '#F1EAFF'],
-                        [20, 30, '#EBF3E8'],
-                        [30, 40, '#CDF5FD'],
-                        [40, 50, '#FFF0F5'],
-                        [50, 60, '#FDF7E4'],
-                        [60, 70, '#EEEEEE'],
-                        ]
+    const colorBands = {{graph_background|safe}}
     const x_start = x.getPixelForValue(0);
     const y_start = y.getPixelForValue(y.min);
     ctx.save();
@@ -66,7 +61,7 @@ const data = {
 
  new Chart(ctx, {
      type: 'line',
-     //plugins: [plugin],
+     plugins: [plugin],
      data: data,
      options: {
         responsive: true,

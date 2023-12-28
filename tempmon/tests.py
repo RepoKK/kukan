@@ -52,14 +52,14 @@ class TestPlaySessionModel(TestCase):
 
 class TestPsn(TestCase):
     def setUp(self) -> None:
-        self.psn = PSN()
+        self.psn = PSN('H49Dl60Big95QAdv8Req9XMQwqyZF3usOApVyfDpQmlsXHOMxkR13yPjpP4YPboC')
 
     def test_get_current_game(self):
         self.assertTrue(self.psn.get_current_game())
 
     def test_get_game_pk(self):
         # Check when game is not present
-        pk = self.psn.get_game_pk('PPSA01286_00')
+        pk = self.psn.get_game_pk('PPSA02269_00')
         self.assertTrue(1, pk)
         self.assertEqual(PsGame.objects.first().name, 'Returnal')
         # Check when the game is already present
@@ -68,22 +68,45 @@ class TestPsn(TestCase):
 
 
 class TestPlaySessionDetailView(TestCase):
-    def test_background_color(self):
+    def test_background_color1(self):
         data_dict = {
-            1: (1, 1, 1, -1),
-            2: (1, 1, 1, -1),
-            3: (1, 1, 1, 2),
-            4: (1, 1, 1, 3),
-            5: (1, 1, 1, 2),
-            6: (1, 1, 1, 2)
+            1: (10, 1, 1, -1),
+            2: (10, 1, 1, -1),
+            3: (10, 1, 1, 2),
+            4: (10, 1, 1, 3),
+            5: (10, 1, 1, 2),
+            6: (10, 1, 1, 2)
         }
 
         expected_result = [(1, 2, -1), (2, 3, 2), (3, 4, 3), (4, 6, 2)]
 
         g = PlaySessionDetailView.get_background_matrix(
             data_dict, sorted(data_dict.keys()))
-        print(g)
-        print(next(g))
-        print(next(g))
-        print(next(g))
-        print(next(g))
+        self.assertEqual(expected_result, list(g))
+
+    def test_background_color2(self):
+        data_dict = {
+            1: (10, 1, 1, -1),
+            2: (10, 1, 1, -1),
+            3: (10, 1, 1, 2),
+            4: (10, 1, 1, 3),
+            5: (10, 1, 1, 2)
+        }
+
+        expected_result = [(1, 2, -1), (2, 3, 2), (3, 4, 3), (4, 5, 2)]
+
+        g = PlaySessionDetailView.get_background_matrix(
+            data_dict, sorted(data_dict.keys()))
+        self.assertEqual(expected_result, list(g))
+
+    def test_background_color3(self):
+        data_dict = {
+            1: (10, 1, 1, -1),
+        }
+
+        expected_result = [(1, 1, -1)]
+
+        g = PlaySessionDetailView.get_background_matrix(
+            data_dict, sorted(data_dict.keys()))
+        self.assertEqual(expected_result, list(g))
+

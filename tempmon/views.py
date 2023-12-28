@@ -7,6 +7,7 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import DetailView
 from psnawp_api import PSNAWP
+from psnawp_api.core.psnawp_exceptions import PSNAWPNotFound
 
 from kukan.filters import FGenericDateRange, FGenericMinMax
 from kukan.views import AjaxList, TableData
@@ -16,8 +17,8 @@ logger = logging.getLogger(__name__)
 
 
 class PSN:
-    def __init__(self):
-        self.psnawp = PSNAWP(settings.PSN_TOKEN)
+    def __init__(self, token):
+        self.psnawp = PSNAWP(token)
 
         self.client = self.psnawp.me()
         self.me = self.psnawp.user(account_id=self.client.account_id)
@@ -26,9 +27,15 @@ class PSN:
         try:
             ps_game = PsGame.objects.get(title_id=title_id)
         except PsGame.DoesNotExist:
-            game = self.psnawp.game_title(title_id=title_id)
-            ps_game = PsGame.objects.create(title_id=title_id,
-                                            name=game.get_details()[0]['name'])
+            try:
+                game = self.psnawp.game_title(title_id=title_id,
+                                              account_id=self.client.account_id)
+                ps_game = PsGame.objects.create(
+                    title_id=title_id, name=game.get_details()[0]['name'])
+            except PSNAWPNotFound:
+                ps_game = PsGame.objects.create(
+                    title_id=title_id, name='__UNKNOWN__')
+
         return ps_game.pk
 
     def get_current_game(self):
@@ -44,7 +51,10 @@ class PSN:
 
 
 # Global instance to avoid the overhead everytime this is called
-psn = PSN()
+if settings.PSN_TOKEN != '__dummy__':
+    psn = PSN(settings.PSN_TOKEN)
+else:
+    psn = None
 
 
 @csrf_exempt
@@ -87,31 +97,27 @@ class PlaySessionListView(AjaxList):
 class PlaySessionDetailView(LoginRequiredMixin, DetailView):
     model = PlaySession
 
-    background_colors = ['#F1EAFF', '#EBF3E8', '#CDF5FD',
-                         '#FFF0F5', '#FDF7E4', '#EEEEEE']
+    bg_colors = ['#F1EAFF', '#EBF3E8', '#CDF5FD',
+                 '#FFF0F5', '#FDF7E4', '#EEEEEE']
 
     @classmethod
     def get_background_matrix(cls, data_dict, list_time):
         game_id = None
         prev_time = None
-        start_time = data_dict[list_time[0]][0]
-        print(list_time)
-        try:
-            for t in list_time:
-                d = data_dict[t]
-                print('LOOP', t, d, game_id)
-                if d[3] != game_id:
-                    if not game_id:
-                        pass
-                    else:
-                        yield start_time, prev_time, game_id, t
-                        start_time = prev_time
-                game_id = d[3]
-                prev_time = t
-        except StopIteration:
-            print('HERE')
-            yield start_time, prev_time, game_id
-            raise
+        start_time = list_time[0]
+
+        for idx, t in enumerate(list_time):
+            d = data_dict[t]
+
+            if d[3] != game_id and game_id:
+                yield start_time, prev_time, game_id
+                start_time = prev_time
+
+            game_id = d[3]
+            prev_time = t
+
+            if idx == len(list_time) - 1:
+                yield start_time, prev_time, game_id
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -129,9 +135,22 @@ class PlaySessionDetailView(LoginRequiredMixin, DetailView):
              'y': d[t2][0] - d[t1][0]}
             for t1, t2 in zip(list_time, list_time[1:])
         ]
-        context['graph_background'] = {(0, 10, 0xFF0000), (10, 50, 0x00FF00)}
+
+        game_pk_list = set(v[3] for v in d.values())
+        print(game_pk_list)
+        game_color = {pk: ('#FFFFFF' if pk == -1 else
+                           self.bg_colors[idx % len(self.bg_colors)])
+                      for idx, pk in enumerate(game_pk_list)}
+        print(game_color)
+
+        context['graph_background'] = [[
+            (t1 - session.start_time.timestamp()) / 60,
+            (t2 - session.start_time.timestamp()) / 60,
+            game_color[game_pk]
+        ] for t1, t2, game_pk in self.get_background_matrix(d, list_time)]
+
         context['games_legend'] = [
-            set('N/A' if v[3] == -1 else PsGame.objects.get(pk=v[3])
+            set('N/A' if v[3] == -1 else str(PsGame.objects.get(pk=v[3]))
                 for v in d.values())
         ]
         return context

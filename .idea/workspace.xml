@@ -4,12 +4,8 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="290048a5-330e-41de-998e-fc777b82ceed" name="Changes" comment="Move the API_KEY to settings">
-      <change afterPath="$PROJECT_DIR$/tempmon/migrations/0002_psgame.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/tempmon/migrations/0003_auto_20231228_1601.py" afterDir="false" />
+    <list default="true" id="290048a5-330e-41de-998e-fc777b82ceed" name="Changes" comment="Handling of game title (initial)">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/kukansite/settings.py" beforeDir="false" afterPath="$PROJECT_DIR$/kukansite/settings.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tempmon/admin.py" beforeDir="false" afterPath="$PROJECT_DIR$/tempmon/admin.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/tempmon/models.py" beforeDir="false" afterPath="$PROJECT_DIR$/tempmon/models.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/tempmon/templates/tempmon/playsession_detail.html" beforeDir="false" afterPath="$PROJECT_DIR$/tempmon/templates/tempmon/playsession_detail.html" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/tempmon/tests.py" beforeDir="false" afterPath="$PROJECT_DIR$/tempmon/tests.py" afterDir="false" />
@@ -110,7 +106,7 @@
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
       <option name="SCRIPT_NAME" value="$PROJECT_DIR$/manage.py" />
-      <option name="PARAMETERS" value="test tempmon.tests.TestCurrentGame.test_get_current_game" />
+      <option name="PARAMETERS" value="test tempmon.tests.TestPsn.test_get_game_pk" />
       <option name="SHOW_COMMAND_LINE" value="false" />
       <option name="EMULATE_TERMINAL" value="false" />
       <option name="MODULE_MODE" value="false" />
@@ -180,7 +176,23 @@
       <option name="project" value="LOCAL" />
       <updated>1703671942165</updated>
     </task>
-    <option name="localTasksCounter" value="7" />
+    <task id="LOCAL-00007" summary="Handling of game title (initial)">
+      <option name="closed" value="true" />
+      <created>1703758807379</created>
+      <option name="number" value="00007" />
+      <option name="presentableId" value="LOCAL-00007" />
+      <option name="project" value="LOCAL" />
+      <updated>1703758807379</updated>
+    </task>
+    <task id="LOCAL-00008" summary="Handling of game title (initial)">
+      <option name="closed" value="true" />
+      <created>1703759488373</created>
+      <option name="number" value="00008" />
+      <option name="presentableId" value="LOCAL-00008" />
+      <option name="project" value="LOCAL" />
+      <updated>1703759488373</updated>
+    </task>
+    <option name="localTasksCounter" value="9" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -199,7 +211,7 @@
                   <entry key="branch">
                     <value>
                       <list>
-                        <option value="temp_monit" />
+                        <option value="master" />
                       </list>
                     </value>
                   </entry>
@@ -217,7 +229,8 @@
     <MESSAGE value="Fix tests" />
     <MESSAGE value="Add PlaySession class and associated tests" />
     <MESSAGE value="Move the API_KEY to settings" />
-    <option name="LAST_COMMIT_MESSAGE" value="Move the API_KEY to settings" />
+    <MESSAGE value="Handling of game title (initial)" />
+    <option name="LAST_COMMIT_MESSAGE" value="Handling of game title (initial)" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
@@ -226,6 +239,11 @@
           <url>file://$PROJECT_DIR$/kukan/onlinepedia.py</url>
           <line>60</line>
           <option name="timeStamp" value="5" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/venv/Lib/site-packages/psnawp_api/models/trophies/trophy_titles.py</url>
+          <line>224</line>
+          <option name="timeStamp" value="13" />
         </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>
