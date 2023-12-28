@@ -46,11 +46,12 @@ class PlaySession(models.Model):
         return pickle.loads(self.data_points)
 
     @classmethod
-    def add_point(cls, pt: DataPoint):
+    def add_point(cls, pt: DataPoint, game_pk=-1):
+        data = (*pt.values, game_pk)
         try:
             session = cls.objects.get(start_time=pt.session_time_dt)
             current_data = session.data_dict
-            current_data[pt.current_time] = pt.values
+            current_data[pt.current_time] = data
             session.end_time = pt.current_time_dt
             session.max_temp = max(session.max_temp, pt.temperature)
             session.data_points = pickle.dumps(current_data)
@@ -62,6 +63,11 @@ class PlaySession(models.Model):
                 end_time=pt.current_time_dt,
                 start_temp=pt.temperature,
                 max_temp=pt.temperature,
-                data_points=pickle.dumps({pt.current_time: pt.values})
+                data_points=pickle.dumps({pt.current_time: data})
             )
         return session
+
+
+class PsGame(models.Model):
+    title_id = models.TextField(max_length=12, verbose_name='Title ID')
+    name = models.TextField(max_length=2000, verbose_name='Name')

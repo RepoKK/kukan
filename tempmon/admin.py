@@ -1,3 +1,5 @@
 from django.contrib import admin
 
-# Register your models here.
+from tempmon.models import PsGame
+
+admin.site.register(PsGame)

@@ -12,6 +12,7 @@
 </ul>
 <div>
   <canvas id="myChart"></canvas>
+    GAMES: {{games_legend}}
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -19,30 +20,75 @@
 <script>
 const ctx = document.getElementById('myChart');
 
-const labels = [1, 2, 3, 4, 5, 6, 10];
+const plugin = {
+  id: 'bgColorArea',
+  beforeDraw(chart, args, options) {
+    const {ctx, chartArea: {left, top, width, bottom}, scales: {x, y}} = chart;
+    console.log('XXX', y.min, y.max)
+    const colorBands = [[0, 10, '#F1EAFF'],
+                        [20, 30, '#EBF3E8'],
+                        [30, 40, '#CDF5FD'],
+                        [40, 50, '#FFF0F5'],
+                        [50, 60, '#FDF7E4'],
+                        [60, 70, '#EEEEEE'],
+                        ]
+    const x_start = x.getPixelForValue(0);
+    const y_start = y.getPixelForValue(y.min);
+    ctx.save();
+    for (let i = 0; i < colorBands.length; i++) {
+        const x1 = x.getPixelForValue(colorBands[i][0]);
+        const x2 = x.getPixelForValue(colorBands[i][1]);
+        ctx.fillStyle = colorBands[i][2];
+        ctx.fillRect(x1, top, x2 - x1, y_start - top);
+    }
+    ctx.restore();
+  }
+};
+
 const data = {
-    labels: labels,
     datasets: [{
         label: 'Temperature (℃)',
         data: {{temp_data|safe}},
         fill: false,
         borderColor: 'rgb(75, 192, 192)',
         tension: 0.1
+    }, {
+        type: 'bar',
+        label: 'Temp. delta (℃)',
+        data: {{temp_delta|safe}},
+        fill: false,
+        borderColor: 'rgb(75, 192, 192)',
+        yAxisID: 'y1',
     }]
 };
 
+
+
  new Chart(ctx, {
      type: 'line',
+     //plugins: [plugin],
      data: data,
      options: {
+        responsive: true,
          scales: {
              x: {
                  type: 'linear',
-                 beginAtZero: true
+                 beginAtZero: true,
+                 offset: false,
+                 bounds: 'data',
              },
              y: {
                  type: 'linear',
-                 beginAtZero: true
+                 beginAtZero: false
+             },
+             y1: {
+                 type: 'linear',
+                 beginAtZero: false,
+                 display: false,
+                 position: 'right',
+                 grid: {
+                     drawOnChartArea: false, // only want the grid lines for one axis to show up
+                 },
              }
          }
      }
