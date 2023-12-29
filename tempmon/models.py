@@ -59,7 +59,7 @@ class PlaySession(models.Model):
 
         except PlaySession.DoesNotExist:
             session = cls.objects.create(
-                start_time=pt.current_time_dt,
+                start_time=pt.session_time_dt,
                 end_time=pt.current_time_dt,
                 start_temp=pt.temperature,
                 max_temp=pt.temperature,

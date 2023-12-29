@@ -44,8 +44,11 @@ class PSN:
             return -1
         else:
             if status['primaryPlatformInfo']['onlineStatus'] == 'online':
-                title_id = status["gameTitleInfoList"][0]["npTitleId"]
-                return self.get_game_pk(title_id)
+                try:
+                    title_id = status["gameTitleInfoList"][0]["npTitleId"]
+                    return self.get_game_pk(title_id)
+                except KeyError:
+                    return -1
             else:
                 return -1
 
@@ -66,7 +69,6 @@ def add_temp_point(request):
         if body.pop('API_KEY', None) != settings.TEMPMON_API_KEY:
             return JsonResponse({'result': f'Failure - wrong API_KEY'})
 
-        print(psn.get_current_game())
         pt = DataPoint(**body)
         PlaySession.add_point(pt, psn.get_current_game())
 
