@@ -1,5 +1,6 @@
 import json
 import logging
+from datetime import timedelta
 
 from django.conf import settings
 from django.contrib.auth.mixins import LoginRequiredMixin
@@ -96,8 +97,9 @@ class PlaySessionListView(AjaxList):
     ])
 
 
-class PlaySessionDetailView(LoginRequiredMixin, DetailView):
+class PlaySessionGraphView(LoginRequiredMixin, DetailView):
     model = PlaySession
+    template_name = 'tempmon/playsession_graph.html'
 
     bg_colors = ['#F1EAFF', '#EBF3E8', '#CDF5FD',
                  '#FFF0F5', '#FDF7E4', '#EEEEEE']
@@ -138,23 +140,26 @@ class PlaySessionDetailView(LoginRequiredMixin, DetailView):
             for t1, t2 in zip(list_time, list_time[1:])
         ]
 
-        game_pk_list = set(v[3] for v in d.values())
-        print(game_pk_list)
-        game_color = {pk: ('#FFFFFF' if pk == -1 else
-                           self.bg_colors[idx % len(self.bg_colors)])
-                      for idx, pk in enumerate(game_pk_list)}
-        print(game_color)
+        unique_game_ordered = []
+        for t in list_time:
+            if d[t][3] not in unique_game_ordered:
+                unique_game_ordered.append(d[t][3])
+
+        context['games_legend'] = {
+            pk: (PsGame.objects.get(pk=pk).name,
+                 self.bg_colors[idx % len(self.bg_colors)])
+            for idx, pk in enumerate(unique_game_ordered)
+            if pk != -1
+        }
 
         context['graph_background'] = [[
             (t1 - session.start_time.timestamp()) / 60,
             (t2 - session.start_time.timestamp()) / 60,
-            game_color[game_pk]
-        ] for t1, t2, game_pk in self.get_background_matrix(d, list_time)]
-
-        context['games_legend'] = [
-            set('N/A' if v[3] == -1 else str(PsGame.objects.get(pk=v[3]))
-                for v in d.values())
+            context['games_legend'][game_pk][1]
+        ] for t1, t2, game_pk in self.get_background_matrix(d, list_time)
+            if game_pk != -1
         ]
+
         return context
 
 # PSN current game
@@ -162,3 +167,42 @@ class PlaySessionDetailView(LoginRequiredMixin, DetailView):
 # https://note.com/kijitora_neco/n/nf0efa130ae00
 # https://github.com/mgp25/psn-api/blob/master/README.md
 # https://github.com/isFakeAccount/psnawp
+
+
+class PlaySessionDetailsView(LoginRequiredMixin, DetailView):
+    model = PlaySession
+    template_name = 'tempmon/playsession_detail.html'
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.game_dict = {}
+
+    def get_game_from_id(self, pk):
+        if pk == -1:
+            return 'N/A'
+        try:
+            return self.game_dict[pk]
+        except KeyError:
+            try:
+                game_name = PsGame.objects.get(pk=pk)
+            except PsGame.DoesNotExist:
+                return 'N/A'
+            self.game_dict[pk] = game_name
+            return game_name
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        session = context['object']
+        context['duration'] = session.end_time - session.start_time
+        d = session.data_dict
+        list_time = sorted(d.keys())
+        context['data'] = {
+            'headers': ['Time', 'Game', 'Temperature', 'Humidity', 'Pressure'],
+            'rows': [[str(timedelta(seconds=(t - session.start_time.timestamp()))).split('.')[0],
+                      self.get_game_from_id(d[t][3]),
+                      f'{d[t][0]:.2f}',
+                      f'{d[t][1]:.2f}',
+                      f'{d[t][2]:.1f}']
+                     for t in list_time]
+        }
+        return context

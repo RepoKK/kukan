@@ -45,6 +45,10 @@ class PlaySession(models.Model):
     def data_dict(self):
         return pickle.loads(self.data_points)
 
+    @property
+    def current_temp(self):
+        return self.data_dict[max(self.data_dict.keys())][0]
+
     @classmethod
     def add_point(cls, pt: DataPoint, game_pk=-1):
         data = (*pt.values, game_pk)

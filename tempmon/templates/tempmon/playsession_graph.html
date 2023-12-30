@@ -1,0 +1,87 @@
+{% extends 'tempmon/base.html' %}
+{% block switch_page %}<a href="{% url 'session_details' object.id %}">Details</a>{% endblock%}
+{% block body %}
+<div class="block">
+    <canvas id="myChart"></canvas>
+    <!-- Somehow below prevent the graph to slowly resize after initial display -->
+    <p style="visibility: hidden">_dummy_</p>
+</div>
+<div class="block">
+    <table class='table  is-narrow ' border="0">
+        {% for g in games_legend.items %}
+        <tr><td bgcolor="{{g.1.1}}" style="width: 50px"></td><td>{{g.1.0}}</td></tr>
+        {% endfor %}
+    </table>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+const ctx = document.getElementById('myChart');
+
+const plugin = {
+  id: 'bgColorArea',
+  beforeDraw(chart, args, options) {
+    const {ctx, chartArea: {left, top, width, bottom}, scales: {x, y}} = chart;
+    const colorBands = {{graph_background|safe}}
+    const x_start = x.getPixelForValue(0);
+    const y_start = y.getPixelForValue(y.min);
+    ctx.save();
+    for (let i = 0; i < colorBands.length; i++) {
+        const x1 = x.getPixelForValue(colorBands[i][0]);
+        const x2 = x.getPixelForValue(colorBands[i][1]);
+        ctx.fillStyle = colorBands[i][2];
+        ctx.fillRect(x1, top, x2 - x1, y_start - top);
+    }
+    ctx.restore();
+  }
+};
+
+const data = {
+    datasets: [{
+        label: 'Temperature (℃)',
+        data: {{temp_data|safe}},
+        fill: false,
+        borderColor: 'rgb(75, 192, 192)',
+        backgroundColor: 'rgb(75, 192, 192)',
+        tension: 0.1
+    }, {
+        type: 'bar',
+        label: 'Temp. delta (℃)',
+        data: {{temp_delta|safe}},
+        fill: false,
+        borderColor: 'rgb(75, 192, 192)',
+        yAxisID: 'y1',
+    }]
+};
+
+new Chart(ctx, {
+     type: 'line',
+     plugins: [plugin],
+     data: data,
+     options: {
+        responsive: true,
+         scales: {
+             x: {
+                 type: 'linear',
+                 beginAtZero: true,
+                 offset: false,
+                 bounds: 'data',
+             },
+             y: {
+                 type: 'linear',
+                 beginAtZero: false
+             },
+             y1: {
+                 type: 'linear',
+                 beginAtZero: false,
+                 display: false,
+                 position: 'right',
+                 grid: {
+                     drawOnChartArea: false, // only want the grid lines for one axis to show up
+                 },
+             }
+         }
+    }
+});
+</script>
+{% endblock%}

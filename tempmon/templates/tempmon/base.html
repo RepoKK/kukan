@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Hello Bulma!</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
+  </head>
+<body>
+<section class="section">
+
+<table class='table is-narrow' border="0">
+    <tr><th>{% block switch_page %}{% endblock%}</th>
+        <th><a href="{% url 'session_list' %}">Sessions list</a></th></tr>
+    <tr><th>Session start</th><td>{{object.start_time}}</td>
+        <th>Session end</th><td>{{object.end_time}}</td>
+        <th>Session duration</th><td>{{duration}}</td></tr>
+    <tr><th>Start Temp.</th><td>{{object.start_temp|floatformat:2}}</td>
+        <th>End Temp.</th><td>{{object.current_temp|floatformat:2}}</td>
+        <th>Max Temp.</th><td>{{object.max_temp|floatformat:2}}</td></tr>
+</table>
+{% block body %}{% endblock%}
+</section>
+</body>
+</html>
