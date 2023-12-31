@@ -1,6 +1,8 @@
 import json
 import logging
 from datetime import timedelta
+from datetime import datetime
+from zoneinfo import ZoneInfo
 
 from django.conf import settings
 from django.contrib.auth.mixins import LoginRequiredMixin
@@ -10,7 +12,7 @@ from django.views.generic import DetailView
 from psnawp_api import PSNAWP
 from psnawp_api.core.psnawp_exceptions import PSNAWPNotFound
 
-from kukan.filters import FGenericDateRange, FGenericMinMax
+from kukan.filters import FGenericDateRange, FGenericMinMax, FFilter
 from kukan.views import AjaxList, TableData
 from tempmon.models import PlaySession, DataPoint, PsGame
 
@@ -79,6 +81,33 @@ def add_temp_point(request):
         return JsonResponse({'result': f'Failure: {e}'})
 
 
+class FGenericMinMaxDurationMin(FFilter):
+    def __init__(self, title, field):
+        self.field = field
+        super().__init__(title, 'v-filter-min-max')
+
+    @staticmethod
+    def to_timedelta(val):
+        return timedelta(minutes=int(val))
+
+    def add_to_query(self, flt, qry):
+        flt_fct = qry.filter
+        if flt[0:2] == "≠ ":
+            flt_fct = qry.exclude
+            flt = self.to_timedelta(flt[2:])
+        if '~' in flt:
+            flt = flt.split('~')
+            kwargs = {}
+            if flt[0] != '':
+                kwargs.update({self.field + '__gte': self.to_timedelta(flt[0])})
+            if flt[1] != '':
+                kwargs.update({self.field + '__lte': self.to_timedelta(flt[1])})
+        else:
+            kwargs = {self.field: flt}
+        qry = flt_fct(**kwargs)
+        return qry
+
+
 class PlaySessionListView(AjaxList):
     model = PlaySession
     template_name = 'tempmon/playsession_list.html'
@@ -86,13 +115,16 @@ class PlaySessionListView(AjaxList):
     list_title = 'Play sessions'
     filters = [FGenericDateRange('Start time', 'start_time'),
                FGenericDateRange('End time', 'end_time'),
-               FGenericMinMax('Start temperature', 'start_temp')]
+               FGenericMinMaxDurationMin('Duration (min)', 'duration'),
+               FGenericMinMax('Start temperature', 'start_temp')
+               ]
     table_data = TableData(model, [
         {'name': 'start_time',
          'link': TableData.FieldProps.link_pk('tempmon/session'),
          'format': TableData.FieldProps.format_datetime_min},
         {'name': 'end_time',
          'format': TableData.FieldProps.format_datetime_min},
+        {'name': 'duration'},
         'start_temp', 'max_temp'
     ])
 
@@ -196,13 +228,17 @@ class PlaySessionDetailsView(LoginRequiredMixin, DetailView):
         context['duration'] = session.end_time - session.start_time
         d = session.data_dict
         list_time = sorted(d.keys())
+        jst = ZoneInfo('Asia/Tokyo')
         context['data'] = {
-            'headers': ['Time', 'Game', 'Temperature', 'Humidity', 'Pressure'],
-            'rows': [[str(timedelta(seconds=(t - session.start_time.timestamp()))).split('.')[0],
-                      self.get_game_from_id(d[t][3]),
-                      f'{d[t][0]:.2f}',
-                      f'{d[t][1]:.2f}',
-                      f'{d[t][2]:.1f}']
-                     for t in list_time]
+            'headers': ['Time', 'Duration', 'Game',
+                        'Temperature', 'Humidity', 'Pressure'],
+            'rows': [[
+                datetime.fromtimestamp(t).astimezone(jst).strftime("%H:%M:%S"),
+                timedelta(seconds=(t - session.start_time.timestamp())),
+                self.get_game_from_id(d[t][3]),
+                f'{d[t][0]:.2f}',
+                f'{d[t][1]:.2f}',
+                f'{d[t][2]:.1f}'
+            ] for t in list_time]
         }
         return context

@@ -4,13 +4,11 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="290048a5-330e-41de-998e-fc777b82ceed" name="Changes" comment="Clean up of the session pages">
-      <change afterPath="$PROJECT_DIR$/tempmon/templates/tempmon/base_details.html" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/tempmon/templates/tempmon/playsession_list.html" afterDir="false" />
+    <list default="true" id="290048a5-330e-41de-998e-fc777b82ceed" name="Changes" comment="Finalize the session pages">
+      <change afterPath="$PROJECT_DIR$/tempmon/migrations/0004_playsession_duration.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/tempmon/migrations/0005_alter_playsession_duration.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tempmon/templates/tempmon/base.html" beforeDir="false" afterPath="$PROJECT_DIR$/tempmon/templates/tempmon/base.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tempmon/templates/tempmon/playsession_detail.html" beforeDir="false" afterPath="$PROJECT_DIR$/tempmon/templates/tempmon/playsession_detail.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tempmon/templates/tempmon/playsession_graph.html" beforeDir="false" afterPath="$PROJECT_DIR$/tempmon/templates/tempmon/playsession_graph.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tempmon/models.py" beforeDir="false" afterPath="$PROJECT_DIR$/tempmon/models.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/tempmon/views.py" beforeDir="false" afterPath="$PROJECT_DIR$/tempmon/views.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -39,6 +37,20 @@
     </option>
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
+  <component name="GitHubPullRequestSearchHistory"><![CDATA[{
+  "lastFilter": {
+    "state": "OPEN",
+    "assignee": "RepoKK"
+  }
+}]]></component>
+  <component name="GithubPullRequestsUISettings">
+    <option name="selectedUrlAndAccountId">
+      <UrlAndAccount>
+        <option name="accountId" value="f863c563-c78c-4388-a1e9-53489efcfe57" />
+        <option name="url" value="https://github.com/RepoKK/kukan.git" />
+      </UrlAndAccount>
+    </option>
+  </component>
   <component name="MarkdownSettingsMigration">
     <option name="stateVersion" value="1" />
   </component>
@@ -53,22 +65,22 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "ASKED_ADD_EXTERNAL_FILES": "true",
-    "ASKED_SHARE_PROJECT_CONFIGURATION_FILES": "true",
-    "DefaultHtmlFileTemplate": "HTML File",
-    "Python.runserver.executor": "Run",
-    "RunOnceActivity.OpenProjectViewOnStart": "true",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "SHARE_PROJECT_CONFIGURATION_FILES": "true",
-    "git-widget-placeholder": "master",
-    "ignore.virus.scanning.warn.message": "true",
-    "last_opened_file_path": "D:/Django/kukan/tempmon/templates/tempmon",
-    "settings.editor.selected.configurable": "com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable",
-    "two.files.diff.last.used.file": "D:/Django/kukan/kukan/fixtures/Web/Kanjipedia/def_枯渇"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;ASKED_ADD_EXTERNAL_FILES&quot;: &quot;true&quot;,
+    &quot;ASKED_SHARE_PROJECT_CONFIGURATION_FILES&quot;: &quot;true&quot;,
+    &quot;DefaultHtmlFileTemplate&quot;: &quot;HTML File&quot;,
+    &quot;Python.runserver.executor&quot;: &quot;Run&quot;,
+    &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;SHARE_PROJECT_CONFIGURATION_FILES&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;master&quot;,
+    &quot;ignore.virus.scanning.warn.message&quot;: &quot;true&quot;,
+    &quot;last_opened_file_path&quot;: &quot;D:/Django/kukan/tempmon/templates/tempmon&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable&quot;,
+    &quot;two.files.diff.last.used.file&quot;: &quot;D:/Django/kukan/kukan/fixtures/Web/Kanjipedia/def_枯渇&quot;
   }
-}]]></component>
+}</component>
   <component name="PyConsoleOptionsProvider">
     <option name="myPythonConsoleState">
       <console-settings custom-start-script="import sys; print('Python %s on %s' % (sys.version, sys.platform))&#10;sys.path.extend([WORKING_DIR_AND_PYTHON_PATHS])&#10;import os&#10;os.environ.setdefault(&quot;DJANGO_SETTINGS_MODULE&quot;, &quot;kukansite.settings&quot;)&#10;import django&#10;django.setup()&#10;from kukan.models import *&#10;" module-name="kukan" is-module-sdk="true">
@@ -222,7 +234,15 @@
       <option name="project" value="LOCAL" />
       <updated>1703923819102</updated>
     </task>
-    <option name="localTasksCounter" value="10" />
+    <task id="LOCAL-00010" summary="Finalize the session pages">
+      <option name="closed" value="true" />
+      <created>1703989687342</created>
+      <option name="number" value="00010" />
+      <option name="presentableId" value="LOCAL-00010" />
+      <option name="project" value="LOCAL" />
+      <updated>1703989687342</updated>
+    </task>
+    <option name="localTasksCounter" value="11" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -262,7 +282,8 @@
     <MESSAGE value="Move the API_KEY to settings" />
     <MESSAGE value="Handling of game title (initial)" />
     <MESSAGE value="Clean up of the session pages" />
-    <option name="LAST_COMMIT_MESSAGE" value="Clean up of the session pages" />
+    <MESSAGE value="Finalize the session pages" />
+    <option name="LAST_COMMIT_MESSAGE" value="Finalize the session pages" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>

@@ -37,6 +37,7 @@ class PlaySession(models.Model):
     start_temp = models.FloatField(verbose_name='Starting temperature')
     max_temp = models.FloatField(verbose_name='Max temperature')
     data_points = models.BinaryField(verbose_name='Data points')
+    duration = models.DurationField(verbose_name='Duration')
 
     def __str__(self):
         return f'{self.start_time}'
@@ -57,6 +58,7 @@ class PlaySession(models.Model):
             current_data = session.data_dict
             current_data[pt.current_time] = data
             session.end_time = pt.current_time_dt
+            session.duration = pt.current_time_dt - pt.session_time_dt
             session.max_temp = max(session.max_temp, pt.temperature)
             session.data_points = pickle.dumps(current_data)
             session.save()
@@ -65,6 +67,7 @@ class PlaySession(models.Model):
             session = cls.objects.create(
                 start_time=pt.session_time_dt,
                 end_time=pt.current_time_dt,
+                duration=pt.current_time_dt - pt.session_time_dt,
                 start_temp=pt.temperature,
                 max_temp=pt.temperature,
                 data_points=pickle.dumps({pt.current_time: data})
