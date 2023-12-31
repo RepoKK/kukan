@@ -1,0 +1,33 @@
+{% extends 'tempmon/base.html' %}
+{% load static %}
+{% block body2 %}
+<body>
+    <div id="vue_app">
+        <div v-cloak>
+            <v-filtered-table top_title="{{list_title}}" :mobile-cards="'{{is_mobile_card}}'=='True'"></v-filtered-table>
+        </div>
+    </div>
+</body>
+
+<script>
+    Vue.use(Buefy.default)
+    Vue.mixin({ delimiters: ['[[',']]'] });
+</script>
+{% include 'v-filter/v-include.html' %}
+<script>
+    var mixin = {
+        data: function () {
+            return {
+                containerSize: "is-desktop",
+            }
+        },
+    }
+
+    const app_data = {
+        mixins:[mixin],
+        delimiters: ['[[', ']]'],
+    }
+    const app = new Vue(app_data)
+    app.$mount('#vue_app')
+</script>
+{% endblock %}

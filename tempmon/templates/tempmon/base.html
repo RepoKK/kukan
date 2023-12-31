@@ -1,25 +1,48 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="en">
   <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Hello Bulma!</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>Temperature monitor</title>
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
+
+        <link rel="apple-touch-icon" sizes="180x180" href="{% static 'tempmon/favicon_io/apple-touch-icon.png' %}">
+        <link rel="icon" type="image/png" sizes="32x32" href="{% static 'tempmon/favicon_io/favicon-32x32.png' %}">
+        <link rel="icon" type="image/png" sizes="16x16" href="{% static 'tempmon/favicon_io/favicon-16x16.png' %}">
+        <link rel="manifest" href="{% static 'tempmon/favicon_io/site.webmanifest' %}">
+
+        <link rel="stylesheet" href="{% static 'js/node_modules/buefy/lib/buefy.css' %}">
+        <link rel="stylesheet" href="{% static 'js/node_modules/@mdi/font/css/materialdesignicons.min.css' %}">
+        {% if debug %}
+            <script src="{% static 'js/node_modules/vue/dist/vue.js' %}"></script>
+        {% else %}
+            <script src="{% static 'js/node_modules/vue/dist/vue.min.js' %}"></script>
+        {% endif %}
+        <script src="{% static 'js/node_modules/buefy/lib/index.js' %}"></script>
+        <script src="{% static 'js/node_modules/axios/dist/axios.min.js' %}"></script>
+
+        <style>
+          [v-cloak] {
+            display: none;
+          }
+        </style>
+
   </head>
 <body>
+<section class="hero is-primary is-small">
+  <div class="hero-body">
+    <p class="title">
+      <img src="{% static 'tempmon/icon_white.png' %}" alt="Tempmon">  Temperature monitor
+    </p>
+    <p class="subtitle">
+      {% block subtitle %}{% endblock%}
+    </p>
+  </div>
+</section>
 <section class="section">
-
-<table class='table is-narrow' border="0">
-    <tr><th>{% block switch_page %}{% endblock%}</th>
-        <th><a href="{% url 'session_list' %}">Sessions list</a></th></tr>
-    <tr><th>Session start</th><td>{{object.start_time}}</td>
-        <th>Session end</th><td>{{object.end_time}}</td>
-        <th>Session duration</th><td>{{duration}}</td></tr>
-    <tr><th>Start Temp.</th><td>{{object.start_temp|floatformat:2}}</td>
-        <th>End Temp.</th><td>{{object.current_temp|floatformat:2}}</td>
-        <th>Max Temp.</th><td>{{object.max_temp|floatformat:2}}</td></tr>
-</table>
-{% block body %}{% endblock%}
+{% block details_table %}{% endblock%}
+{% block body2 %}{% endblock%}
 </section>
 </body>
 </html>

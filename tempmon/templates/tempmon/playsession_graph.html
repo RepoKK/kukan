@@ -1,13 +1,13 @@
-{% extends 'tempmon/base.html' %}
+{% extends 'tempmon/base_details.html' %}
 {% block switch_page %}<a href="{% url 'session_details' object.id %}">Details</a>{% endblock%}
-{% block body %}
+{% block body3 %}
 <div class="block">
     <canvas id="myChart"></canvas>
     <!-- Somehow below prevent the graph to slowly resize after initial display -->
     <p style="visibility: hidden">_dummy_</p>
 </div>
 <div class="block">
-    <table class='table  is-narrow ' border="0">
+    <table class='table is-narrow ' border="0">
         {% for g in games_legend.items %}
         <tr><td bgcolor="{{g.1.1}}" style="width: 50px"></td><td>{{g.1.0}}</td></tr>
         {% endfor %}
@@ -36,7 +36,7 @@ const plugin = {
   }
 };
 
-const data = {
+const graph_data = {
     datasets: [{
         label: 'Temperature (℃)',
         data: {{temp_data|safe}},
@@ -57,7 +57,7 @@ const data = {
 new Chart(ctx, {
      type: 'line',
      plugins: [plugin],
-     data: data,
+     data: graph_data,
      options: {
         responsive: true,
          scales: {

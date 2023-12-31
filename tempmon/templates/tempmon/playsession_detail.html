@@ -1,6 +1,6 @@
-{% extends 'tempmon/base.html' %}
+{% extends 'tempmon/base_details.html' %}
 {% block switch_page %}<a href="{% url 'session' object.id %}">Graph</a>{% endblock%}
-{% block body %}
+{% block body3 %}
 <table class='table is-striped is-narrow is-fullwidth' border="0">
     <tr>
     {% for header in data.headers %}

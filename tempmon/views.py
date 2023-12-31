@@ -81,7 +81,7 @@ def add_temp_point(request):
 
 class PlaySessionListView(AjaxList):
     model = PlaySession
-    template_name = 'kukan/default_list.html'
+    template_name = 'tempmon/playsession_list.html'
     default_sort = '-start_time'
     list_title = 'Play sessions'
     filters = [FGenericDateRange('Start time', 'start_time'),

@@ -4,16 +4,13 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="290048a5-330e-41de-998e-fc777b82ceed" name="Changes" comment="Handling of game title (initial)">
-      <change afterPath="$PROJECT_DIR$/tempmon/templates/tempmon/base.html" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/tempmon/templates/tempmon/playsession_graph.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/kukan.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/kukan.iml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
+    <list default="true" id="290048a5-330e-41de-998e-fc777b82ceed" name="Changes" comment="Clean up of the session pages">
+      <change afterPath="$PROJECT_DIR$/tempmon/templates/tempmon/base_details.html" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/tempmon/templates/tempmon/playsession_list.html" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/requirements.txt" beforeDir="false" afterPath="$PROJECT_DIR$/requirements.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tempmon/models.py" beforeDir="false" afterPath="$PROJECT_DIR$/tempmon/models.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tempmon/templates/tempmon/base.html" beforeDir="false" afterPath="$PROJECT_DIR$/tempmon/templates/tempmon/base.html" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/tempmon/templates/tempmon/playsession_detail.html" beforeDir="false" afterPath="$PROJECT_DIR$/tempmon/templates/tempmon/playsession_detail.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tempmon/urls.py" beforeDir="false" afterPath="$PROJECT_DIR$/tempmon/urls.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tempmon/templates/tempmon/playsession_graph.html" beforeDir="false" afterPath="$PROJECT_DIR$/tempmon/templates/tempmon/playsession_graph.html" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/tempmon/views.py" beforeDir="false" afterPath="$PROJECT_DIR$/tempmon/views.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -49,12 +46,16 @@
   &quot;associatedIndex&quot;: 8
 }</component>
   <component name="ProjectId" id="2Yn1xn83J0ZaIM63w7HVXVBVH6U" />
+  <component name="ProjectLevelVcsManager">
+    <ConfirmationsSetting value="2" id="Add" />
+  </component>
   <component name="ProjectViewState">
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
   <component name="PropertiesComponent"><![CDATA[{
   "keyToString": {
+    "ASKED_ADD_EXTERNAL_FILES": "true",
     "ASKED_SHARE_PROJECT_CONFIGURATION_FILES": "true",
     "DefaultHtmlFileTemplate": "HTML File",
     "Python.runserver.executor": "Run",
@@ -213,7 +214,15 @@
       <option name="project" value="LOCAL" />
       <updated>1703759488373</updated>
     </task>
-    <option name="localTasksCounter" value="9" />
+    <task id="LOCAL-00009" summary="Clean up of the session pages">
+      <option name="closed" value="true" />
+      <created>1703923819102</created>
+      <option name="number" value="00009" />
+      <option name="presentableId" value="LOCAL-00009" />
+      <option name="project" value="LOCAL" />
+      <updated>1703923819102</updated>
+    </task>
+    <option name="localTasksCounter" value="10" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -245,13 +254,15 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
+    <option name="ADD_EXTERNAL_FILES_SILENTLY" value="true" />
     <MESSAGE value="Fix backup on 1/11/21" />
     <MESSAGE value="PyCharm files" />
     <MESSAGE value="Fix tests" />
     <MESSAGE value="Add PlaySession class and associated tests" />
     <MESSAGE value="Move the API_KEY to settings" />
     <MESSAGE value="Handling of game title (initial)" />
-    <option name="LAST_COMMIT_MESSAGE" value="" />
+    <MESSAGE value="Clean up of the session pages" />
+    <option name="LAST_COMMIT_MESSAGE" value="Clean up of the session pages" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
