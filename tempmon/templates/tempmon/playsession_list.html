@@ -1,13 +1,13 @@
 {% extends 'tempmon/base.html' %}
 {% load static %}
 {% block body2 %}
-<body>
+<div class="container">
     <div id="vue_app">
         <div v-cloak>
             <v-filtered-table top_title="{{list_title}}" :mobile-cards="'{{is_mobile_card}}'=='True'"></v-filtered-table>
         </div>
     </div>
-</body>
+</div>
 
 <script>
     Vue.use(Buefy.default)
