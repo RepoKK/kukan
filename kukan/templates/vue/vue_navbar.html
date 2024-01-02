@@ -92,6 +92,15 @@
                         <a class="navbar-item" href="http://www.bunka.go.jp/kokugo_nihongo/sisaku/joho/joho/kijun/naikaku/pdf/joyokanjihyo_20101130.pdf">
                             常用漢字表
                         </a>
+                        <hr class="navbar-divider">
+                        <a class="navbar-item" href="{% url 'bustime:bustime_main' %}">
+                            <img src="{% static 'bustime/favicon/favicon-16x16.png' %}" alt="BusTime">
+                            　BusTime
+                        </a>
+                        <a class="navbar-item" href="{% url 'session_list' %}">
+                            <img src="{% static 'tempmon/favicon_io/favicon-16x16.png' %}" alt="Tempmon">
+                            　TempMon
+                        </a>
                     </div>
                 </div>
                 <div class="navbar-item has-dropdown is-hoverable">
