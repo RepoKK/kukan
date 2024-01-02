@@ -4,10 +4,8 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="290048a5-330e-41de-998e-fc777b82ceed" name="Changes" comment="Add favicon">
+    <list default="true" id="290048a5-330e-41de-998e-fc777b82ceed" name="Changes" comment="Improve display on mobile of the session details header table">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tempmon/templates/tempmon/base.html" beforeDir="false" afterPath="$PROJECT_DIR$/tempmon/templates/tempmon/base.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tempmon/templates/tempmon/base_details.html" beforeDir="false" afterPath="$PROJECT_DIR$/tempmon/templates/tempmon/base_details.html" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/tempmon/views.py" beforeDir="false" afterPath="$PROJECT_DIR$/tempmon/views.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -257,7 +255,15 @@
       <option name="project" value="LOCAL" />
       <updated>1703993646362</updated>
     </task>
-    <option name="localTasksCounter" value="13" />
+    <task id="LOCAL-00013" summary="Improve display on mobile of the session details header table">
+      <option name="closed" value="true" />
+      <created>1704163204459</created>
+      <option name="number" value="00013" />
+      <option name="presentableId" value="LOCAL-00013" />
+      <option name="project" value="LOCAL" />
+      <updated>1704163204459</updated>
+    </task>
+    <option name="localTasksCounter" value="14" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -300,7 +306,8 @@
     <MESSAGE value="Finalize the session pages" />
     <MESSAGE value="Add duration to the PlaySession" />
     <MESSAGE value="Add favicon" />
-    <option name="LAST_COMMIT_MESSAGE" value="Add favicon" />
+    <MESSAGE value="Improve display on mobile of the session details header table" />
+    <option name="LAST_COMMIT_MESSAGE" value="Improve display on mobile of the session details header table" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>

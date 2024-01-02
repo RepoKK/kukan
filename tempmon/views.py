@@ -15,26 +15,35 @@ from psnawp_api.core.psnawp_exceptions import PSNAWPNotFound
 from kukan.filters import FGenericDateRange, FGenericMinMax, FFilter
 from kukan.views import AjaxList, TableData
 from tempmon.models import PlaySession, DataPoint, PsGame
+from psnawp_api.utils.endpoints import BASE_PATH, API_PATH
 
 logger = logging.getLogger(__name__)
 
 
 class PSN:
     def __init__(self, token):
-        self.psnawp = PSNAWP(token)
+        self.psnawp = PSNAWP(token, accept_language='ja', country='JP')
 
         self.client = self.psnawp.me()
         self.me = self.psnawp.user(account_id=self.client.account_id)
+
+    def get_game_name_in_jp(self, title_id):
+        """The GameTitle.get_details hard code to US"""
+        game = self.psnawp.game_title(title_id=title_id,
+                                      account_id=self.client.account_id)
+        return self.psnawp._request_builder.get(
+            url=f"{BASE_PATH['game_titles']}"
+                f"{API_PATH['title_concept'].format(title_id=game.title_id)}",
+            params={"age": 99, "country": "JP", "language": "ja-JP"},
+        ).json()[0]['name']
 
     def get_game_pk(self, title_id):
         try:
             ps_game = PsGame.objects.get(title_id=title_id)
         except PsGame.DoesNotExist:
             try:
-                game = self.psnawp.game_title(title_id=title_id,
-                                              account_id=self.client.account_id)
                 ps_game = PsGame.objects.create(
-                    title_id=title_id, name=game.get_details()[0]['name'])
+                    title_id=title_id, name=self.get_game_name_in_jp(title_id))
             except PSNAWPNotFound:
                 ps_game = PsGame.objects.create(
                     title_id=title_id, name='__UNKNOWN__')
