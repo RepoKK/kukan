@@ -1,14 +1,26 @@
 {% extends 'tempmon/base.html' %}
 {% block details_table %}
-<table class='table is-narrow' border="0">
-    <tr><th>{% block switch_page %}{% endblock%}</th>
+
+<table class='table is-narrow is-hidden-mobile' border="0">
+    <tr><th><a href="{% url switch_link.path_name object.id %}">{{switch_link.label}}</a></th>
         <th><a href="{% url 'session_list' %}">Sessions list</a></th></tr>
     <tr><th>Session start</th><td>{{object.start_time}}</td>
         <th>Session end</th><td>{{object.end_time}}</td>
         <th>Session duration</th><td>{{duration}}</td></tr>
-    <tr><th>Start Temp.</th><td>{{object.start_temp|floatformat:2}}</td>
-        <th>End Temp.</th><td>{{object.current_temp|floatformat:2}}</td>
-        <th>Max Temp.</th><td>{{object.max_temp|floatformat:2}}</td></tr>
+    <tr><th>Start Temp.</th><td>{{object.start_temp|floatformat:2}}℃</td>
+        <th>End Temp.</th><td>{{object.current_temp|floatformat:2}}℃</td>
+        <th>Max Temp.</th><td>{{object.max_temp|floatformat:2}}℃</td></tr>
+</table>
+
+<table class='table is-narrow is-hidden-tablet' border="0">
+    <tr><th><a href="{% url switch_link.path_name object.id %}">{{switch_link.label}}</a></th>
+        <th><a href="{% url 'session_list' %}">Sessions list</a></th></tr>
+    <tr><th>Session start</th><td>{{object.start_time}}</td></tr>
+    <tr><th>Session end</th><td>{{object.end_time}}</td></tr>
+    <tr><th>Session duration</th><td>{{duration}}</td></tr>
+    <tr><th>Start Temp.</th><td>{{object.start_temp|floatformat:2}}℃</td></tr>
+    <tr><th>End Temp.</th><td>{{object.current_temp|floatformat:2}}℃</td></tr>
+    <tr><th>Max Temp.</th><td>{{object.max_temp|floatformat:2}}℃</td></tr>
 </table>
 {% block body2 %}
 {% endblock%}

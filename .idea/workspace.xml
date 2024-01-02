@@ -4,11 +4,10 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="290048a5-330e-41de-998e-fc777b82ceed" name="Changes" comment="Finalize the session pages">
-      <change afterPath="$PROJECT_DIR$/tempmon/migrations/0004_playsession_duration.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/tempmon/migrations/0005_alter_playsession_duration.py" afterDir="false" />
+    <list default="true" id="290048a5-330e-41de-998e-fc777b82ceed" name="Changes" comment="Add favicon">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tempmon/models.py" beforeDir="false" afterPath="$PROJECT_DIR$/tempmon/models.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tempmon/templates/tempmon/base.html" beforeDir="false" afterPath="$PROJECT_DIR$/tempmon/templates/tempmon/base.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tempmon/templates/tempmon/base_details.html" beforeDir="false" afterPath="$PROJECT_DIR$/tempmon/templates/tempmon/base_details.html" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/tempmon/views.py" beforeDir="false" afterPath="$PROJECT_DIR$/tempmon/views.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -242,7 +241,23 @@
       <option name="project" value="LOCAL" />
       <updated>1703989687342</updated>
     </task>
-    <option name="localTasksCounter" value="11" />
+    <task id="LOCAL-00011" summary="Add duration to the PlaySession">
+      <option name="closed" value="true" />
+      <created>1703993506190</created>
+      <option name="number" value="00011" />
+      <option name="presentableId" value="LOCAL-00011" />
+      <option name="project" value="LOCAL" />
+      <updated>1703993506190</updated>
+    </task>
+    <task id="LOCAL-00012" summary="Add favicon">
+      <option name="closed" value="true" />
+      <created>1703993646362</created>
+      <option name="number" value="00012" />
+      <option name="presentableId" value="LOCAL-00012" />
+      <option name="project" value="LOCAL" />
+      <updated>1703993646362</updated>
+    </task>
+    <option name="localTasksCounter" value="13" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -283,7 +298,9 @@
     <MESSAGE value="Handling of game title (initial)" />
     <MESSAGE value="Clean up of the session pages" />
     <MESSAGE value="Finalize the session pages" />
-    <option name="LAST_COMMIT_MESSAGE" value="Finalize the session pages" />
+    <MESSAGE value="Add duration to the PlaySession" />
+    <MESSAGE value="Add favicon" />
+    <option name="LAST_COMMIT_MESSAGE" value="Add favicon" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>

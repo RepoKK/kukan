@@ -192,13 +192,9 @@ class PlaySessionGraphView(LoginRequiredMixin, DetailView):
             if game_pk != -1
         ]
 
+        context['switch_link'] = {'path_name': 'session_details',
+                                  'label': 'Details'}
         return context
-
-# PSN current game
-# Token https://andshrew.github.io/PlayStation-Trophies/#/APIv2?id=obtaining-an-authentication-token
-# https://note.com/kijitora_neco/n/nf0efa130ae00
-# https://github.com/mgp25/psn-api/blob/master/README.md
-# https://github.com/isFakeAccount/psnawp
 
 
 class PlaySessionDetailsView(LoginRequiredMixin, DetailView):
@@ -241,4 +237,7 @@ class PlaySessionDetailsView(LoginRequiredMixin, DetailView):
                 f'{d[t][2]:.1f}'
             ] for t in list_time]
         }
+
+        context['switch_link'] = {'path_name': 'session',
+                                  'label': 'Graph'}
         return context
