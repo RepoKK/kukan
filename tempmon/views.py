@@ -6,15 +6,18 @@ from zoneinfo import ZoneInfo
 
 from django.conf import settings
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django import forms
 from django.http import JsonResponse
+from django.urls import reverse_lazy
 from django.views.decorators.csrf import csrf_exempt
-from django.views.generic import DetailView
+from django.views.generic import DetailView, UpdateView
 from psnawp_api import PSNAWP
 from psnawp_api.core.psnawp_exceptions import PSNAWPNotFound
 
 from kukan.filters import FGenericDateRange, FGenericMinMax, FFilter
+from kukan.forms import BForm
 from kukan.views import AjaxList, TableData
-from tempmon.models import PlaySession, DataPoint, PsGame
+from tempmon.models import PlaySession, DataPoint, PsGame, PsnApiKey
 from psnawp_api.utils.endpoints import BASE_PATH, API_PATH
 
 logger = logging.getLogger(__name__)
@@ -66,10 +69,36 @@ class PSN:
 
 
 # Global instance to avoid the overhead everytime this is called
-if settings.PSN_TOKEN != '__dummy__':
-    psn = PSN(settings.PSN_TOKEN)
+if (token := PsnApiKey.objects.first().code) != '__dummy__':
+    psn = PSN(token)
 else:
     psn = None
+
+
+class PsnApiKeyForm(BForm):
+    class Meta:
+        model = PsnApiKey
+        fields = ['code']
+        widgets = {
+            'code': forms.PasswordInput(attrs={"size": "64"}),
+        }
+
+
+class PsnApiKeyUpdateView(UpdateView):
+    model = PsnApiKey
+    form_class = PsnApiKeyForm
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        try:
+            context['remaining_days'] = (
+                psn.psnawp._request_builder.authenticator
+                ._auth_properties['refresh_token_expires_in'] / 60 / 60 / 24)
+        except AttributeError:
+            context['remaining_days'] = 'N/A'
+        return context
+
+    success_url = reverse_lazy('session_list')
 
 
 @csrf_exempt

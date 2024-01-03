@@ -33,7 +33,9 @@
 <section class="hero is-primary is-small">
   <div class="hero-body">
     <p class="title">
-      <img src="{% static 'tempmon/icon_white.png' %}" alt="Tempmon">  Temperature monitor
+        {% block title %}
+        <img src="{% static 'tempmon/icon_white.png' %}" alt="Tempmon">  Temperature monitor
+        {% endblock%}
     </p>
     <p class="subtitle">
       {% block subtitle %}{% endblock%}

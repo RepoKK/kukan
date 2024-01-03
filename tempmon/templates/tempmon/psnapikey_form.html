@@ -1,0 +1,20 @@
+{% extends 'tempmon/base.html' %}
+{% block title %}NPSSO code update{% endblock %}
+{% block body2 %}
+<div class="container">
+
+<ol>
+    <li>Login into your My PlayStation account, like <a href="https://store.playstation.com/">PS Store</a>.<br></li>
+    <li>In another tab, go to <a href="https://ca.account.sony.com/api/v1/ssocookie">this link</a>.<br></li>
+    <li>Copy the 64 characters code into below.</li>
+</ol>
+    Remaining days of the current code: {{remaining_days|floatformat:2}}
+</div>
+
+<div class="section">
+<form method="post">{% csrf_token %}
+    {{ form.as_p }}
+    <input type="submit" value="Update">
+</form>
+</div>
+{% endblock %}

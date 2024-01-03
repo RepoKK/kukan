@@ -81,3 +81,11 @@ class PsGame(models.Model):
 
     def __str__(self):
         return f'{self.name}'
+
+
+class PsnApiKey(models.Model):
+    code = models.CharField('npsso code', max_length=100,
+                           default='__dummy__')
+
+    def __str__(self):
+        return 'PSN npsso code'
