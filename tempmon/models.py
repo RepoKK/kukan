@@ -57,8 +57,12 @@ class PlaySession(models.Model):
             session = cls.objects.get(start_time=pt.session_time_dt)
             current_data = session.data_dict
             current_data[pt.current_time] = data
-            session.end_time = pt.current_time_dt
-            session.duration = pt.current_time_dt - pt.session_time_dt
+
+            last_ts = max(current_data.keys())
+            last_dt = dt.datetime.fromtimestamp(last_ts).astimezone(UTC)
+            session.end_time = last_dt
+            session.duration = last_dt - pt.session_time_dt
+
             session.max_temp = max(session.max_temp, pt.temperature)
             session.data_points = pickle.dumps(current_data)
             session.save()

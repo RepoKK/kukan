@@ -1,6 +1,8 @@
+import datetime as dt
+
 from django.test import TestCase
 from tempmon.models import PlaySession, DataPoint, PsGame
-from tempmon.views import PSN, PlaySessionDetailView
+from tempmon.views import PSN, PlaySessionGraphView
 
 
 class TestPlaySessionModel(TestCase):
@@ -49,6 +51,21 @@ class TestPlaySessionModel(TestCase):
                                       'Current time before Session time'):
             _ = DataPoint(1703644000, 1703643000, 22.5, 30.0, 10000.2)
 
+    def test_duration(self):
+        pt1 = DataPoint(1703644000, 1703644001, 22.5, 30.0, 10000.2)
+        pt2 = DataPoint(1703644000, 1703644030, 20.7, 30.0, 10000.2)
+        pt3 = DataPoint(1703644000, 1703644020, 20.7, 30.0, 10000.2)
+        ps = PlaySession.add_point(pt1)
+        self.assertEqual(ps.duration, dt.timedelta(seconds=1))
+        self.assertEqual(ps.end_time.timestamp(), 1703644001)
+        ps = PlaySession.add_point(pt2)
+        self.assertEqual(ps.duration, dt.timedelta(seconds=30))
+        self.assertEqual(ps.end_time.timestamp(), 1703644030)
+        ps = PlaySession.add_point(pt3)
+        self.assertEqual(ps.duration, dt.timedelta(seconds=30))
+        self.assertEqual(ps.end_time.timestamp(), 1703644030)
+
+
 
 class TestPsn(TestCase):
     def setUp(self) -> None:
@@ -61,7 +78,8 @@ class TestPsn(TestCase):
         # Check when game is not present
         pk = self.psn.get_game_pk('PPSA02269_00')
         self.assertTrue(1, pk)
-        self.assertEqual(PsGame.objects.first().name, 'Returnal')
+        self.assertEqual(PsGame.objects.first().name,
+                         'ARMORED CORE VI FIRES OF RUBICON')
         # Check when the game is already present
         pk = self.psn.get_game_pk('PPSA01286_00')
         self.assertTrue(1, pk)
@@ -80,7 +98,7 @@ class TestPlaySessionDetailView(TestCase):
 
         expected_result = [(1, 2, -1), (2, 3, 2), (3, 4, 3), (4, 6, 2)]
 
-        g = PlaySessionDetailView.get_background_matrix(
+        g = PlaySessionGraphView.get_background_matrix(
             data_dict, sorted(data_dict.keys()))
         self.assertEqual(expected_result, list(g))
 
@@ -95,7 +113,7 @@ class TestPlaySessionDetailView(TestCase):
 
         expected_result = [(1, 2, -1), (2, 3, 2), (3, 4, 3), (4, 5, 2)]
 
-        g = PlaySessionDetailView.get_background_matrix(
+        g = PlaySessionGraphView.get_background_matrix(
             data_dict, sorted(data_dict.keys()))
         self.assertEqual(expected_result, list(g))
 
@@ -106,7 +124,7 @@ class TestPlaySessionDetailView(TestCase):
 
         expected_result = [(1, 1, -1)]
 
-        g = PlaySessionDetailView.get_background_matrix(
+        g = PlaySessionGraphView.get_background_matrix(
             data_dict, sorted(data_dict.keys()))
         self.assertEqual(expected_result, list(g))
 
