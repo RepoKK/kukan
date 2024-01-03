@@ -7,6 +7,7 @@ from zoneinfo import ZoneInfo
 from django.conf import settings
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django import forms
+from django.db import OperationalError
 from django.http import JsonResponse
 from django.urls import reverse_lazy
 from django.views.decorators.csrf import csrf_exempt
@@ -69,10 +70,14 @@ class PSN:
 
 
 # Global instance to avoid the overhead everytime this is called
-if (token := PsnApiKey.objects.first().code) != '__dummy__':
-    psn = PSN(token)
-else:
+try:
+    if (token := PsnApiKey.objects.first().code) != '__dummy__':
+        psn = PSN(token)
+    else:
+        psn = None
+except OperationalError:
     psn = None
+
 
 
 class PsnApiKeyForm(BForm):

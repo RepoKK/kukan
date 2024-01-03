@@ -4,14 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="290048a5-330e-41de-998e-fc777b82ceed" name="Changes" comment="Fix session list layout of filter">
-      <change afterPath="$PROJECT_DIR$/tempmon/migrations/0006_psnapikey.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/tempmon/templates/tempmon/psnapikey_form.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tempmon/models.py" beforeDir="false" afterPath="$PROJECT_DIR$/tempmon/models.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tempmon/templates/tempmon/base.html" beforeDir="false" afterPath="$PROJECT_DIR$/tempmon/templates/tempmon/base.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tempmon/templates/tempmon/playsession_list.html" beforeDir="false" afterPath="$PROJECT_DIR$/tempmon/templates/tempmon/playsession_list.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tempmon/urls.py" beforeDir="false" afterPath="$PROJECT_DIR$/tempmon/urls.py" afterDir="false" />
+    <list default="true" id="290048a5-330e-41de-998e-fc777b82ceed" name="Changes" comment="Handle NPSSO code in RTD">
       <change beforePath="$PROJECT_DIR$/tempmon/views.py" beforeDir="false" afterPath="$PROJECT_DIR$/tempmon/views.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -285,7 +278,15 @@
       <option name="project" value="LOCAL" />
       <updated>1704168682775</updated>
     </task>
-    <option name="localTasksCounter" value="16" />
+    <task id="LOCAL-00016" summary="Handle NPSSO code in RTD">
+      <option name="closed" value="true" />
+      <created>1704263781685</created>
+      <option name="number" value="00016" />
+      <option name="presentableId" value="LOCAL-00016" />
+      <option name="project" value="LOCAL" />
+      <updated>1704263781685</updated>
+    </task>
+    <option name="localTasksCounter" value="17" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -331,7 +332,8 @@
     <MESSAGE value="Improve display on mobile of the session details header table" />
     <MESSAGE value="Retrieve game names in JP" />
     <MESSAGE value="Fix session list layout of filter" />
-    <option name="LAST_COMMIT_MESSAGE" value="Fix session list layout of filter" />
+    <MESSAGE value="Handle NPSSO code in RTD" />
+    <option name="LAST_COMMIT_MESSAGE" value="Handle NPSSO code in RTD" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
