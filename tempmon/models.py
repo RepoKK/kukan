@@ -1,4 +1,5 @@
 import pickle
+from collections import defaultdict
 from dataclasses import dataclass
 
 from django.db import models
@@ -77,6 +78,16 @@ class PlaySession(models.Model):
                 data_points=pickle.dumps({pt.current_time: data})
             )
         return session
+
+    def get_time_per_game(self):
+        """Return a dict with each game pk as key, and the number
+         of seconds as value"""
+        d = self.data_dict
+        list_of_times = sorted(d.keys())
+        res = defaultdict(lambda: 0)
+        for t1, t2 in zip(list_of_times, list_of_times[1:]):
+            res[d[t1][3]] += (t2 - t1)
+        return res
 
 
 class PsGame(models.Model):

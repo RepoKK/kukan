@@ -65,6 +65,23 @@ class TestPlaySessionModel(TestCase):
         self.assertEqual(ps.duration, dt.timedelta(seconds=30))
         self.assertEqual(ps.end_time.timestamp(), 1703644030)
 
+    def test_get_time_per_game(self):
+        list_val = [  # list of tuple of (time, game pk)
+            (1704115053, -1),
+            (1704115117, 5), (1704117200, 5), (1704117100, 5), (1704117000, 5),
+            (1704117328, -1), (1704117331, -1),
+            (1704117359, 6.0), (1704118000, 6.0),
+            (1704118025, 5.0), (1704120993, 5.0)
+        ]
+        for val in list_val:
+            ps = PlaySession.add_point(
+                DataPoint(1704115053, val[0], 7, 8, 9), val[1])
+
+        self.assertEqual(ps.duration, dt.timedelta(seconds=5940))
+        self.assertEqual(
+            dict(ps.get_time_per_game()),
+            {-1: 95, 5: 5179, 6: 666}
+        )
 
 
 class TestPsn(TestCase):

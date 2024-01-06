@@ -219,10 +219,11 @@ class PlaySessionGraphView(LoginRequiredMixin, DetailView):
         for t in list_time:
             if d[t][3] not in unique_game_ordered:
                 unique_game_ordered.append(d[t][3])
-
+        game_time = session.get_time_per_game()
         context['games_legend'] = {
             pk: (PsGame.objects.get(pk=pk).name,
-                 self.bg_colors[idx % len(self.bg_colors)])
+                 self.bg_colors[idx % len(self.bg_colors)],
+                 timedelta(seconds=game_time[pk]))
             for idx, pk in enumerate(unique_game_ordered)
             if pk != -1
         }
