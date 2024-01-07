@@ -4,9 +4,14 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="290048a5-330e-41de-998e-fc777b82ceed" name="Changes" comment="Add time per game in the graph view">
+    <list default="true" id="290048a5-330e-41de-998e-fc777b82ceed" name="Changes" comment="Properly refresh the psn global instance when the npsso code is updated">
+      <change afterPath="$PROJECT_DIR$/db - コピー.sqlite3" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/tempmon/migrations/0007_gamepersessioninfo.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/tempmon/migrations/0008_psgame_play_time.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tempmon/views.py" beforeDir="false" afterPath="$PROJECT_DIR$/tempmon/views.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tempmon/admin.py" beforeDir="false" afterPath="$PROJECT_DIR$/tempmon/admin.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tempmon/models.py" beforeDir="false" afterPath="$PROJECT_DIR$/tempmon/models.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tempmon/tests.py" beforeDir="false" afterPath="$PROJECT_DIR$/tempmon/tests.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -68,7 +73,7 @@
     "ASKED_SHARE_PROJECT_CONFIGURATION_FILES": "true",
     "DefaultHtmlFileTemplate": "HTML File",
     "Python tests.pytest for tests.TestPlaySessionModel.test_duration.executor": "Run",
-    "Python.runserver.executor": "Debug",
+    "Python.runserver.executor": "Run",
     "RunOnceActivity.OpenProjectViewOnStart": "true",
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "SHARE_PROJECT_CONFIGURATION_FILES": "true",
@@ -335,7 +340,15 @@
       <option name="project" value="LOCAL" />
       <updated>1704527622652</updated>
     </task>
-    <option name="localTasksCounter" value="20" />
+    <task id="LOCAL-00020" summary="Properly refresh the psn global instance when the npsso code is updated">
+      <option name="closed" value="true" />
+      <created>1704587530184</created>
+      <option name="number" value="00020" />
+      <option name="presentableId" value="LOCAL-00020" />
+      <option name="project" value="LOCAL" />
+      <updated>1704587530184</updated>
+    </task>
+    <option name="localTasksCounter" value="21" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -385,7 +398,8 @@
     <MESSAGE value="Fix bootstrap issue with table PsnApiKey" />
     <MESSAGE value="Fix issue with PlaySession.add_point when pts are disordered" />
     <MESSAGE value="Add time per game in the graph view" />
-    <option name="LAST_COMMIT_MESSAGE" value="Add time per game in the graph view" />
+    <MESSAGE value="Properly refresh the psn global instance when the npsso code is updated" />
+    <option name="LAST_COMMIT_MESSAGE" value="Properly refresh the psn global instance when the npsso code is updated" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>

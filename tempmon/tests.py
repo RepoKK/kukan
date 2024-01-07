@@ -1,7 +1,9 @@
 import datetime as dt
+import os
 
 from django.test import TestCase
-from tempmon.models import PlaySession, DataPoint, PsGame
+from tempmon.models import PlaySession, DataPoint, PsGame, GamePerSessionInfo, \
+    PsnApiKey
 from tempmon.views import PSN, PlaySessionGraphView
 
 
@@ -66,27 +68,50 @@ class TestPlaySessionModel(TestCase):
         self.assertEqual(ps.end_time.timestamp(), 1703644030)
 
     def test_get_time_per_game(self):
+        PsGame.objects.create(name='Game1', title_id='X1')
+        PsGame.objects.create(name='Game2', title_id='X2')
         list_val = [  # list of tuple of (time, game pk)
             (1704115053, -1),
-            (1704115117, 5), (1704117200, 5), (1704117100, 5), (1704117000, 5),
+            (1704115117, 1), (1704117200, 1), (1704117100, 1), (1704117000, 1),
             (1704117328, -1), (1704117331, -1),
-            (1704117359, 6.0), (1704118000, 6.0),
-            (1704118025, 5.0), (1704120993, 5.0)
+            (1704117359, 2), (1704118000, 2),
+            (1704118025, 1), (1704120993, 1)
         ]
         for val in list_val:
             ps = PlaySession.add_point(
                 DataPoint(1704115053, val[0], 7, 8, 9), val[1])
 
         self.assertEqual(ps.duration, dt.timedelta(seconds=5940))
-        self.assertEqual(
-            dict(ps.get_time_per_game()),
-            {-1: 95, 5: 5179, 6: 666}
-        )
+
+        ps.update_game_per_session_info()
+        game1 = GamePerSessionInfo.objects.first()
+        self.assertEqual(game1.game.name, 'Game1')
+        self.assertEqual(game1.duration, dt.timedelta(seconds=5179))
+        self.assertEqual(game1.game.play_time, dt.timedelta(seconds=5179))
+
+        game2 = GamePerSessionInfo.objects.last()
+        self.assertEqual(game2.game.name, 'Game2')
+        self.assertEqual(game2.duration, dt.timedelta(seconds=666))
+        self.assertEqual(game2.game.play_time, dt.timedelta(seconds=666))
+
+        ps2 = PlaySession.add_point(
+            DataPoint(1704122000, 1704122010, 7, 8, 9), -1)
+        ps2 = PlaySession.add_point(
+            DataPoint(1704122000, 1704122020, 7, 8, 9), 2)
+        ps2 = PlaySession.add_point(
+            DataPoint(1704122000, 1704122054, 7, 8, 9), 2)
+
+        game2 = GamePerSessionInfo.objects.last()
+        self.assertEqual(game2.game.play_time, dt.timedelta(seconds=700))
 
 
 class TestPsn(TestCase):
     def setUp(self) -> None:
-        self.psn = PSN('H49Dl60Big95QAdv8Req9XMQwqyZF3usOApVyfDpQmlsXHOMxkR13yPjpP4YPboC')
+        try:
+            self.psn = PSN(os.environ['psn_token'])
+        except KeyError:
+            # Need to set the token in env.var, like: $env:psn_token = 'XXX'
+            self.psn = None
 
     def test_get_current_game(self):
         self.assertTrue(self.psn.get_current_game())
@@ -144,4 +169,3 @@ class TestPlaySessionDetailView(TestCase):
         g = PlaySessionGraphView.get_background_matrix(
             data_dict, sorted(data_dict.keys()))
         self.assertEqual(expected_result, list(g))
-

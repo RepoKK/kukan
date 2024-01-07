@@ -6,6 +6,8 @@ from django.db import models
 import datetime as dt
 from datetime import UTC
 
+from django.db.models import Sum
+
 
 @dataclass
 class DataPoint:
@@ -68,6 +70,8 @@ class PlaySession(models.Model):
             session.data_points = pickle.dumps(current_data)
             session.save()
 
+            session.update_game_per_session_info()
+
         except PlaySession.DoesNotExist:
             session = cls.objects.create(
                 start_time=pt.session_time_dt,
@@ -89,10 +93,20 @@ class PlaySession(models.Model):
             res[d[t1][3]] += (t2 - t1)
         return res
 
+    def update_game_per_session_info(self):
+        for game_pk, duration in self.get_time_per_game().items():
+            if game_pk == -1:
+                continue
+            info = GamePerSessionInfo.objects.get_or_create(
+                session=self, game=PsGame.objects.get(pk=game_pk))[0]
+            info.duration = dt.timedelta(seconds=duration)
+            info.save()
+
 
 class PsGame(models.Model):
     title_id = models.TextField(max_length=12, verbose_name='Title ID')
     name = models.TextField(max_length=2000, verbose_name='Name')
+    play_time = models.DurationField(verbose_name='Play time', null=True)
 
     def __str__(self):
         return f'{self.name}'
@@ -104,3 +118,19 @@ class PsnApiKey(models.Model):
 
     def __str__(self):
         return 'PSN npsso code'
+
+
+class GamePerSessionInfo(models.Model):
+    session = models.ForeignKey(PlaySession, on_delete=models.CASCADE)
+    game = models.ForeignKey(PsGame, on_delete=models.PROTECT)
+    duration = models.DurationField(verbose_name='Duration', null=True)
+
+    def __str__(self):
+        return f' "{self.game}" played on "{self.session}"'
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        self.game.play_time = GamePerSessionInfo.objects.filter(
+            game=self.game).aggregate(Sum('duration'))['duration__sum']
+        self.game.save()
+
