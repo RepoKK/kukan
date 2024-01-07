@@ -2,7 +2,10 @@ from django.contrib import admin
 
 from tempmon.models import PsGame, PlaySession, GamePerSessionInfo
 
-admin.site.register(PsGame)
+
+@admin.register(PsGame)
+class PsGameAdmin(admin.ModelAdmin):
+    list_display = ['name', 'title_id', 'play_time']
 
 
 @admin.register(PlaySession)
