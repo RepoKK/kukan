@@ -4,15 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="290048a5-330e-41de-998e-fc777b82ceed" name="Changes" comment="Properly refresh the psn global instance when the npsso code is updated">
-      <change afterPath="$PROJECT_DIR$/db - コピー.sqlite3" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/tempmon/migrations/0007_gamepersessioninfo.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/tempmon/migrations/0008_psgame_play_time.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tempmon/admin.py" beforeDir="false" afterPath="$PROJECT_DIR$/tempmon/admin.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tempmon/models.py" beforeDir="false" afterPath="$PROJECT_DIR$/tempmon/models.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tempmon/tests.py" beforeDir="false" afterPath="$PROJECT_DIR$/tempmon/tests.py" afterDir="false" />
-    </list>
+    <list default="true" id="290048a5-330e-41de-998e-fc777b82ceed" name="Changes" comment="Handle PSN login failure" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -348,7 +340,23 @@
       <option name="project" value="LOCAL" />
       <updated>1704587530184</updated>
     </task>
-    <option name="localTasksCounter" value="21" />
+    <task id="LOCAL-00021" summary="Add pre game duration info">
+      <option name="closed" value="true" />
+      <created>1704600883934</created>
+      <option name="number" value="00021" />
+      <option name="presentableId" value="LOCAL-00021" />
+      <option name="project" value="LOCAL" />
+      <updated>1704600883934</updated>
+    </task>
+    <task id="LOCAL-00022" summary="Handle PSN login failure">
+      <option name="closed" value="true" />
+      <created>1704601115269</created>
+      <option name="number" value="00022" />
+      <option name="presentableId" value="LOCAL-00022" />
+      <option name="project" value="LOCAL" />
+      <updated>1704601115269</updated>
+    </task>
+    <option name="localTasksCounter" value="23" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -399,7 +407,9 @@
     <MESSAGE value="Fix issue with PlaySession.add_point when pts are disordered" />
     <MESSAGE value="Add time per game in the graph view" />
     <MESSAGE value="Properly refresh the psn global instance when the npsso code is updated" />
-    <option name="LAST_COMMIT_MESSAGE" value="Properly refresh the psn global instance when the npsso code is updated" />
+    <MESSAGE value="Add pre game duration info" />
+    <MESSAGE value="Handle PSN login failure" />
+    <option name="LAST_COMMIT_MESSAGE" value="Handle PSN login failure" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>

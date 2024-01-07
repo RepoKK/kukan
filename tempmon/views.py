@@ -77,7 +77,7 @@ try:
         psn = PSN(token)
     else:
         psn = None
-except PSNAWPAuthenticationError:
+except PSNAWPAuthenticationError as e:
     logger.error(f'Failed to login to PSN: {e}')
     psn = None
 except OperationalError as e:
