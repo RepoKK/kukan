@@ -89,8 +89,6 @@ except Exception as e:
     logger.error(f'Exception: {e}')
     psn = None
 
-psn = None
-
 
 class PsnApiKeyForm(BForm):
     class Meta:
