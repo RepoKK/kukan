@@ -2,5 +2,6 @@ kukansite/settings_prod.py
 logs/
 static/
 **/__pycache__/
-db.sqlite3
+*db*
+*sqlite*
 venv/

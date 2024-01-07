@@ -4,9 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="290048a5-330e-41de-998e-fc777b82ceed" name="Changes" comment="Handle PSN login failure">
-      <change beforePath="$PROJECT_DIR$/tempmon/views.py" beforeDir="false" afterPath="$PROJECT_DIR$/tempmon/views.py" afterDir="false" />
-    </list>
+    <list default="true" id="290048a5-330e-41de-998e-fc777b82ceed" name="Changes" comment="Handle PSN login failure" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -61,23 +59,23 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "ASKED_ADD_EXTERNAL_FILES": "true",
-    "ASKED_SHARE_PROJECT_CONFIGURATION_FILES": "true",
-    "DefaultHtmlFileTemplate": "HTML File",
-    "Python tests.pytest for tests.TestPlaySessionModel.test_duration.executor": "Run",
-    "Python.runserver.executor": "Run",
-    "RunOnceActivity.OpenProjectViewOnStart": "true",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "SHARE_PROJECT_CONFIGURATION_FILES": "true",
-    "git-widget-placeholder": "master",
-    "ignore.virus.scanning.warn.message": "true",
-    "last_opened_file_path": "D:/Django/kukan/tempmon/templates/tempmon",
-    "settings.editor.selected.configurable": "com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable",
-    "two.files.diff.last.used.file": "D:/Django/kukan/kukan/fixtures/Web/Kanjipedia/def_枯渇"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;ASKED_ADD_EXTERNAL_FILES&quot;: &quot;true&quot;,
+    &quot;ASKED_SHARE_PROJECT_CONFIGURATION_FILES&quot;: &quot;true&quot;,
+    &quot;DefaultHtmlFileTemplate&quot;: &quot;HTML File&quot;,
+    &quot;Python tests.pytest for tests.TestPlaySessionModel.test_duration.executor&quot;: &quot;Run&quot;,
+    &quot;Python.runserver.executor&quot;: &quot;Run&quot;,
+    &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;SHARE_PROJECT_CONFIGURATION_FILES&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;master&quot;,
+    &quot;ignore.virus.scanning.warn.message&quot;: &quot;true&quot;,
+    &quot;last_opened_file_path&quot;: &quot;D:/Django/kukan/tempmon/templates/tempmon&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable&quot;,
+    &quot;two.files.diff.last.used.file&quot;: &quot;D:/Django/kukan/kukan/fixtures/Web/Kanjipedia/def_枯渇&quot;
   }
-}]]></component>
+}</component>
   <component name="PyConsoleOptionsProvider">
     <option name="myPythonConsoleState">
       <console-settings custom-start-script="import sys; print('Python %s on %s' % (sys.version, sys.platform))&#10;sys.path.extend([WORKING_DIR_AND_PYTHON_PATHS])&#10;import os&#10;os.environ.setdefault(&quot;DJANGO_SETTINGS_MODULE&quot;, &quot;kukansite.settings&quot;)&#10;import django&#10;django.setup()&#10;from kukan.models import *&#10;" module-name="kukan" is-module-sdk="true">
@@ -427,7 +425,8 @@
     <MESSAGE value="Properly refresh the psn global instance when the npsso code is updated" />
     <MESSAGE value="Add pre game duration info" />
     <MESSAGE value="Handle PSN login failure" />
-    <option name="LAST_COMMIT_MESSAGE" value="Handle PSN login failure" />
+    <MESSAGE value="Ignore DB files" />
+    <option name="LAST_COMMIT_MESSAGE" value="Ignore DB files" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
