@@ -1,6 +1,16 @@
 {% extends 'tempmon/base.html' %}
 {% load static %}
-{% block subtitle %}<div class="is-size-7"><a href="{% url 'psn_npsso_update' 1 %}">Update NPSSO code</a></div>{% endblock %}
+
+{% block subtitle %}
+{% if psn_ok %}
+<div class="is-size-7">
+{% else %}
+<div class="is-size-3">
+{% endif %}
+    <a href="{% url 'psn_npsso_update' 1 %}">Update NPSSO code</a>
+</div>
+{% endblock %}
+
 {% block body2 %}
 <div class="container">
     <div id="vue_app">

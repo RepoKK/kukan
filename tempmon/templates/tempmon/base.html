@@ -30,7 +30,11 @@
 
   </head>
 <body>
+{% if psn_ok %}
 <section class="hero is-primary is-small">
+{% else %}
+<section class="hero is-danger is-small">
+{% endif %}
   <div class="hero-body">
     <p class="title">
         {% block title %}

@@ -29,6 +29,7 @@ logger = logging.getLogger(__name__)
 class PSN:
     def __init__(self, token):
         self.psnawp = PSNAWP(token, accept_language='ja', country='JP')
+        logger.info('Logged into PSN')
 
         self.client = self.psnawp.me()
         self.me = self.psnawp.user(account_id=self.client.account_id)
@@ -88,6 +89,7 @@ except Exception as e:
     logger.error(f'Exception: {e}')
     psn = None
 
+psn = None
 
 
 class PsnApiKeyForm(BForm):
@@ -140,6 +142,7 @@ def add_temp_point(request):
         body = json.loads(request.body)
 
         if body.pop('API_KEY', None) != settings.TEMPMON_API_KEY:
+            logger.error('Received tempmon data with wrong API_KEY')
             return JsonResponse({'result': f'Failure - wrong API_KEY'})
 
         pt = DataPoint(**body)
@@ -178,7 +181,15 @@ class FGenericMinMaxDurationMin(FFilter):
         return qry
 
 
-class PlaySessionListView(AjaxList):
+class TempMonViewMixin:
+    """Mixin used to display the Tempmon header in red if not logged"""
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['psn_ok'] = (psn != None)
+        return context
+
+
+class PlaySessionListView(TempMonViewMixin, AjaxList):
     model = PlaySession
     template_name = 'tempmon/playsession_list.html'
     default_sort = '-start_time'
@@ -199,7 +210,7 @@ class PlaySessionListView(AjaxList):
     ])
 
 
-class PlaySessionGraphView(LoginRequiredMixin, DetailView):
+class PlaySessionGraphView(LoginRequiredMixin, TempMonViewMixin, DetailView):
     model = PlaySession
     template_name = 'tempmon/playsession_graph.html'
 
@@ -268,7 +279,7 @@ class PlaySessionGraphView(LoginRequiredMixin, DetailView):
         return context
 
 
-class PlaySessionDetailsView(LoginRequiredMixin, DetailView):
+class PlaySessionDetailsView(LoginRequiredMixin, TempMonViewMixin, DetailView):
     model = PlaySession
     template_name = 'tempmon/playsession_detail.html'
 

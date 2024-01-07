@@ -94,11 +94,11 @@ class TestPlaySessionModel(TestCase):
         self.assertEqual(game2.duration, dt.timedelta(seconds=666))
         self.assertEqual(game2.game.play_time, dt.timedelta(seconds=666))
 
-        ps2 = PlaySession.add_point(
+        PlaySession.add_point(
             DataPoint(1704122000, 1704122010, 7, 8, 9), -1)
-        ps2 = PlaySession.add_point(
+        PlaySession.add_point(
             DataPoint(1704122000, 1704122020, 7, 8, 9), 2)
-        ps2 = PlaySession.add_point(
+        PlaySession.add_point(
             DataPoint(1704122000, 1704122054, 7, 8, 9), 2)
 
         game2 = GamePerSessionInfo.objects.last()
