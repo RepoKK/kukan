@@ -4,7 +4,10 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="290048a5-330e-41de-998e-fc777b82ceed" name="Changes" comment="Handle PSN login failure" />
+    <list default="true" id="290048a5-330e-41de-998e-fc777b82ceed" name="Changes" comment="Fix">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tempmon/admin.py" beforeDir="false" afterPath="$PROJECT_DIR$/tempmon/admin.py" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -372,7 +375,23 @@
       <option name="project" value="LOCAL" />
       <updated>1704601944036</updated>
     </task>
-    <option name="localTasksCounter" value="25" />
+    <task id="LOCAL-00025" summary="Ignore all DB file">
+      <option name="closed" value="true" />
+      <created>1704604606706</created>
+      <option name="number" value="00025" />
+      <option name="presentableId" value="LOCAL-00025" />
+      <option name="project" value="LOCAL" />
+      <updated>1704604606706</updated>
+    </task>
+    <task id="LOCAL-00026" summary="Fix">
+      <option name="closed" value="true" />
+      <created>1704604732604</created>
+      <option name="number" value="00026" />
+      <option name="presentableId" value="LOCAL-00026" />
+      <option name="project" value="LOCAL" />
+      <updated>1704604732604</updated>
+    </task>
+    <option name="localTasksCounter" value="27" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -426,7 +445,9 @@
     <MESSAGE value="Add pre game duration info" />
     <MESSAGE value="Handle PSN login failure" />
     <MESSAGE value="Ignore DB files" />
-    <option name="LAST_COMMIT_MESSAGE" value="Ignore DB files" />
+    <MESSAGE value="Ignore all DB file" />
+    <MESSAGE value="Fix" />
+    <option name="LAST_COMMIT_MESSAGE" value="Fix" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>

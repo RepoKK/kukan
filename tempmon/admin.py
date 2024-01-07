@@ -12,4 +12,7 @@ class PlaySessionAdmin(admin.ModelAdmin):
 
 @admin.register(GamePerSessionInfo)
 class GamePerSessionInfoAdmin(admin.ModelAdmin):
-    list_display = ['session', 'game', 'duration']
+    def session_time(self, obj):
+        return obj.session.start_time
+
+    list_display = ['session_time', 'game', 'duration']
