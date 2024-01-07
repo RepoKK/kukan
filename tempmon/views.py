@@ -77,8 +77,17 @@ try:
         psn = PSN(token)
     else:
         psn = None
-except OperationalError:
+except PSNAWPAuthenticationError:
+    logger.error(f'Failed to login to PSN: {e}')
     psn = None
+except OperationalError as e:
+    # This is just a bootstrap catch-up, should not happen
+    logger.error(f'OperationalError: {e}')
+    psn = None
+except Exception as e:
+    logger.error(f'Exception: {e}')
+    psn = None
+
 
 
 class PsnApiKeyForm(BForm):
