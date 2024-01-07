@@ -7,13 +7,15 @@ from zoneinfo import ZoneInfo
 from django.conf import settings
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django import forms
+from django.core.exceptions import ValidationError
 from django.db import OperationalError
 from django.http import JsonResponse
 from django.urls import reverse_lazy
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import DetailView, UpdateView
 from psnawp_api import PSNAWP
-from psnawp_api.core.psnawp_exceptions import PSNAWPNotFound
+from psnawp_api.core.psnawp_exceptions import PSNAWPNotFound, \
+    PSNAWPAuthenticationError
 
 from kukan.filters import FGenericDateRange, FGenericMinMax, FFilter
 from kukan.forms import BForm
@@ -79,7 +81,6 @@ except OperationalError:
     psn = None
 
 
-
 class PsnApiKeyForm(BForm):
     class Meta:
         model = PsnApiKey
@@ -88,10 +89,22 @@ class PsnApiKeyForm(BForm):
             'code': forms.PasswordInput(attrs={"size": "64"}),
         }
 
+    def clean_code(self):
+        new_token = self.cleaned_data['code']
+        try:
+            new_psn = PSN(new_token)
+        except PSNAWPAuthenticationError as e:
+            raise ValidationError(f'Failed to authenticate: {e}')
+
+        self.cleaned_data['new_psn'] = new_psn
+
+        return new_token
+
 
 class PsnApiKeyUpdateView(UpdateView):
     model = PsnApiKey
     form_class = PsnApiKeyForm
+    success_url = reverse_lazy('session_list')
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -103,7 +116,12 @@ class PsnApiKeyUpdateView(UpdateView):
             context['remaining_days'] = 'N/A'
         return context
 
-    success_url = reverse_lazy('session_list')
+    def form_valid(self, form):
+        global psn
+        # Save to DB first, then update the global
+        res = super().form_valid(form)
+        psn = form.cleaned_data['new_psn']
+        return res
 
 
 @csrf_exempt

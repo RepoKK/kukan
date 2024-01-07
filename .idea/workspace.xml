@@ -4,12 +4,8 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="290048a5-330e-41de-998e-fc777b82ceed" name="Changes" comment="Fix issue with PlaySession.add_point when pts are disordered">
+    <list default="true" id="290048a5-330e-41de-998e-fc777b82ceed" name="Changes" comment="Add time per game in the graph view">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tempmon/admin.py" beforeDir="false" afterPath="$PROJECT_DIR$/tempmon/admin.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tempmon/models.py" beforeDir="false" afterPath="$PROJECT_DIR$/tempmon/models.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tempmon/templates/tempmon/playsession_graph.html" beforeDir="false" afterPath="$PROJECT_DIR$/tempmon/templates/tempmon/playsession_graph.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tempmon/tests.py" beforeDir="false" afterPath="$PROJECT_DIR$/tempmon/tests.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/tempmon/views.py" beforeDir="false" afterPath="$PROJECT_DIR$/tempmon/views.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -66,23 +62,23 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;ASKED_ADD_EXTERNAL_FILES&quot;: &quot;true&quot;,
-    &quot;ASKED_SHARE_PROJECT_CONFIGURATION_FILES&quot;: &quot;true&quot;,
-    &quot;DefaultHtmlFileTemplate&quot;: &quot;HTML File&quot;,
-    &quot;Python tests.pytest for tests.TestPlaySessionModel.test_duration.executor&quot;: &quot;Run&quot;,
-    &quot;Python.runserver.executor&quot;: &quot;Run&quot;,
-    &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;SHARE_PROJECT_CONFIGURATION_FILES&quot;: &quot;true&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;master&quot;,
-    &quot;ignore.virus.scanning.warn.message&quot;: &quot;true&quot;,
-    &quot;last_opened_file_path&quot;: &quot;D:/Django/kukan/tempmon/templates/tempmon&quot;,
-    &quot;settings.editor.selected.configurable&quot;: &quot;com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable&quot;,
-    &quot;two.files.diff.last.used.file&quot;: &quot;D:/Django/kukan/kukan/fixtures/Web/Kanjipedia/def_枯渇&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "ASKED_ADD_EXTERNAL_FILES": "true",
+    "ASKED_SHARE_PROJECT_CONFIGURATION_FILES": "true",
+    "DefaultHtmlFileTemplate": "HTML File",
+    "Python tests.pytest for tests.TestPlaySessionModel.test_duration.executor": "Run",
+    "Python.runserver.executor": "Debug",
+    "RunOnceActivity.OpenProjectViewOnStart": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "SHARE_PROJECT_CONFIGURATION_FILES": "true",
+    "git-widget-placeholder": "master",
+    "ignore.virus.scanning.warn.message": "true",
+    "last_opened_file_path": "D:/Django/kukan/tempmon/templates/tempmon",
+    "settings.editor.selected.configurable": "com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable",
+    "two.files.diff.last.used.file": "D:/Django/kukan/kukan/fixtures/Web/Kanjipedia/def_枯渇"
   }
-}</component>
+}]]></component>
   <component name="PyConsoleOptionsProvider">
     <option name="myPythonConsoleState">
       <console-settings custom-start-script="import sys; print('Python %s on %s' % (sys.version, sys.platform))&#10;sys.path.extend([WORKING_DIR_AND_PYTHON_PATHS])&#10;import os&#10;os.environ.setdefault(&quot;DJANGO_SETTINGS_MODULE&quot;, &quot;kukansite.settings&quot;)&#10;import django&#10;django.setup()&#10;from kukan.models import *&#10;" module-name="kukan" is-module-sdk="true">
@@ -331,7 +327,15 @@
       <option name="project" value="LOCAL" />
       <updated>1704278997449</updated>
     </task>
-    <option name="localTasksCounter" value="19" />
+    <task id="LOCAL-00019" summary="Add time per game in the graph view">
+      <option name="closed" value="true" />
+      <created>1704527622652</created>
+      <option name="number" value="00019" />
+      <option name="presentableId" value="LOCAL-00019" />
+      <option name="project" value="LOCAL" />
+      <updated>1704527622652</updated>
+    </task>
+    <option name="localTasksCounter" value="20" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -380,7 +384,8 @@
     <MESSAGE value="Handle NPSSO code in RTD" />
     <MESSAGE value="Fix bootstrap issue with table PsnApiKey" />
     <MESSAGE value="Fix issue with PlaySession.add_point when pts are disordered" />
-    <option name="LAST_COMMIT_MESSAGE" value="Fix issue with PlaySession.add_point when pts are disordered" />
+    <MESSAGE value="Add time per game in the graph view" />
+    <option name="LAST_COMMIT_MESSAGE" value="Add time per game in the graph view" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
