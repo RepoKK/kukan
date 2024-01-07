@@ -112,29 +112,6 @@ class PsnApiKeyForm(BForm):
         return new_token
 
 
-class PsnApiKeyUpdateView(UpdateView):
-    model = PsnApiKey
-    form_class = PsnApiKeyForm
-    success_url = reverse_lazy('session_list')
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        try:
-            context['remaining_days'] = (
-                psn.psnawp._request_builder.authenticator
-                ._auth_properties['refresh_token_expires_in'] / 60 / 60 / 24)
-        except AttributeError:
-            context['remaining_days'] = 'N/A'
-        return context
-
-    def form_valid(self, form):
-        global psn
-        # Save to DB first, then update the global
-        res = super().form_valid(form)
-        psn = form.cleaned_data['new_psn']
-        return res
-
-
 @csrf_exempt
 def add_temp_point(request):
     try:
@@ -187,6 +164,29 @@ class TempMonViewMixin:
         context = super().get_context_data(**kwargs)
         context['psn_ok'] = (psn != None)
         return context
+
+
+class PsnApiKeyUpdateView(TempMonViewMixin, UpdateView):
+    model = PsnApiKey
+    form_class = PsnApiKeyForm
+    success_url = reverse_lazy('session_list')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        try:
+            context['remaining_days'] = (
+                psn.psnawp._request_builder.authenticator
+                ._auth_properties['refresh_token_expires_in'] / 60 / 60 / 24)
+        except AttributeError:
+            context['remaining_days'] = 'N/A'
+        return context
+
+    def form_valid(self, form):
+        global psn
+        # Save to DB first, then update the global
+        res = super().form_valid(form)
+        psn = form.cleaned_data['new_psn']
+        return res
 
 
 class PlaySessionListView(TempMonViewMixin, AjaxList):
