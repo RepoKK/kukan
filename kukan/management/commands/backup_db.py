@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 # Keep 90days of daily backup
 # Keep all backups from the 01, 11 and 21 of each month
 class DbBackup:
-    daily_days_to_keep = 90
+    daily_days_to_keep = 45
 
     def __init__(self, db_path: Path, dbx_base_dir: str):
         """
