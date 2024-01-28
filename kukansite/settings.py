@@ -164,10 +164,11 @@ CRON_CFG = [
         'command': 'sync_anki',
     },
     {
-        'schedule': '23 01 15 * *  ',
-        'command': 'certbot renew',
+        'schedule': '23 01 * * *  ',
+        'command': 'certbot renew --quiet',
         'non_django': True,
         'arguments': {
+            'webroot': '-w /home/fred/kukan/',
             'config-dir': '/home/fred/letsencrypt/config',
             'work-dir': '/home/fred/letsencrypt/work/',
             'logs-dir': '/home/fred/letsencrypt/logs/',
