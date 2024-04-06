@@ -4,9 +4,22 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="290048a5-330e-41de-998e-fc777b82ceed" name="Changes" comment="Reduce dailty backup from 90 to 455">
+    <list default="true" id="290048a5-330e-41de-998e-fc777b82ceed" name="Changes" comment="Fixes to the certbot cron">
+      <change afterPath="$PROJECT_DIR$/kukan/fixtures/Kanji/団.json" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/kukan/fixtures/Kanji/扇.json" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/tempmon/migrations/0009_psgame_last_played.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/tempmon/templates/tempmon/base_tabs.html" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/tempmon/templates/tempmon/game_list.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/inspectionProfiles/profiles_settings.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/inspectionProfiles/profiles_settings.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/kukansite/settings.py" beforeDir="false" afterPath="$PROJECT_DIR$/kukansite/settings.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/kukan/management/commands/backup_db.py" beforeDir="false" afterPath="$PROJECT_DIR$/kukan/management/commands/backup_db.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/kukan/models.py" beforeDir="false" afterPath="$PROJECT_DIR$/kukan/models.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/kukan/test_helpers.py" beforeDir="false" afterPath="$PROJECT_DIR$/kukan/test_helpers.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/kukan/tests.py" beforeDir="false" afterPath="$PROJECT_DIR$/kukan/tests.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tempmon/models.py" beforeDir="false" afterPath="$PROJECT_DIR$/tempmon/models.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tempmon/templates/tempmon/playsession_list.html" beforeDir="false" afterPath="$PROJECT_DIR$/tempmon/templates/tempmon/playsession_list.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tempmon/urls.py" beforeDir="false" afterPath="$PROJECT_DIR$/tempmon/urls.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tempmon/views.py" beforeDir="false" afterPath="$PROJECT_DIR$/tempmon/views.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -62,23 +75,25 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;ASKED_ADD_EXTERNAL_FILES&quot;: &quot;true&quot;,
-    &quot;ASKED_SHARE_PROJECT_CONFIGURATION_FILES&quot;: &quot;true&quot;,
-    &quot;DefaultHtmlFileTemplate&quot;: &quot;HTML File&quot;,
-    &quot;Python tests.pytest for tests.TestPlaySessionModel.test_duration.executor&quot;: &quot;Run&quot;,
-    &quot;Python.runserver.executor&quot;: &quot;Run&quot;,
-    &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;SHARE_PROJECT_CONFIGURATION_FILES&quot;: &quot;true&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;master&quot;,
-    &quot;ignore.virus.scanning.warn.message&quot;: &quot;true&quot;,
-    &quot;last_opened_file_path&quot;: &quot;D:/Django/kukan/tempmon/templates/tempmon&quot;,
-    &quot;settings.editor.selected.configurable&quot;: &quot;com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable&quot;,
-    &quot;two.files.diff.last.used.file&quot;: &quot;D:/Django/kukan/kukan/fixtures/Web/Kanjipedia/def_枯渇&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "ASKED_ADD_EXTERNAL_FILES": "true",
+    "ASKED_SHARE_PROJECT_CONFIGURATION_FILES": "true",
+    "DefaultHtmlFileTemplate": "HTML File",
+    "Python tests.pytest for tests.TestPlaySessionModel.test_duration.executor": "Run",
+    "Python.runserver.executor": "Run",
+    "Python.test kukan.executor": "Run",
+    "Python.test testKyuAteji.executor": "Run",
+    "RunOnceActivity.OpenProjectViewOnStart": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "SHARE_PROJECT_CONFIGURATION_FILES": "true",
+    "git-widget-placeholder": "master",
+    "ignore.virus.scanning.warn.message": "true",
+    "last_opened_file_path": "D:/Django/kukan/tempmon/templates/tempmon",
+    "settings.editor.selected.configurable": "Errors",
+    "two.files.diff.last.used.file": "D:/Django/kukan/kukan/fixtures/Web/Kanjipedia/def_枯渇"
   }
-}</component>
+}]]></component>
   <component name="PyConsoleOptionsProvider">
     <option name="myPythonConsoleState">
       <console-settings custom-start-script="import sys; print('Python %s on %s' % (sys.version, sys.platform))&#10;sys.path.extend([WORKING_DIR_AND_PYTHON_PATHS])&#10;import os&#10;os.environ.setdefault(&quot;DJANGO_SETTINGS_MODULE&quot;, &quot;kukansite.settings&quot;)&#10;import django&#10;django.setup()&#10;from kukan.models import *&#10;" module-name="kukan" is-module-sdk="true">
@@ -110,6 +125,50 @@
       <option name="ADD_SOURCE_ROOTS" value="true" />
       <option name="SCRIPT_NAME" value="$PROJECT_DIR$/manage.py" />
       <option name="PARAMETERS" value="runserver 0.0.0.0:8000" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <configuration name="test kukan" type="PythonConfigurationType" factoryName="Python">
+      <module name="kukan" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/manage.py" />
+      <option name="PARAMETERS" value="test kukan.tests" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <configuration name="test testKyuAteji" type="PythonConfigurationType" factoryName="Python">
+      <module name="kukan" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/manage.py" />
+      <option name="PARAMETERS" value="test kukan.tests.ModelTest.testKyuAteji" />
       <option name="SHOW_COMMAND_LINE" value="false" />
       <option name="EMULATE_TERMINAL" value="false" />
       <option name="MODULE_MODE" value="false" />
@@ -159,6 +218,8 @@
     <list>
       <item itemvalue="Python.runserver" />
       <item itemvalue="Python.test" />
+      <item itemvalue="Python.test kukan" />
+      <item itemvalue="Python.test testKyuAteji" />
       <item itemvalue="Python tests.pytest for tests.TestPlaySessionModel.test_duration" />
     </list>
     <recent_temporary>
@@ -170,7 +231,7 @@
   <component name="SharedIndexes">
     <attachedChunks>
       <set>
-        <option value="bundled-python-sdk-5a2391486177-d3b881c8e49f-com.jetbrains.pycharm.community.sharedIndexes.bundled-PC-233.13763.11" />
+        <option value="bundled-python-sdk-09665e90c3a7-d3b881c8e49f-com.jetbrains.pycharm.community.sharedIndexes.bundled-PC-233.15026.15" />
       </set>
     </attachedChunks>
   </component>
@@ -415,7 +476,15 @@
       <option name="project" value="LOCAL" />
       <updated>1706334299850</updated>
     </task>
-    <option name="localTasksCounter" value="30" />
+    <task id="LOCAL-00030" summary="Fixes to the certbot cron">
+      <option name="closed" value="true" />
+      <created>1706418910228</created>
+      <option name="number" value="00030" />
+      <option name="presentableId" value="LOCAL-00030" />
+      <option name="project" value="LOCAL" />
+      <updated>1706418910228</updated>
+    </task>
+    <option name="localTasksCounter" value="31" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -448,7 +517,6 @@
   </component>
   <component name="VcsManagerConfiguration">
     <option name="ADD_EXTERNAL_FILES_SILENTLY" value="true" />
-    <MESSAGE value="Fix backup on 1/11/21" />
     <MESSAGE value="PyCharm files" />
     <MESSAGE value="Fix tests" />
     <MESSAGE value="Add PlaySession class and associated tests" />
@@ -473,7 +541,8 @@
     <MESSAGE value="Fix" />
     <MESSAGE value="Admin update" />
     <MESSAGE value="Reduce dailty backup from 90 to 455" />
-    <option name="LAST_COMMIT_MESSAGE" value="Reduce dailty backup from 90 to 455" />
+    <MESSAGE value="Fixes to the certbot cron" />
+    <option name="LAST_COMMIT_MESSAGE" value="Fixes to the certbot cron" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
@@ -487,6 +556,11 @@
           <url>file://$PROJECT_DIR$/venv/Lib/site-packages/psnawp_api/models/trophies/trophy_titles.py</url>
           <line>224</line>
           <option name="timeStamp" value="13" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/kukan/test_helpers.py</url>
+          <line>70</line>
+          <option name="timeStamp" value="15" />
         </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>

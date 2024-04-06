@@ -17,7 +17,8 @@ from psnawp_api import PSNAWP
 from psnawp_api.core.psnawp_exceptions import PSNAWPNotFound, \
     PSNAWPAuthenticationError
 
-from kukan.filters import FGenericDateRange, FGenericMinMax, FFilter
+from kukan.filters import FGenericDateRange, FGenericMinMax, FFilter, \
+    FGenericString
 from kukan.forms import BForm
 from kukan.views import AjaxList, TableData
 from tempmon.models import PlaySession, DataPoint, PsGame, PsnApiKey
@@ -321,3 +322,29 @@ class PlaySessionDetailsView(LoginRequiredMixin, TempMonViewMixin, DetailView):
         context['switch_link'] = {'path_name': 'session',
                                   'label': 'Graph'}
         return context
+
+
+def format_duration(duration):
+    total_sec = int(duration.total_seconds()) if duration else 0
+    hours, remainder = divmod(total_sec, 3600)
+    minutes, _ = divmod(remainder, 60)
+
+    return f'{hours}:{minutes:02}'
+
+
+class GamesListView(TempMonViewMixin, AjaxList):
+    model = PsGame
+    template_name = 'tempmon/game_list.html'
+    default_sort = '-last_played'
+    list_title = 'Game play time'
+    filters = [FGenericString('Title', 'name'),
+               FGenericMinMaxDurationMin('Duration (min)',
+                                         'play_time'),
+               ]
+    table_data = TableData(model, [
+        'name',
+        {'name': 'last_played',
+         'format': TableData.FieldProps.format_datetime_min},
+        {'name': 'play_time',
+         'format': format_duration},
+    ])

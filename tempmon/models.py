@@ -6,7 +6,7 @@ from django.db import models
 import datetime as dt
 from datetime import UTC
 
-from django.db.models import Sum
+from django.db.models import Sum, Max
 
 
 @dataclass
@@ -107,6 +107,7 @@ class PsGame(models.Model):
     title_id = models.TextField(max_length=12, verbose_name='Title ID')
     name = models.TextField(max_length=2000, verbose_name='Name')
     play_time = models.DurationField(verbose_name='Play time', null=True)
+    last_played = models.DateTimeField(verbose_name='Last played')
 
     def __str__(self):
         return f'{self.name}'
@@ -130,7 +131,19 @@ class GamePerSessionInfo(models.Model):
 
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)
-        self.game.play_time = GamePerSessionInfo.objects.filter(
-            game=self.game).aggregate(Sum('duration'))['duration__sum']
+        agg = self.game.gamepersessioninfo_set.aggregate(
+            Max('session__end_time'), Sum('duration'))
+        self.game.play_time = agg['duration__sum']
+        self.game.last_played = agg['session__end_time__max']
         self.game.save()
 
+# Reimporting from info log
+# import json
+# from tempmon.models import *
+# with open('../dp', 'r') as f: s=f.read()
+# l = s.replace("\'", "").split('\n')
+#
+# ld = [json.loads(x) for x in l if x]
+# for x in ld: del x['API_KEY']
+# ldp = [DataPoint(**x) for x in ld]
+# for pt in ldp: PlaySession.add_point(pt, PsGame.objec <to check> ts.last().pk)

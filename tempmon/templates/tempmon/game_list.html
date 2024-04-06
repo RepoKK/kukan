@@ -1,15 +1,6 @@
 {% extends 'tempmon/base_tabs.html' %}
 {% load static %}
 
-{% block subtitle %}
-{% if psn_ok %}
-<div class="is-size-7">
-{% else %}
-<div class="is-size-3">
-{% endif %}
-    <a href="{% url 'psn_npsso_update' 1 %}">Update NPSSO code</a>
-</div>
-{% endblock %}
 
 {% block body3 %}
 <div class="container">

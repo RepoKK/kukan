@@ -1,0 +1,36 @@
+{% extends 'tempmon/base.html' %}
+{% load static %}
+
+{% block subtitle %}
+{% if psn_ok %}
+<div class="is-size-7">
+{% else %}
+<div class="is-size-3">
+{% endif %}
+    <a href="{% url 'psn_npsso_update' 1 %}">Update NPSSO code</a>
+</div>
+{% endblock %}
+
+{% block body2 %}
+<div class="tabs is-centered">
+    <ul>
+    {% if request.path == '/tempmon/session_list/' %}
+        <li class="is-active">
+    {% else %}
+        <li>
+    {% endif %}
+    <a href="{% url 'session_list' %}">Sessions</a></li>
+
+    {% if request.path == '/tempmon/game_list/' %}
+        <li class="is-active">
+    {% else %}
+        <li>
+    {% endif %}
+    <a href="{% url 'game_list' %}">Games</a></li>
+
+    </ul>
+</div>
+
+{% block body3 %}{% endblock %}
+
+{% endblock %}

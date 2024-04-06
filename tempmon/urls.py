@@ -12,5 +12,7 @@ urlpatterns = [
          name='session_details'),
     path('psn_npsso_update/<int:pk>/', views.PsnApiKeyUpdateView.as_view(),
          name='psn_npsso_update'),
+    path('game_list/', views.GamesListView.as_view(),
+         name='game_list'),
 ]
 
