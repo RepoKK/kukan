@@ -7,6 +7,7 @@ import datetime as dt
 from datetime import UTC
 
 from django.db.models import Sum, Max
+from django.utils.timezone import now
 
 
 @dataclass
@@ -107,7 +108,8 @@ class PsGame(models.Model):
     title_id = models.TextField(max_length=12, verbose_name='Title ID')
     name = models.TextField(max_length=2000, verbose_name='Name')
     play_time = models.DurationField(verbose_name='Play time', null=True)
-    last_played = models.DateTimeField(verbose_name='Last played')
+    last_played = models.DateTimeField(verbose_name='Last played',
+                                       default=now)
 
     def __str__(self):
         return f'{self.name}'
