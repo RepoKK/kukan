@@ -46,6 +46,11 @@
         </div>
     </section>
 
+    <section v-if="hot_day && busStopMain.name == '新宿駅西口'"
+             class="hero is-small is-danger">
+        <div>今日は暑いですから<b>冷房</b>つけましょう。</div>
+    </section>
+
     <div class="container is-widescreen">
         <section class="hero has-background-light is-small">
             <div v-if="real_next_bus_stop!=-2" class="hero-body has-background-warning is-warning">
@@ -175,6 +180,7 @@
         return {
             busStopMain: {{busStopMain|safe}},
             busStopOther: {{busStopOther|safe}},
+            hot_day: {{hot_day|yesno:"true,false"}},
             jstimes: [
                 {% for bus_time in list_times %}
                   {{ bus_time|date:"U" }}000,

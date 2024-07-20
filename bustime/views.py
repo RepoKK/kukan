@@ -1,3 +1,4 @@
+import datetime
 import datetime as dt
 import re
 import urllib.request
@@ -102,5 +103,6 @@ class BusTimeMain(TemplateView):
                                   'class': class_main}
         context['busStopOther'] = {'name': stationOther,
                                    'class': class_other}
+        context['hot_day'] = 6 < datetime.datetime.now().month < 10
         return context
 
