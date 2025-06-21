@@ -1,0 +1,116 @@
+{% extends 'tempmon/base_tabs.html' %}
+{% load static %}
+
+{% block body3 %}
+<div class="container">
+    <nav class="level is-mobile">
+        <div class="level-left">
+            <p class="level-item title is-4">{{list_title}}</p>
+        </div>
+    </nav>
+    <div class="block">
+        <div id="chart" style="width: 100%; height: 600px;"></div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+<script>
+    // Initialize the echarts instance
+    var chartDom = document.getElementById('chart');
+    var myChart = echarts.init(chartDom);
+    var option;
+
+    // Parse the chart data from the context
+    var chartData = JSON.parse('{{ chart_data|escapejs }}');
+
+    // Prepare data for the chart
+    var months = chartData.months;
+    var games = chartData.games;
+    var seriesData = chartData.series;
+
+    // Generate series configuration for each game
+    var series = seriesData.map(function(item) {
+        return {
+            name: item.name,
+            type: 'bar',
+            stack: 'total',
+            emphasis: {
+                focus: 'series'
+            },
+            data: item.data
+        };
+    });
+
+    // Chart configuration
+    option = {
+        tooltip: {
+            trigger: 'axis',
+            axisPointer: {
+                type: 'shadow'
+            },
+            formatter: function(params) {
+                var tooltip = params[0].name + '<br/>';
+                var total = 0;
+
+                // Sort params by value in descending order
+                var sortedParams = params.slice().sort(function(a, b) {
+                    return b.value - a.value;
+                });
+
+                // Add each game's value to the tooltip
+                sortedParams.forEach(function(param) {
+                    if (param.value > 0) {
+                        tooltip += param.marker + ' ' + param.seriesName + ': ' + param.value + ' hours<br/>';
+                        total += param.value;
+                    }
+                });
+
+                // Add total at the bottom
+                tooltip += '<br/><b>Total: ' + total.toFixed(2) + ' hours</b>';
+                return tooltip;
+            }
+        },
+        grid: {
+            bottom: 80  // Increase space at the bottom for the legend
+        },
+        legend: {
+            data: games,
+            bottom: 0,
+            type: 'scroll',
+            pageButtonPosition: 'end',
+            orient: 'horizontal',
+            width: '80%',
+            height: '80',
+            selector: false,
+            itemGap: 10,
+            itemWidth: 25,
+            formatter: function(name) {
+                return name.length > 15 ? name.slice(0, 15) + '...' : name;
+            },
+            textStyle: {
+                overflow: 'break'
+            }
+        },
+        xAxis: {
+            type: 'category',
+            data: months,
+            axisLabel: {
+                rotate: 45
+            }
+        },
+        yAxis: {
+            type: 'value',
+            name: 'Hours'
+        },
+        series: series
+    };
+
+    // Apply the configuration to the chart
+    myChart.setOption(option);
+
+    // Make the chart responsive
+    window.addEventListener('resize', function() {
+        myChart.resize();
+    });
+</script>
+{% endblock %}

@@ -14,5 +14,8 @@ urlpatterns = [
          name='psn_npsso_update'),
     path('game_list/', views.GamesListView.as_view(),
          name='game_list'),
+    path('playtime_monthly/', views.PlaytimeMonthlyView.as_view(),
+         name='playtime_monthly'),
+    path('playtime_yearly/', views.PlaytimeYearlyView.as_view(),
+         name='playtime_yearly'),
 ]
-

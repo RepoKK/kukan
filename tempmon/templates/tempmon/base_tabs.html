@@ -4,11 +4,13 @@
 {% block subtitle %}
 {% if psn_ok %}
 <div class="is-size-7">
-{% else %}
-<div class="is-size-3">
-{% endif %}
     <a href="{% url 'psn_npsso_update' 1 %}">Update NPSSO code</a>
 </div>
+{% else %}
+<div class="is-size-3">
+    <a href="{% url 'psn_npsso_update' 1 %}">Update NPSSO code</a>
+</div>
+{% endif %}
 {% endblock %}
 
 {% block body2 %}
@@ -28,6 +30,19 @@
     {% endif %}
     <a href="{% url 'game_list' %}">Games</a></li>
 
+    {% if request.path == '/tempmon/playtime_monthly/' %}
+        <li class="is-active">
+    {% else %}
+        <li>
+    {% endif %}
+    <a href="{% url 'playtime_monthly' %}">Playtime (月)</a></li>
+
+    {% if request.path == '/tempmon/playtime_yearly/' %}
+        <li class="is-active">
+    {% else %}
+        <li>
+    {% endif %}
+    <a href="{% url 'playtime_yearly' %}">Playtime (年)</a></li>
     </ul>
 </div>
 
