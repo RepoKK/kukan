@@ -39,6 +39,10 @@ class Command(FBaseCommand):
             res_dfs[profile] = AnkiProfile(profile,
                                            options['max_delete_count']).sync()
 
-        mail_admins('Anki sync results', '',
-                    fail_silently=False,
-                    html_message=pd.concat(res_dfs).to_html())
+        df = pd.concat(res_dfs)[['added', 'updated', 'deleted']]
+
+        # Send email only if there are some changes
+        if df.sum().sum() != 0:
+            mail_admins('Anki sync results', '',
+                        fail_silently=False,
+                        html_message=pd.concat(res_dfs).to_html())
