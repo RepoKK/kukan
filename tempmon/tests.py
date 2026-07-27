@@ -1,5 +1,6 @@
 import datetime as dt
 import os
+import unittest
 
 from django.test import TestCase
 from tempmon.models import PlaySession, DataPoint, PsGame, GamePerSessionInfo, \
@@ -105,13 +106,13 @@ class TestPlaySessionModel(TestCase):
         self.assertEqual(game2.game.play_time, dt.timedelta(seconds=700))
 
 
+@unittest.skipUnless(
+    os.environ.get('psn_token'),
+    'Live PSN contract test: set the psn_token env var to run it, '
+    "like: $env:psn_token = 'XXX'")
 class TestPsn(TestCase):
     def setUp(self) -> None:
-        try:
-            self.psn = PSN(os.environ['psn_token'])
-        except KeyError:
-            # Need to set the token in env.var, like: $env:psn_token = 'XXX'
-            self.psn = None
+        self.psn = PSN(os.environ['psn_token'])
 
     def test_get_current_game(self):
         self.assertTrue(self.psn.get_current_game())

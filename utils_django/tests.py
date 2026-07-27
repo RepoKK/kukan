@@ -176,7 +176,11 @@ class TestFBaseCommand(TestCase, TestCaseMixin):
     def setUp(self):
         current_dir = Path.cwd()
         self.setUpPyfakefs()
-        self.fs.add_real_directory(os.environ['VIRTUAL_ENV'])
+        # sys.prefix is the virtualenv root when running inside one, and the
+        # interpreter prefix otherwise. Unlike VIRTUAL_ENV it is always set, so
+        # the suite no longer depends on the venv's activate script having been
+        # sourced (CI, `uv run`, and `.venv/bin/python` all leave it unset).
+        self.fs.add_real_directory(sys.prefix)
         self.log_dir = os.path.join(settings.BASE_DIR, 'logs')
         os.makedirs(self.log_dir)
         self.info_log_path = os.path.join(self.log_dir, 'info_test.log')
