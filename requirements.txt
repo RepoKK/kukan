@@ -1,5 +1,4 @@
 anki==23.10.1
-arrow==1.3.0
 asgiref==3.7.2
 certifi==2023.11.17
 chardet==5.2.0
@@ -15,20 +14,14 @@ Janome==0.5.0
 lxml==4.9.3
 Markdown==3.5.1
 numpy==1.26.2
-oauthlib==3.2.2
 pandas==2.1.3
 PSNAWP==1.3.3
-pydantic==1.8.2
 pyfakefs==5.3.1
 python-dateutil==2.8.2
 pytz==2023.3.post1
 requests==2.31.0
-requests-oauth==0.4.1
-requests-oauthlib==1.3.0
 six==1.16.0
 sqlparse==0.4.4
-types-python-dateutil==2.8.19.14
 typing_extensions==4.9.0
 tzdata==2023.3
 urllib3==2.1.0
-withings-api==2.3.2

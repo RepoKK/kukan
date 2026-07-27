@@ -20,7 +20,6 @@ from kukansite import settings
 from django.contrib.auth import views as auth_views
 
 urlpatterns = [
-    path('wtrack/', include('wtrack.urls')),
     path('bustime/', include('bustime.urls')),
     path('', include('kukan.urls')),
     re_path(r'^login/$', auth_views.LoginView.as_view(), name='login'),

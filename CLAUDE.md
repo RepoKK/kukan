@@ -13,7 +13,6 @@ Single self-hosted CentOS Stream 9 box, Apache + mod_wsgi + SQLite.
 | `bustime` | Scrapes tobus.jp for the next bus; public, no login |
 | `utils_django` | Reusable bits: `FBaseCommand` (locking + logging for cron commands), Dropbox helper |
 | `utilskanji` | Dead — no references anywhere |
-| `wtrack` | Withings weight tracking — being deleted |
 
 ## Running it
 

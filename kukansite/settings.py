@@ -42,7 +42,6 @@ INSTALLED_APPS = [
     'django.forms',
     'kukan',
     'utils_django',
-    'wtrack',
     'bustime',
     'tempmon'
 ]
@@ -175,10 +174,6 @@ CRON_CFG = [
             'post-hook': '"sudo systemctl restart Apache.service"'
         }
     },
-    # {
-    #     'schedule': '*/5 0-2,5-23 * * *',
-    #     'command': 'import_withings_data',
-    # },
 ]
 
 LOGGING = {
@@ -214,11 +209,6 @@ LOGGING = {
     },
     'loggers': {
         'kukan': {
-            'handlers': ['default_file', 'mail_admins'],
-            'level': 'DEBUG',
-            'propagate': True,
-        },
-        'wtrack': {
             'handlers': ['default_file', 'mail_admins'],
             'level': 'DEBUG',
             'propagate': True,
