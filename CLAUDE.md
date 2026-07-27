@@ -12,7 +12,6 @@ Single self-hosted CentOS Stream 9 box, Apache + mod_wsgi + SQLite.
 | `tempmon` | PlayStation session/temperature logger fed by a hardware sensor POSTing to `add_temp_point` |
 | `bustime` | Scrapes tobus.jp for the next bus; public, no login |
 | `utils_django` | Reusable bits: `FBaseCommand` (locking + logging for cron commands), Dropbox helper |
-| `utilskanji` | Dead — no references anywhere |
 
 ## Running it
 
