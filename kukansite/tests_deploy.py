@@ -178,9 +178,13 @@ class GunicornConfigTest(SimpleTestCase):
     def setUp(self):
         # Executed rather than parsed: it is a Python file, and reading the
         # values it actually produces is the point.
+        # The real path as the filename, not a bare basename: coverage.py
+        # tries to resolve whatever is given here and reports "No source for
+        # code" against a file that does not exist at the repository root.
+        path = os.path.join(DEPLOY_DIR, 'gunicorn.conf.py')
         self.namespace = {}
-        exec(compile(read_deploy_file('gunicorn.conf.py'),
-                     'gunicorn.conf.py', 'exec'), self.namespace)
+        exec(compile(read_deploy_file('gunicorn.conf.py'), path, 'exec'),
+             self.namespace)
 
     def test_binds_to_loopback_only(self):
         """gunicorn has no TLS and trusts X-Forwarded-Proto. Reachable from

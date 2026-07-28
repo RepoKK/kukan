@@ -1,35 +1,33 @@
-"""Tests for the tempmon views and the PSN wrapper.
+"""Tests for the tempmon views.
 
-`tempmon/views.py` was the least-covered module in the project and carries two
-of the modernization's sharper edges:
+`tempmon/views.py` was the least-covered module in the project and carried two
+of the modernization's sharper edges. One is gone:
 
-* **PSNAWP.** Stage 8 moves to 3.0.3, a major bump. `PSN` reaches past the
-  library's public API into `psnawp._request_builder` and imports `BASE_PATH`
-  and `API_PATH` from `psnawp_api.utils.endpoints`, none of which is covered by
-  the library's compatibility promises. The tests below mock at that seam, so
-  they describe exactly which private attributes are being relied on — read
-  them as the porting checklist for that stage.
+* **PSNAWP.** The old `PSN` class reached past the library's public API into
+  `psnawp._request_builder` and imported `BASE_PATH` / `API_PATH` from
+  `psnawp_api.utils.endpoints`. The `TestPsnWrapper` block that used to sit at
+  the bottom of this file mocked at exactly that seam, so it doubled as the
+  porting checklist for the 3.0.3 upgrade. Stage 8 did that port and moved the
+  whole thing to `tempmon/psn.py`; the tests moved to `tests_psn.py`.
 
 * **Pickle.** `PlaySession.data_points` is a pickled dict in a BinaryField,
   holding every reading ever recorded. Stage 5 moves to Python 3.12. A pickle
   round-trip is asserted explicitly here because a failure would not be a
   crash: it would be historical sessions quietly failing to render.
 
-The live-network test for PSN stays in `tests.py`, gated on `psn_token`. These
-are the offline counterparts, so the PSN code paths have some cover on a
-machine with no credentials.
+The live-network test for PSN stays in `tests.py`, gated on `psn_token`.
 """
 import datetime as dt
 import json
 import pickle
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 from django.contrib.auth.models import User
 from django.test import Client, TestCase
 from django.urls import reverse
 
 from tempmon.models import DataPoint, GamePerSessionInfo, PlaySession, PsGame
-from tempmon.views import PSN, FGenericMinMaxDurationMin, PlaySessionGraphView, format_duration
+from tempmon.views import FGenericMinMaxDurationMin, PlaySessionGraphView, format_duration
 
 # A session with a known shape: three games, some idle time, 10-second steps.
 SESSION_START = 1703643862  # 2023-12-27T11:24:22+09:00
@@ -217,12 +215,24 @@ class TestPlaySessionGraphView(SessionViewTestBase):
         self.assertEqual(self.get_context()['switch_link'],
                          {'path_name': 'session_details', 'label': 'Details'})
 
-    def test_psn_ok_reflects_the_global(self):
-        """TempMonViewMixin drives a red header when PSN login failed."""
-        with patch('tempmon.views.psn', None):
-            self.assertIs(self.get_context()['psn_ok'], False)
-        with patch('tempmon.views.psn', MagicMock()):
-            self.assertIs(self.get_context()['psn_ok'], True)
+    def test_psn_ok_reflects_the_client(self):
+        """TempMonViewMixin drives a red header when PSN login failed.
+
+        It used to read `psn is not None`. The None case is now a
+        `NullPsnClient` that says so about itself, which is the whole point:
+        callers stopped having to know the difference.
+        """
+        from tempmon.psn import NullPsnClient, reset_psn
+
+        self.addCleanup(reset_psn)
+
+        reset_psn(NullPsnClient('no token'))
+        self.assertIs(self.get_context()['psn_ok'], False)
+
+        working = MagicMock()
+        working.is_available = True
+        reset_psn(working)
+        self.assertIs(self.get_context()['psn_ok'], True)
 
 
 class TestGetBackgroundMatrix(TestCase):
@@ -450,88 +460,3 @@ class TestPlaytimeYearlyView(PlaytimeViewTestBase):
         response = self.client.get(reverse('playtime_yearly'))
         self.assertEqual(response.context['list_title'], 'Playtime per Year')
 
-
-class TestPsnWrapper(TestCase):
-    """`PSN` offline, against a mocked psnawp.
-
-    Each mock here marks a place where the code depends on PSNAWP internals.
-    When Stage 8 bumps to 3.0.3, these are the attributes to re-check first.
-    """
-
-    def make_psn(self, psnawp_cls):
-        instance = psnawp_cls.return_value
-        instance.me.return_value.account_id = 'acct-1'
-        return PSN('token'), instance
-
-    @patch('tempmon.views.PSNAWP')
-    def test_constructor_requests_japanese_locale(self, psnawp_cls):
-        self.make_psn(psnawp_cls)
-        psnawp_cls.assert_called_once_with(
-            'token', accept_language='ja', country='JP')
-
-    @patch('tempmon.views.PSNAWP')
-    def test_get_current_game_returns_minus_one_when_offline(self, psnawp_cls):
-        psn, instance = self.make_psn(psnawp_cls)
-        instance.user.return_value.get_presence.return_value = {
-            'basicPresence': {'availability': 'unavailable'}}
-        self.assertEqual(psn.get_current_game(), -1)
-
-    @patch('tempmon.views.PSNAWP')
-    def test_get_current_game_returns_minus_one_when_not_playing(
-            self, psnawp_cls):
-        psn, instance = self.make_psn(psnawp_cls)
-        instance.user.return_value.get_presence.return_value = {
-            'basicPresence': {
-                'availability': 'availableToPlay',
-                'primaryPlatformInfo': {'onlineStatus': 'offline'}}}
-        self.assertEqual(psn.get_current_game(), -1)
-
-    @patch('tempmon.views.PSNAWP')
-    def test_get_current_game_without_a_title_returns_minus_one(
-            self, psnawp_cls):
-        """Online but on the dashboard: no gameTitleInfoList key."""
-        psn, instance = self.make_psn(psnawp_cls)
-        instance.user.return_value.get_presence.return_value = {
-            'basicPresence': {
-                'availability': 'availableToPlay',
-                'primaryPlatformInfo': {'onlineStatus': 'online'}}}
-        self.assertEqual(psn.get_current_game(), -1)
-
-    @patch('tempmon.views.PSNAWP')
-    def test_get_current_game_returns_the_game_pk(self, psnawp_cls):
-        psn, instance = self.make_psn(psnawp_cls)
-        game = PsGame.objects.create(title_id='PPSA01', name='Known Game')
-        instance.user.return_value.get_presence.return_value = {
-            'basicPresence': {
-                'availability': 'availableToPlay',
-                'primaryPlatformInfo': {'onlineStatus': 'online'},
-                'gameTitleInfoList': [{'npTitleId': 'PPSA01'}]}}
-        self.assertEqual(psn.get_current_game(), game.pk)
-
-    @patch('tempmon.views.PSNAWP')
-    def test_get_game_pk_reuses_an_existing_row(self, psnawp_cls):
-        psn, _ = self.make_psn(psnawp_cls)
-        game = PsGame.objects.create(title_id='PPSA01', name='Known Game')
-        self.assertEqual(psn.get_game_pk('PPSA01'), game.pk)
-        self.assertEqual(PsGame.objects.count(), 1)
-
-    @patch('tempmon.views.PSNAWP')
-    def test_get_game_pk_creates_a_row_with_the_japanese_name(self,
-                                                              psnawp_cls):
-        psn, instance = self.make_psn(psnawp_cls)
-        # The private request builder the JP-name lookup goes through.
-        instance._request_builder.get.return_value.json.return_value = [
-            {'name': 'ゲーム名'}]
-        pk = psn.get_game_pk('PPSA01')
-        self.assertEqual(PsGame.objects.get(pk=pk).name, 'ゲーム名')
-
-    @patch('tempmon.views.PSNAWP')
-    def test_unknown_title_is_recorded_as_a_placeholder(self, psnawp_cls):
-        """PSNAWPNotFound must not lose the reading; the row is created with a
-        sentinel name so the session still attributes its time."""
-        from psnawp_api.core.psnawp_exceptions import PSNAWPNotFound
-
-        psn, instance = self.make_psn(psnawp_cls)
-        instance.game_title.side_effect = PSNAWPNotFound('nope')
-        pk = psn.get_game_pk('PPSA-UNKNOWN')
-        self.assertEqual(PsGame.objects.get(pk=pk).name, '__UNKNOWN__')

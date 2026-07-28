@@ -9,83 +9,19 @@ from django.conf import settings
 from django.contrib.auth.decorators import login_not_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import ValidationError
-from django.db import OperationalError
 from django.http import JsonResponse
 from django.urls import reverse_lazy
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import DetailView, UpdateView
-from psnawp_api import PSNAWP
-from psnawp_api.core.psnawp_exceptions import PSNAWPAuthenticationError, PSNAWPNotFound
-from psnawp_api.utils.endpoints import API_PATH, BASE_PATH
 
 from kukan.filters import FFilter, FGenericDateRange, FGenericMinMax, FGenericString
 from kukan.forms import BForm
 from kukan.views import AjaxList, TableData
 from tempmon.models import DataPoint, PlaySession, PsGame, PsnApiKey
+from tempmon.psn import NO_GAME, PsnClient, get_psn, reset_psn
 
 logger = logging.getLogger(__name__)
-
-
-class PSN:
-    def __init__(self, token):
-        self.psnawp = PSNAWP(token, accept_language='ja', country='JP')
-        logger.info('Logged into PSN')
-
-        self.client = self.psnawp.me()
-        self.me = self.psnawp.user(account_id=self.client.account_id)
-
-    def get_game_name_in_jp(self, title_id):
-        """The GameTitle.get_details hard code to US"""
-        game = self.psnawp.game_title(title_id=title_id,
-                                      account_id=self.client.account_id)
-        return self.psnawp._request_builder.get(
-            url=f"{BASE_PATH['game_titles']}"
-                f"{API_PATH['title_concept'].format(title_id=game.title_id)}",
-            params={"age": 99, "country": "JP", "language": "ja-JP"},
-        ).json()[0]['name']
-
-    def get_game_pk(self, title_id):
-        try:
-            ps_game = PsGame.objects.get(title_id=title_id)
-        except PsGame.DoesNotExist:
-            try:
-                ps_game = PsGame.objects.create(
-                    title_id=title_id, name=self.get_game_name_in_jp(title_id))
-            except PSNAWPNotFound:
-                ps_game = PsGame.objects.create(
-                    title_id=title_id, name='__UNKNOWN__')
-
-        return ps_game.pk
-
-    def get_current_game(self):
-        status = self.me.get_presence()['basicPresence']
-        if status['availability'] == 'unavailable':
-            return -1
-        else:
-            if status['primaryPlatformInfo']['onlineStatus'] == 'online':
-                try:
-                    title_id = status["gameTitleInfoList"][0]["npTitleId"]
-                    return self.get_game_pk(title_id)
-                except KeyError:
-                    return -1
-            else:
-                return -1
-
-
-# Global instance to avoid the overhead everytime this is called
-try:
-    psn = PSN(token) if (token := PsnApiKey.objects.first().code) != '__dummy__' else None
-except PSNAWPAuthenticationError as e:
-    logger.error(f'Failed to login to PSN: {e}')
-    psn = None
-except OperationalError as e:
-    # This is just a bootstrap catch-up, should not happen
-    logger.error(f'OperationalError: {e}')
-    psn = None
-except Exception as e:
-    logger.error(f'Exception: {e}')
-    psn = None
 
 
 class PsnApiKeyForm(BForm):
@@ -97,10 +33,17 @@ class PsnApiKeyForm(BForm):
         }
 
     def clean_code(self):
+        """Reject a token PSN will not accept, before it is saved.
+
+        Built directly rather than through `tempmon.psn.build_client_from_token`
+        on purpose: that helper turns a bad token into a NullPsnClient, which
+        is right for start-up and wrong here — the user is typing a token and
+        needs to be told it does not work.
+        """
         new_token = self.cleaned_data['code']
         try:
-            new_psn = PSN(new_token)
-        except PSNAWPAuthenticationError as e:
+            new_psn = PsnClient(new_token)
+        except Exception as e:
             raise ValidationError(f'Failed to authenticate: {e}') from e
 
         self.cleaned_data['new_psn'] = new_psn
@@ -120,7 +63,11 @@ def add_temp_point(request):
             return JsonResponse({'result': 'Failure - wrong API_KEY'})
 
         pt = DataPoint(**body)
-        PlaySession.add_point(pt, psn.get_current_game())
+        # `get_psn()` always returns a client and `get_current_game()` never
+        # raises, so a PSN problem costs the game attribution and nothing
+        # else. It used to cost the reading: the exception propagated to the
+        # handler below, and the device has no retry buffer.
+        PlaySession.add_point(pt, get_psn().get_current_game())
 
         return JsonResponse({'result': 'OK'})
     except Exception as e:
@@ -159,7 +106,7 @@ class TempMonViewMixin:
     """Mixin used to display the Tempmon header in red if not logged"""
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['psn_ok'] = (psn is not None)
+        context['psn_ok'] = get_psn().is_available
         return context
 
 
@@ -170,19 +117,14 @@ class PsnApiKeyUpdateView(TempMonViewMixin, UpdateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        try:
-            context['remaining_days'] = (
-                psn.psnawp._request_builder.authenticator
-                ._auth_properties['refresh_token_expires_in'] / 60 / 60 / 24)
-        except AttributeError:
-            context['remaining_days'] = 'N/A'
+        days = get_psn().refresh_token_days
+        context['remaining_days'] = 'N/A' if days is None else days
         return context
 
     def form_valid(self, form):
-        global psn
-        # Save to DB first, then update the global
+        # Save to DB first, then swap in the client built from the new token.
         res = super().form_valid(form)
-        psn = form.cleaned_data['new_psn']
+        reset_psn(form.cleaned_data['new_psn'])
         return res
 
 
@@ -260,7 +202,7 @@ class PlaySessionGraphView(LoginRequiredMixin, TempMonViewMixin, DetailView):
                  self.bg_colors[idx % len(self.bg_colors)],
                  timedelta(seconds=game_time[pk]))
             for idx, pk in enumerate(unique_game_ordered)
-            if pk != -1
+            if pk != NO_GAME
         }
 
         context['graph_background'] = [[
@@ -268,7 +210,7 @@ class PlaySessionGraphView(LoginRequiredMixin, TempMonViewMixin, DetailView):
             (t2 - session.start_time.timestamp()) / 60,
             context['games_legend'][game_pk][1]
         ] for t1, t2, game_pk in self.get_background_matrix(d, list_time)
-            if game_pk != -1
+            if game_pk != NO_GAME
         ]
 
         context['switch_link'] = {'path_name': 'session_details',
@@ -285,7 +227,7 @@ class PlaySessionDetailsView(LoginRequiredMixin, TempMonViewMixin, DetailView):
         self.game_dict = {}
 
     def get_game_from_id(self, pk):
-        if pk == -1:
+        if pk == NO_GAME:
             return 'N/A'
         try:
             return self.game_dict[pk]

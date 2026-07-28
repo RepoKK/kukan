@@ -60,9 +60,9 @@ class TestAddTempPointContract(TestCase):
         from django.urls import reverse
         self.assertEqual(reverse('add_temp_point'), self.url)
 
-    @patch('tempmon.views.psn')
-    def test_accepts_point_and_returns_ok(self, mock_psn):
-        mock_psn.get_current_game.return_value = -1
+    @patch('tempmon.views.get_psn')
+    def test_accepts_point_and_returns_ok(self, get_psn):
+        get_psn.return_value.get_current_game.return_value = -1
 
         response = self.post({'API_KEY': API_KEY, **FIRST_POINT})
 
@@ -75,20 +75,20 @@ class TestAddTempPointContract(TestCase):
         self.assertEqual(session.data_dict,
                          {1703643862: (21.9, 30.1, 10000.3, -1)})
 
-    @patch('tempmon.views.psn')
-    def test_api_key_is_stripped_before_building_the_point(self, mock_psn):
+    @patch('tempmon.views.get_psn')
+    def test_api_key_is_stripped_before_building_the_point(self, get_psn):
         """API_KEY is popped, not passed on to DataPoint(**body)."""
-        mock_psn.get_current_game.return_value = -1
+        get_psn.return_value.get_current_game.return_value = -1
 
         response = self.post({'API_KEY': API_KEY, **FIRST_POINT})
 
         self.assertEqual(json.loads(response.content), {'result': 'OK'})
         self.assertEqual(PlaySession.objects.count(), 1)
 
-    @patch('tempmon.views.psn')
-    def test_current_game_is_recorded_against_the_point(self, mock_psn):
+    @patch('tempmon.views.get_psn')
+    def test_current_game_is_recorded_against_the_point(self, get_psn):
         game = PsGame.objects.create(title_id='PPSA02269_00', name='AC VI')
-        mock_psn.get_current_game.return_value = game.pk
+        get_psn.return_value.get_current_game.return_value = game.pk
 
         self.post({'API_KEY': API_KEY, **FIRST_POINT})
 
@@ -139,30 +139,51 @@ class TestAddTempPointContract(TestCase):
         self.assertIn('Current time before Session time',
                       json.loads(response.content)['result'])
 
-    def test_psn_unavailable_returns_200(self):
-        """`psn` is None whenever login failed; the reading is still lost, but
-        the endpoint must not 500 at the firmware."""
-        with patch('tempmon.views.psn', None):
-            response = self.post({'API_KEY': API_KEY, **FIRST_POINT})
+    def test_psn_unavailable_still_records_the_reading(self):
+        """FIXED IN STAGE 8. This test used to assert the opposite.
+
+        There was a module-level `psn` that was an object when the PlayStation
+        login had worked and None when it had not — after an expired npsso
+        token, a network blip, or simply on a box with no token configured.
+        `add_temp_point` then called `psn.get_current_game()` unconditionally,
+        the AttributeError was caught by the handler at the bottom of the view,
+        and the temperature reading was discarded with it.
+
+        The firmware has no retry buffer, so those readings were gone. The
+        cause was PlayStation; the casualty was the thermometer.
+
+        `get_psn()` now always returns a client, and `get_current_game()` never
+        raises, so an unusable PSN costs the game attribution and nothing else.
+        """
+        from tempmon.psn import NullPsnClient, reset_psn
+
+        reset_psn(NullPsnClient('no token'))
+        self.addCleanup(reset_psn)
+
+        response = self.post({'API_KEY': API_KEY, **FIRST_POINT})
 
         self.assertEqual(response.status_code, 200)
-        self.assertTrue(
-            json.loads(response.content)['result'].startswith('Failure:'))
+        self.assertEqual(json.loads(response.content), {'result': 'OK'})
 
-    @patch('tempmon.views.psn')
-    def test_get_is_not_accepted(self, mock_psn):
+        session = PlaySession.objects.get()
+        self.assertEqual(
+            next(iter(session.data_dict.values()))[3], -1,
+            'the point should be stored, attributed to no game')
+
+    @patch('tempmon.views.get_psn')
+    def test_get_is_not_accepted(self, get_psn):
         """Only POST carries a body; a GET must not create anything."""
-        mock_psn.get_current_game.return_value = -1
+        get_psn.return_value.get_current_game.return_value = -1
 
         response = self.client.get(self.url)
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(PlaySession.objects.count(), 0)
 
-    @patch('tempmon.views.psn')
-    def test_no_authentication_required(self, mock_psn):
+    @patch('tempmon.views.get_psn')
+    def test_no_authentication_required(self, get_psn):
         """The sensor cannot log in. This must never sit behind @login_required."""
-        mock_psn.get_current_game.return_value = -1
+        get_psn.return_value.get_current_game.return_value = -1
 
         response = self.post({'API_KEY': API_KEY, **FIRST_POINT})
 

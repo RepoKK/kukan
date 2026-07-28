@@ -5,7 +5,8 @@ import unittest
 from django.test import TestCase
 
 from tempmon.models import DataPoint, GamePerSessionInfo, PlaySession, PsGame
-from tempmon.views import PSN, PlaySessionGraphView
+from tempmon.psn import PsnClient
+from tempmon.views import PlaySessionGraphView
 
 
 class TestPlaySessionModel(TestCase):
@@ -112,7 +113,7 @@ class TestPlaySessionModel(TestCase):
     "like: $env:psn_token = 'XXX'")
 class TestPsn(TestCase):
     def setUp(self) -> None:
-        self.psn = PSN(os.environ['psn_token'])
+        self.psn = PsnClient(os.environ['psn_token'])
 
     def test_get_current_game(self):
         self.assertTrue(self.psn.get_current_game())

@@ -9,9 +9,6 @@ requires-python = ">=3.12,<3.13"
 # unconstrained deliberately — the lock file is the pin, and re-resolving is
 # how a refresh happens. The ones with bounds have a reason, given below.
 #
-# Remaining staged upgrades:
-#   Django 6.0     -> stage 6
-#   PSNAWP 3.0.3   -> stage 8
 dependencies = [
     # Stage 6 walks 4.2 -> 5.0 -> 5.1 -> 5.2 -> 6.0, one minor per commit with
     # the suite green at each, so a regression is attributable to one release.
@@ -29,7 +26,12 @@ dependencies = [
     "lxml",
     "Markdown",
     "pandas",
-    "PSNAWP==1.3.3",
+    # PINNED EXACTLY, not floored. PSNAWP has no deprecation policy and 3.0.0
+    # renamed or removed most of what tempmon touches; a silent minor bump is
+    # how the sensor endpoint stops recording which game is running. Read
+    # tempmon/psn.py before changing this, and re-run
+    # `psn_token=... uv run manage.py test tempmon.tests.TestPsn`.
+    "PSNAWP==3.0.3",
     "requests",
 ]
 

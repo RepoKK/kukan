@@ -23,7 +23,7 @@ ones, `uv.lock` pins the full transitive set and is committed — there is no `r
 ```bash
 uv sync                              # or `uv sync --locked` to fail on a stale lock
 uv run manage.py check
-uv run manage.py test                # 465 tests, ~14 s
+uv run manage.py test                # 529 tests, ~14 s
 uv run manage.py test --shuffle      # randomised order; what CI runs
 uv run manage.py smoke_urls          # GETs every no-arg URL as a superuser
 uv run manage.py runserver
@@ -113,10 +113,25 @@ token and live sessions, so strip them before using it anywhere but your own mac
 uv run manage.py scrub_local_db --yes-i-am-not-in-production
 ```
 
+## PlayStation Network
+
+`tempmon/psn.py` owns it. `get_psn()` builds the client on first use and keeps it for the life
+of the process; `reset_psn(client)` replaces it, which is both how a new npsso token takes
+effect and how tests install a fake. It always returns something — a `NullPsnClient` when there
+is no usable token — so no caller checks for None.
+
+**`get_current_game()` never raises.** The sensor firmware has no retry buffer, so a
+temperature reading `add_temp_point` fails to store is gone. PSN being unreachable costs the
+game attribution for those minutes and nothing else.
+
+**PSNAWP is pinned exactly.** 3.x paces requests with `pyrate_limiter`, whose `try_acquire`
+blocks indefinitely rather than failing — a drained bucket stalls every sensor POST until the
+window rolls. Two defences: `PRESENCE_TTL` (25s, just under the measured 32s sensor interval,
+so it collapses bursts without blurring ordinary readings) and `FAILURE_COOLDOWN` (300s, so an
+outage does not make every POST pay a network timeout). The token expires every few months;
+`/tempmon/psn_npsso_update/` shows the days remaining.
+
 ## Things that will bite you
-- **`tempmon/views.py` runs a DB query and a PSN network login at import time.** With no
-  `db.sqlite3` present every command logs `OperationalError: no such table: tempmon_psnapikey`.
-  It is caught and harmless, but it is why the module is hard to test.
 - **`add_temp_point` is a hardware contract.** The sensor firmware is not in this repo and has no
   retry buffer. Never change its URL, method, the `API_KEY` body key, the `{'result':'OK'}`
   response, `@csrf_exempt`, or the fact that it *always* returns 200 — even on error.
@@ -135,7 +150,7 @@ unless the `psn_token` environment variable is set.
 
 Each app's original tests live in `tests.py`; the characterisation tests added before the
 dependency upgrades are in `tests_<topic>.py` alongside them (Django's default `test*.py`
-discovery picks both up). Coverage is 92%; measure it with:
+discovery picks both up). Coverage is 91%; measure it with:
 
 ```bash
 uv run coverage run manage.py test && uv run coverage report
