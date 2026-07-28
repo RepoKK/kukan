@@ -112,7 +112,7 @@ class TestPlaySessionModel(TestCase):
     "like: $env:psn_token = 'XXX'")
 class TestPsn(TestCase):
     def setUp(self) -> None:
-        self.psn = PSN(os.environ['PSN_TOKEN'])
+        self.psn = PSN(os.environ['psn_token'])
 
     def test_get_current_game(self):
         self.assertTrue(self.psn.get_current_game())

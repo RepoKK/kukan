@@ -1,4 +1,6 @@
-kukansite/settings_prod.py
+# kukansite/settings_prod.py — removed in stage 4; secrets now live in
+# /etc/kukan/kukan.env (prod) and .env (dev), neither of which is committed.
+.env
 logs/
 static/
 **/__pycache__/

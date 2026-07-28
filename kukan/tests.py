@@ -3,6 +3,7 @@ import itertools as it
 import json
 import os
 import re
+import unittest
 import urllib.parse
 from collections import Counter, namedtuple
 from io import StringIO
@@ -831,6 +832,11 @@ class TestDefinitionFetching(TestCase):
         self.assertNotEqual(-1, self.get_kanjipedia_def_string('左様').find('【表記】'))
 
 
+@unittest.skipUnless(
+    os.environ.get('KUKAN_LIVE_WEB_TESTS'),
+    'Live contract test against kanjipedia.jp: set KUKAN_LIVE_WEB_TESTS=1 to '
+    'run it. Skipped by default so the suite stays hermetic and does not fail '
+    'when the site changes or there is no egress.')
 class TestDefinitionReal(TestCase):
     def test_real_kanjipedia(self):
         definition_word = DefinitionKanjipedia('団扇')

@@ -11,6 +11,8 @@ import os
 
 from django.core.wsgi import get_wsgi_application
 
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "kukansite.settings")
+# Production default. Anything that is not the live site (the staging
+# container, a local gunicorn) sets DJANGO_SETTINGS_MODULE explicitly.
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "kukansite.settings.prod")
 
 application = get_wsgi_application()

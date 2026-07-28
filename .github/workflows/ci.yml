@@ -55,6 +55,35 @@ jobs:
       - name: Django system checks
         run: uv run manage.py check
 
+      # Production settings must fail loudly on a missing variable rather than
+      # falling back to development defaults. Assert both directions here, so
+      # a fallback creeping back into prod.py is caught before a deploy.
+      - name: Production settings refuse to load without their environment
+        run: |
+          if uv run --no-env-file env DJANGO_SETTINGS_MODULE=kukansite.settings.prod \
+                 python -c 'import kukansite.settings.prod' 2>/dev/null; then
+            echo '::error::prod settings loaded with no environment set'
+            exit 1
+          fi
+          echo 'prod settings correctly refused to load'
+
+      - name: Production settings pass Django's deployment checks
+        env:
+          DJANGO_SETTINGS_MODULE: kukansite.settings.prod
+          # >= 50 characters with enough distinct ones, or security.W009 fires
+          # and --fail-level WARNING turns it into a build failure.
+          DJANGO_SECRET_KEY: ci-only-throwaway-key-Xq7X-2vB9k-Lm4Zp8Rt6Ns3Wd5Yh1Gj0Fc-not-a-real-secret
+          DJANGO_ALLOWED_HOSTS: kukanjiten.com
+          DROPBOX_TOKEN: ci
+          TEMPMON_API_KEY: ci
+          ANKI_AYUMI_USER: a@example.com
+          ANKI_AYUMI_PASSWORD: ci
+          ANKI_FRED_USER: f@example.com
+          ANKI_FRED_PASSWORD: ci
+          ANKI_TEST2_USER: t@example.com
+          ANKI_TEST2_PASSWORD: ci
+        run: uv run manage.py check --deploy --fail-level WARNING
+
       # The repo has no unapplied model changes; a missing migration otherwise
       # only shows up on deploy.
       - name: No missing migrations

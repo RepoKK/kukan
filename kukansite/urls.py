@@ -13,12 +13,14 @@ Including another URLconf
     1. Import the include() function: from django.urls import include, path
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
+# `from django.conf import settings`, not `from kukansite import settings`:
+# the latter imported the settings module directly, bypassing Django's lazy
+# settings object and breaking the moment settings became a package.
+from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
 from django.contrib.auth import views as auth_views
 from django.urls import include, path, re_path
-
-from kukansite import settings
 
 urlpatterns = [
     path('bustime/', include('bustime.urls')),

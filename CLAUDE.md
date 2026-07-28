@@ -22,11 +22,38 @@ ones, `uv.lock` pins the full transitive set and is committed — there is no `r
 ```bash
 uv sync                              # or `uv sync --locked` to fail on a stale lock
 uv run manage.py check
-uv run manage.py test                # 425 tests, ~34 s
+uv run manage.py test                # 453 tests, ~17 s
 uv run manage.py test --shuffle      # randomised order; what CI runs
 uv run manage.py smoke_urls          # GETs every no-arg URL as a superuser
 uv run manage.py runserver
 uv run ruff check .                  # and `--fix` to apply
+```
+
+## Settings
+
+`kukansite/settings/` is a package, and `DJANGO_SETTINGS_MODULE` picks one:
+
+| Module | Used by | Notes |
+|---|---|---|
+| `base` | imported by the others | shared only; no `DEBUG`, no `SECRET_KEY` |
+| `dev` | `manage.py` default | throwaway credentials, works with no env at all |
+| `test` | `manage.py test` (auto) | blocks outbound sockets, MD5 hasher |
+| `prod` | `wsgi.py` default | every secret required; raises if one is missing |
+
+`prod` reads `/etc/kukan/kukan.env` (root:kukan 0640) — see `deploy/kukan.env.example`.
+For dev, put real values in an uncommitted `.env` and use `uv run --env-file .env manage.py …`.
+
+**`prod` has no fallbacks by design.** It replaced a `try: from settings_prod import * except
+ImportError: pass` sitting under a checked-in `DEBUG = True`, which meant any import error inside
+that file served full Django debug pages to the internet. If a variable is missing, the process
+must not start.
+
+`test` blocks AF_INET/AF_INET6 sockets, so any un-mocked HTTP call fails loudly instead of
+silently depending on a third-party site. The two live contract tests are opt-in:
+
+```bash
+psn_token=... uv run manage.py test tempmon.tests.TestPsn
+KUKAN_LIVE_WEB_TESTS=1 uv run manage.py test kukan.tests.TestDefinitionReal
 ```
 
 After editing `pyproject.toml`, run `uv lock` and commit the result. CI uses `--locked`, so a

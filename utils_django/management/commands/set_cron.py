@@ -34,10 +34,22 @@ class Command(FBaseCommand):
             help='Replace the existing cron with generated one.'
         )
 
+    # cron runs with a near-empty environment: it does not read the shell
+    # profile, and it does not load /etc/kukan/kukan.env. Without this prefix
+    # the nightly jobs start with no DJANGO_SECRET_KEY and no DROPBOX_TOKEN,
+    # so `kukansite.settings.prod` raises ImproperlyConfigured and backup_db
+    # never runs. `set -a` exports everything the file defines; `set +a`
+    # restores the default so nothing later is exported by accident.
+    ENV_FILE = '/etc/kukan/kukan.env'
+
     def __init__(self):
         super().__init__()
         virtual_env = os.path.join(sys.exec_prefix, 'bin', 'activate')
-        self.base_string = f'{{}} source {virtual_env}; python {{}}/manage.py {{}}'
+        env_file = getattr(settings, 'CRON_ENV_FILE', self.ENV_FILE)
+        self.env_prefix = (f'set -a; . {env_file}; set +a;' if env_file else '')
+        self.base_string = (
+            f'{{}} {self.env_prefix} source {virtual_env}; '
+            f'python {{}}/manage.py {{}}')
         self.cron_cfg = getattr(settings, 'CRON_CFG', [])
 
     def _cron_cmd(self, cfg):

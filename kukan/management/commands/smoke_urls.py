@@ -29,6 +29,10 @@ DEFAULT_SKIP = {
     'kukan:get_furigana': 'ajax endpoint, needs a sentence parameter',
     'kukan:yoji_anki': 'ajax endpoint, needs a yoji parameter',
     'bustime:get_time_to_next_hana': 'ajax endpoint, scrapes tobus.jp',
+    # Renders by scraping tobus.jp at request time, so smoking it made this
+    # command depend on a third-party site being reachable. bustime is covered
+    # by its own tests against recorded pages instead.
+    'bustime:bustime_main': 'scrapes tobus.jp to render',
 }
 
 

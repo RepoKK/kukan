@@ -318,6 +318,10 @@ class TestVacuum(unittest.TestCase, TestCaseMixin):
 class TestSetCron(TestCase):
     def setUp(self):
         self.virtual_env = os.path.join(sys.exec_prefix, 'bin', 'activate')
+        # cron has no environment of its own, so each Django job sources the
+        # production env file before activating the venv. Without it the job
+        # starts with no DJANGO_SECRET_KEY and prod settings refuse to load.
+        self.env = 'set -a; . /etc/kukan/kukan.env; set +a;'
 
     def test_get_cron_stings(self):
         test_setting = [
@@ -334,9 +338,9 @@ class TestSetCron(TestCase):
 
             self.assertEqual(
                 ('Generated cron:\n' +
-                 '05 12 * * 1-5 source {v}; python base/manage.py test_cmd --arg_a U --arg_b 1\n' +
-                 '01 12 * * 1-5 source {v}; python base/manage.py cmd2 --arg_a V --arg_flag\n\n' +
-                 'Use the --exec flag to replace existing cron\n').format(v=self.virtual_env),
+                 '05 12 * * 1-5 {e} source {v}; python base/manage.py test_cmd --arg_a U --arg_b 1\n' +
+                 '01 12 * * 1-5 {e} source {v}; python base/manage.py cmd2 --arg_a V --arg_flag\n\n' +
+                 'Use the --exec flag to replace existing cron\n').format(v=self.virtual_env, e=self.env),
                 out.getvalue()
             )
 
@@ -352,10 +356,48 @@ class TestSetCron(TestCase):
 
             self.assertEqual(
                 ('Generated cron:\n' +
-                 '05 12 * * 1-5 source {}; python base/manage.py test_cmd\n\n' +
-                 'Use the --exec flag to replace existing cron\n').format(self.virtual_env),
+                 '05 12 * * 1-5 {e} source {v}; python base/manage.py test_cmd\n\n' +
+                 'Use the --exec flag to replace existing cron\n').format(v=self.virtual_env, e=self.env),
                 out.getvalue()
             )
+
+    def test_django_jobs_source_the_env_file_before_the_venv(self):
+        """cron starts with almost no environment and never reads
+        /etc/kukan/kukan.env by itself. Without this prefix the nightly jobs
+        run with no DJANGO_SECRET_KEY and no DROPBOX_TOKEN, so prod settings
+        raise ImproperlyConfigured and backup_db silently stops running.
+
+        Order matters: the env file has to be sourced before `activate`, or
+        the variables are not visible to the Python process.
+        """
+        with override_settings(CRON_CFG=[{'schedule': '05 12 * * 1-5',
+                                          'command': 'backup_db'}]):
+            out = StringIO()
+            call_command('set_cron', stdout=out)
+            line = out.getvalue().splitlines()[1]
+
+        self.assertIn('set -a; . /etc/kukan/kukan.env; set +a;', line)
+        self.assertLess(line.index('kukan.env'), line.index('activate'),
+                        'the env file must be sourced before the venv')
+
+    def test_non_django_jobs_do_not_source_the_env_file(self):
+        """certbot needs no Django configuration, so its line stays bare."""
+        with override_settings(CRON_CFG=[{'schedule': '23 01 * * *',
+                                          'command': 'certbot renew --quiet',
+                                          'non_django': True}]):
+            out = StringIO()
+            call_command('set_cron', stdout=out)
+
+        self.assertNotIn('kukan.env', out.getvalue())
+
+    def test_env_file_path_is_configurable(self):
+        with override_settings(CRON_CFG=[{'schedule': '05 12 * * 1-5',
+                                          'command': 'test_cmd'}],
+                               CRON_ENV_FILE='/etc/other/place.env'):
+            out = StringIO()
+            call_command('set_cron', stdout=out)
+
+        self.assertIn('. /etc/other/place.env;', out.getvalue())
 
     def test_missing_key(self):
         with override_settings(CRON_CFG=[{'command': 'test_cmd'}]):
@@ -387,14 +429,15 @@ class TestSetCron(TestCase):
             with patch('utils_django.management.commands.set_cron.subprocess') as mock_sp:
                 call_command('set_cron', '--exec', stdout=out)
                 self.assertEqual(
-                    (f'05 12 * * 1-5 source {self.virtual_env}; '
+                    (f'05 12 * * 1-5 {self.env} source {self.virtual_env}; '
                      'python base/manage.py test_cmd\n'),
                     mock_sp.Popen.mock_calls[1][1][0].decode()
                 )
 
             self.assertEqual(
-                ('Set cron as:\n' +
-                 '05 12 * * 1-5 source {}; python base/manage.py test_cmd\n').format(self.virtual_env),
+                ('Set cron as:\n'
+                 f'05 12 * * 1-5 {self.env} source {self.virtual_env}; '
+                 'python base/manage.py test_cmd\n'),
                 out.getvalue()
             )
 
