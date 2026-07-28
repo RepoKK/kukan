@@ -205,6 +205,12 @@ class AjaxList(LoginRequiredMixin, generic.TemplateView):
         self.object_counter = '件'
 
     def dispatch(self, request, *args, **kwargs):
+        # The ajax branch below bypasses super().dispatch(), which is where
+        # LoginRequiredMixin does its work, so the check has to happen here.
+        # Without it, `?ajax=1` served the whole table to anonymous callers
+        # while the HTML page correctly redirected to the login form.
+        if not request.user.is_authenticated:
+            return self.handle_no_permission()
         if request.method.lower() == 'get' and request.GET.get('ajax', None) == '1':
             handler = self.get_list
         else:
