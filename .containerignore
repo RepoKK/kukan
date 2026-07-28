@@ -1,0 +1,28 @@
+# Build context exclusions for `podman build -f Containerfile .`
+#
+# Two jobs: keep the context small, and make it impossible to bake the working
+# development database — which holds a live PSN npsso token and live session
+# cookies — into an image.
+
+# 376 MB, built for the host's Python. The image runs `uv sync` itself.
+.venv/
+__pycache__/
+*.pyc
+
+.git/
+.github/
+
+# Written by the app at runtime; the image must not ship yesterday's.
+logs/
+# collectstatic output. The entrypoint regenerates it.
+static/
+
+# THE WORKING DATABASE, and its WAL sidecars. Anchored to the repository root
+# so deploy/staging-db.sqlite3 — the scrubbed copy the image actually uses —
+# still reaches the build.
+/db.sqlite3
+/db.sqlite3-wal
+/db.sqlite3-shm
+
+.env
+*.bak

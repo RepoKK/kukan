@@ -61,13 +61,23 @@ The point of the container is that this cutover otherwise gets performed for
 the first time on the live site.
 
 ```bash
-# a scrubbed copy of production, in the build context
-cp /path/to/backup.sqlite3 db.sqlite3
-uv run manage.py scrub_local_db --yes-i-am-not-in-production
+# A scrubbed *copy*. The working db.sqlite3 is excluded from the build context
+# by .containerignore, because it holds a live npsso token and live sessions.
+cp /path/to/backup.sqlite3 deploy/staging-db.sqlite3
+KUKAN_DB_PATH=deploy/staging-db.sqlite3 \
+    uv run manage.py scrub_local_db --yes-i-am-not-in-production
 
 podman build -t kukan-staging -f Containerfile .
 podman run --rm -p 8443:8443 --name kukan-staging kukan-staging
 ```
+
+**This has not run to completion yet.** The dev container confines every
+container it launches to a user namespace mapping uid 0 only, so `dnf` cannot
+install any RPM that sets non-root file ownership — `httpd` among them. The
+header of `Containerfile` has the detail. Run the build somewhere with ordinary
+rootless podman before trusting any of what follows; everything past the `dnf`
+step, including whether the anki 24.11 wheel installs against glibc 2.34, is
+still unverified.
 
 The entrypoint refuses to start on an unscrubbed database, then runs the
 rehearsal checks itself: `/static` and `/.well-known` served by httpd rather

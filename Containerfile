@@ -19,17 +19,39 @@
 #   podman run --rm -p 8443:8443 --name kukan-staging kukan-staging
 #   # then: https://localhost:8443/  (accept the self-signed certificate)
 #
-# NOT YET BUILT. podman is not available in the dev container this was written
-# in, so this file is unverified. Treat the first build as part of Stage 7 and
-# expect to fix things — most likely the httpd module paths, which move between
-# CentOS point releases.
+# STILL UNVERIFIED — and now for a known reason. Stage 7 installed podman 5.8.3
+# in the dev container and attempted the build. It gets as far as the `dnf`
+# step below, which found and fixed one real bug (the curl-minimal conflict,
+# see --allowerasing) and then hit a wall that is not this file's fault:
+#
+#   Every container this dev container can launch is confined to a user
+#   namespace that maps uid/gid 0 and nothing else — there is no usable
+#   /etc/subuid delegation and the outer sandbox has no CAP_SYS_ADMIN. `chown`
+#   to any non-root id returns EINVAL. httpd, mod_ssl, libutempter and
+#   util-linux all ship files owned by apache:apache or setgid tty, so the RPM
+#   transaction cannot complete. storage.conf's `ignore_chown_errors` does not
+#   help: it covers the storage library applying layer diffs, not a live
+#   chown(2) from rpm inside a RUN step.
+#
+# That is a property of the development sandbox, not of CentOS or of this
+# Containerfile. On an ordinary machine with rootless podman — or as root on
+# the production box — the build should proceed past this point. Everything
+# from `uv sync` onwards, including whether the anki 24.11 wheel installs
+# against glibc 2.34, is therefore still untested.
+#
+# Expect to fix things on the first successful build, most likely the httpd
+# module paths, which move between CentOS point releases.
 
 FROM quay.io/centos/centos:stream9
 
 # Python 3.12, matching .python-version. These two must not drift apart, or
 # staging stops being a rehearsal of production. Available from AppStream on
 # CentOS Stream 9 as of stage 5.
-RUN dnf -y install --setopt=install_weak_deps=False \
+#
+# --allowerasing: the base image ships curl-minimal, which conflicts with the
+# full curl package below (they both provide /usr/bin/curl). Without it dnf
+# just refuses the whole transaction; this lets it swap curl-minimal out.
+RUN dnf -y install --setopt=install_weak_deps=False --allowerasing \
         python3.12 python3.12-devel \
         httpd mod_ssl \
         sqlite \
@@ -55,6 +77,19 @@ RUN uv sync --locked --no-dev --no-install-project
 
 COPY . .
 RUN uv sync --locked --no-dev
+
+# The database, from an explicit path rather than whatever ./db.sqlite3 happens
+# to be. .containerignore excludes the working development copy outright: it
+# holds a live PSN npsso token and live session cookies, and an image is a very
+# easy thing to hand to somebody.
+#
+#   cp ~/nightly-backup.sqlite3 deploy/staging-db.sqlite3
+#   KUKAN_DB_PATH=deploy/staging-db.sqlite3 \
+#       uv run manage.py scrub_local_db --yes-i-am-not-in-production
+#
+# The entrypoint checks the result anyway and refuses to start if the token or
+# the sessions are still there.
+COPY deploy/staging-db.sqlite3 /opt/kukan/db.sqlite3
 
 # A self-signed certificate. Staging is not reachable from outside the host, so
 # the only thing this needs to do is exercise the same TLS code path as prod.

@@ -14,6 +14,8 @@ the extra dirname() when computing BASE_DIR.
 
 import os
 
+from kukansite.env import env
+
 # .../kukan/kukansite/settings/base.py -> .../kukan
 BASE_DIR = os.path.dirname(
     os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -84,7 +86,15 @@ WSGI_APPLICATION = 'kukansite.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
+        # Overridable so that a *copy* of the production database can be
+        # scrubbed without touching the working one:
+        #
+        #   cp ~/backup.sqlite3 deploy/staging-db.sqlite3
+        #   KUKAN_DB_PATH=deploy/staging-db.sqlite3 \
+        #       uv run manage.py scrub_local_db --yes-i-am-not-in-production
+        #
+        # Production leaves it unset and gets the path it always had.
+        'NAME': env('KUKAN_DB_PATH', os.path.join(BASE_DIR, 'db.sqlite3')),
         # Concurrency. Under mod_wsgi the application was effectively a single
         # process serving one request at a time, so none of this was needed.
         # Gunicorn with `--threads 4` means four threads share one database
