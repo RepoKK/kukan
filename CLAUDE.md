@@ -3,6 +3,7 @@
 Django site behind [kukanjiten.com](https://kukanjiten.com/) — Japanese kanji study material for
 the Kanken exam, plus an Anki sync pipeline and two bolted-on utilities (`bustime`, `tempmon`).
 Single self-hosted CentOS Stream 9 box, Apache + mod_wsgi + SQLite.
+Python 3.12, Django 6.0.
 
 ## Apps
 
@@ -22,7 +23,7 @@ ones, `uv.lock` pins the full transitive set and is committed — there is no `r
 ```bash
 uv sync                              # or `uv sync --locked` to fail on a stale lock
 uv run manage.py check
-uv run manage.py test                # 453 tests, ~17 s
+uv run manage.py test                # 465 tests, ~14 s
 uv run manage.py test --shuffle      # randomised order; what CI runs
 uv run manage.py smoke_urls          # GETs every no-arg URL as a superuser
 uv run manage.py runserver
@@ -42,6 +43,11 @@ uv run ruff check .                  # and `--fix` to apply
 
 `prod` reads `/etc/kukan/kukan.env` (root:kukan 0640) — see `deploy/kukan.env.example`.
 For dev, put real values in an uncommitted `.env` and use `uv run --env-file .env manage.py …`.
+
+**Every view requires a login unless it says otherwise.** `LoginRequiredMiddleware` denies by
+default; the entire public surface is the five `@login_not_required` markers (`add_temp_point`,
+both bustime views, `LoginView`, `LogoutView`). This replaced opting in per view, which had
+silently failed twice — see `kukan/tests_access_control.py`.
 
 **`prod` has no fallbacks by design.** It replaced a `try: from settings_prod import * except
 ImportError: pass` sitting under a checked-in `DEBUG = True`, which meant any import error inside
@@ -96,9 +102,7 @@ dependency upgrades are in `tests_<topic>.py` alongside them (Django's default `
 discovery picks both up). Coverage is 92%; measure it with:
 
 ```bash
-.venv/bin/python -m coverage run --source=. \
-    --omit='*/migrations/*,*/tests.py,*/tests_*.py,.venv/*,manage.py' manage.py test
-.venv/bin/python -m coverage report --sort=miss
+uv run coverage run manage.py test && uv run coverage report
 ```
 
 Two conventions worth keeping:

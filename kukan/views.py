@@ -217,9 +217,35 @@ class AjaxList(LoginRequiredMixin, generic.TemplateView):
             handler = super().dispatch
         return handler(request, *args, **kwargs)
 
+    def get_sortable_fields(self):
+        """Field names the table actually displays, which are the only ones
+        worth ordering by."""
+        return {col['field'] for col in self.table_data.get_col_template()}
+
+    def clean_sort_by(self, sort_by):
+        """Constrain `sort_by` to the displayed columns.
+
+        It arrives straight from the query string and used to go straight into
+        `order_by()`. Two consequences:
+
+        * an unknown name raised FieldError, so `?sort_by=nope` was a 500;
+        * any ORM path was accepted, including relation traversals such as
+          `kanjis__kanjidetails__anki_English`. Ordering by a field reveals
+          something about its values even when the field is not displayed, and
+          a deep join is expensive to run.
+
+        Anything not on the allow-list silently falls back to the default,
+        which is what the page would have shown anyway.
+        """
+        if not sort_by:
+            return self.default_sort
+        if sort_by.removeprefix('-') in self.get_sortable_fields():
+            return sort_by
+        return self.default_sort
+
     def get_list(self, request):
         page = request.GET.get('page', 1)
-        sort_by = request.GET.get('sort_by', self.default_sort)
+        sort_by = self.clean_sort_by(request.GET.get('sort_by', self.default_sort))
         table_data = {'page': int(page), 'sort_by': sort_by, 'columns': '', 'data': []}
         start_time = time.time()
         qry = self.get_filtered_list(request)
@@ -277,7 +303,10 @@ class AjaxList(LoginRequiredMixin, generic.TemplateView):
         context['active_filters'] = active_filters
 
         page = self.request.GET.get('page', 1)
-        sort_by = self.request.GET.get('sort_by', self.default_sort)
+        # Same allow-list as get_list, so the HTML shell and the ajax response
+        # cannot disagree about which column the table is sorted on.
+        sort_by = self.clean_sort_by(
+            self.request.GET.get('sort_by', self.default_sort))
         context['table_data'] = json.dumps({'page': int(page), 'sort_by': sort_by, 'columns': '', 'data': []})
 
         context['list_title'] = self.list_title

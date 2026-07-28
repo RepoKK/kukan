@@ -91,6 +91,39 @@ class TestAjaxEnvelope(AjaxListTestBase):
         words = [cell_text(row['word']) for row in data['table_data']['data']]
         self.assertEqual(words, sorted(words, reverse=True))
 
+    def test_unknown_sort_falls_back_to_the_default(self):
+        """`?sort_by=nope` used to reach order_by() and raise FieldError, so
+        it was a 500."""
+        data = self.get_ajax('kukan:example_list', sort_by='nope')
+        self.assertEqual(data['table_data']['sort_by'], 'kanken')
+
+    def test_relation_traversal_is_rejected(self):
+        """Ordering by an undisplayed related field leaks something about its
+        values and forces an expensive join."""
+        data = self.get_ajax('kukan:example_list',
+                             sort_by='kanjis__kanjidetails__anki_English')
+        self.assertEqual(data['table_data']['sort_by'], 'kanken')
+
+    def test_random_ordering_is_rejected(self):
+        data = self.get_ajax('kukan:example_list', sort_by='?')
+        self.assertEqual(data['table_data']['sort_by'], 'kanken')
+
+    def test_descending_prefix_is_allowed_on_a_real_column(self):
+        data = self.get_ajax('kukan:example_list', sort_by='-word')
+        self.assertEqual(data['table_data']['sort_by'], '-word')
+
+    def test_every_list_default_sort_is_itself_sortable(self):
+        """A default that is not on its own allow-list would loop back to
+        itself and quietly order by nothing sensible."""
+        for name in self.list_views:
+            with self.subTest(view=name):
+                data = self.get_ajax(name)
+                sort_by = data['table_data']['sort_by']
+                self.assertIsNotNone(sort_by)
+                # Round-trips: asking for the default returns the default.
+                again = self.get_ajax(name, sort_by=sort_by)
+                self.assertEqual(again['table_data']['sort_by'], sort_by)
+
     def test_total_results_counts_the_whole_query_not_the_page(self):
         data = self.get_ajax('kukan:example_list')
         self.assertEqual(data['total_results'], 3)
