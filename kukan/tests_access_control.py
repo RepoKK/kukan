@@ -19,6 +19,7 @@ on internals, so they keep working through the Vue-to-HTMX rewrite in Stage 10
 and through the Django upgrade in Stage 6. Anything that is public is listed
 explicitly, so making a view public becomes a visible edit to this file.
 """
+from django.contrib.auth.models import User
 from django.test import Client, TestCase
 from django.urls import reverse
 
@@ -90,6 +91,47 @@ class TestAjaxListRequiresLogin(TestCase):
                 response = self.client.get(
                     url, {'ajax': '1', 'page': '2', 'sort_by': 'pk'})
                 self.assertRedirectsToLogin(response, url)
+
+
+class LogoutTest(TestCase):
+    """Logout is POST-only from Django 5.0.
+
+    A GET used to work and was what the navbar link did. Django deprecated it
+    because a prefetching browser, a crawler, or an <img src> on another site
+    could log the user out without them asking. The navbar is now a POST form
+    with a CSRF token.
+    """
+
+    def setUp(self):
+        User.objects.create_user('test_user', password='pwd')
+        self.client = Client()
+        self.client.login(username='test_user', password='pwd')
+
+    def test_post_logs_out_and_redirects_to_login(self):
+        response = self.client.post(reverse('logout'))
+        self.assertEqual(response.status_code, 302)
+        self.assertIn('/login', response['Location'])
+        self.assertNotIn('_auth_user_id', self.client.session)
+
+    def test_get_is_rejected(self):
+        response = self.client.get(reverse('logout'))
+        self.assertEqual(response.status_code, 405)
+
+    def test_get_does_not_log_the_user_out(self):
+        """The point of the change: a stray GET must leave the session alone."""
+        self.client.get(reverse('logout'))
+        self.assertIn('_auth_user_id', self.client.session)
+
+    def test_next_page_is_the_login_view(self):
+        """next_page now reaches LogoutView. It used to be passed as a URLconf
+        extra-kwargs dict, which the view never read."""
+        response = self.client.post(reverse('logout'))
+        self.assertEqual(response['Location'], reverse('login'))
+
+    def test_navbar_renders_a_post_form_with_a_csrf_token(self):
+        response = self.client.get(reverse('kukan:index'))
+        self.assertContains(response, f'action="{reverse("logout")}"')
+        self.assertContains(response, 'csrfmiddlewaretoken')
 
 
 class TestEveryNamedViewIsClassified(TestCase):

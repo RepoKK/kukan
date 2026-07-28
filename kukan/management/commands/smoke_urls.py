@@ -26,6 +26,10 @@ DEFAULT_SKIP = {
     'kukan:get_similar_word': 'ajax endpoint, needs a word parameter',
     'kukan:get_yomi': 'ajax endpoint, needs a kanji parameter',
     'kukan:set_yomi': 'ajax endpoint, POST only',
+    # LogoutView is POST-only from Django 5.0; a GET is 405 by design. It
+    # would also end the walk's own session. Covered by
+    # kukan.tests_access_control.LogoutTest.
+    'logout': 'POST only, and would log the walker out',
     'kukan:get_furigana': 'ajax endpoint, needs a sentence parameter',
     'kukan:yoji_anki': 'ajax endpoint, needs a yoji parameter',
     'bustime:get_time_to_next_hana': 'ajax endpoint, scrapes tobus.jp',

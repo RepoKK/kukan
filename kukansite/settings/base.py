@@ -107,7 +107,8 @@ TIME_ZONE = 'Asia/Tokyo'
 
 USE_I18N = True
 
-USE_L10N = True
+# USE_L10N was removed in Django 5.0. Localized formatting has been
+# unconditional since 4.0, so deleting the setting changes nothing.
 
 USE_TZ = True
 

@@ -106,9 +106,18 @@
                 <div class="navbar-item has-dropdown is-hoverable">
                     <a class="navbar-item"><b-icon icon="account"></b-icon></a>
                     <div class="navbar-dropdown is-boxed is-right">
-                        <a class="navbar-item" href="{% url 'logout'%}?next={{request.path}}">
-                            <b-icon icon="logout"  size="is-small"></b-icon>　{{user}}をログアウト
-                        </a>
+                        {# LogoutView is POST-only from Django 5.0, so this is
+                           a form rather than a link. The ?next= is dropped:
+                           every page behind it requires login, so returning to
+                           it after logging out only bounced to the login page
+                           anyway. #}
+                        <form method="post" action="{% url 'logout' %}">
+                            {% csrf_token %}
+                            <button class="navbar-item" type="submit"
+                                    style="background:none;border:none;width:100%;text-align:left;cursor:pointer">
+                                <b-icon icon="logout"  size="is-small"></b-icon>　{{user}}をログアウト
+                            </button>
+                        </form>
                     </div>
                 </div>
             </div>

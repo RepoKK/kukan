@@ -541,7 +541,7 @@ class ExampleFormTest(TestCase):
             form_data = locals()[sub_test]
             with self.subTest(sub_test):
                 response = self.client.post(reverse('kukan:example_add'), form_data)
-                self.assertFormError(response, 'form', 'sentence', expected_error)
+                self.assertFormError(response.context['form'], 'sentence', expected_error)
                 self.assertEqual({'sentence': [expected_error]}, response.context['form'].errors)
 
                 # Check that the duplicate error can be skipped by prefixing the sentence with x
@@ -639,7 +639,7 @@ class KotowazaFormTest(TestCase):
         response = self.client.post(reverse('kukan:kotowaza_update', args=[self.kotowaza.pk]),
                                     form_data)
         self.assertEqual(response.status_code, 200)
-        self.assertFormError(response, 'form', 'furigana',
+        self.assertFormError(response.context['form'], 'furigana',
                              ['元の文章を復元出来ない: 「閲覧の風月」',
                               '推測振り仮名と元の読み方が合致しない'])
 

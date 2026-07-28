@@ -26,8 +26,11 @@ urlpatterns = [
     path('bustime/', include('bustime.urls')),
     path('', include('kukan.urls')),
     re_path(r'^login/$', auth_views.LoginView.as_view(), name='login'),
-    re_path(r'^logout/$', auth_views.LogoutView.as_view(),
-            {'next_page': 'login'}, name='logout'),
+    # POST-only from Django 5.0. next_page belongs on as_view(): the old form
+    # passed it as a URLconf extra-kwargs dict, which LogoutView never read, so
+    # the redirect target was silently the LOGOUT_REDIRECT_URL default.
+    path('logout/', auth_views.LogoutView.as_view(next_page='login'),
+         name='logout'),
     path('admin/', admin.site.urls),
     path('tempmon/', include('tempmon.urls')),
 ]
