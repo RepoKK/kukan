@@ -9,6 +9,26 @@ set -euo pipefail
 cd /opt/kukan
 
 VENV=/opt/kukan/.venv/bin
+DB=${KUKAN_DB_PATH:-/data/db.sqlite3}
+
+# `podman run ... kukan-staging scrub` — prepare a mounted copy of production
+# for use here, using this image's virtualenv rather than one on the host. On a
+# box with no development environment that is the difference between a five
+# minute rehearsal and installing Python, uv and a compiler first.
+#
+# It runs under dev settings on purpose: scrub_local_db refuses to run unless
+# DEBUG is on, which is one of the three guards standing between it and the
+# real database. Serving still uses prod settings, below.
+if [ "${1:-}" = scrub ]; then
+    [ -f "$DB" ] || { echo "ERROR: no database at $DB. Mount one: -v DIR:/data" >&2; exit 1; }
+    echo "==> Scrubbing $DB"
+    export DJANGO_SETTINGS_MODULE=kukansite.settings.dev
+    # Migrations first: the copy comes from the box, whose schema is whatever
+    # was last deployed there. Scrubbing goes through the ORM, so the schema
+    # has to match the models before it can run.
+    "$VENV/python" manage.py migrate --no-input
+    exec "$VENV/python" manage.py scrub_local_db --yes-i-am-not-in-production
+fi
 
 # Staging runs the *production* settings module, not dev. That is the whole
 # value of it: prod.py is the one that raises ImproperlyConfigured on a missing
@@ -25,26 +45,26 @@ set -a
 set +a
 export DJANGO_SETTINGS_MODULE=kukansite.settings.prod
 
-echo '==> Checking the database has been scrubbed'
-if [ ! -f db.sqlite3 ]; then
-    echo 'ERROR: no db.sqlite3 in the image.' >&2
-    echo 'Copy a scrubbed database into the build context first:' >&2
-    echo '    manage.py scrub_local_db --yes-i-am-not-in-production' >&2
+echo "==> Checking the database at $DB has been scrubbed"
+if [ ! -f "$DB" ]; then
+    echo "ERROR: no database at $DB." >&2
+    echo 'Mount a directory holding db.sqlite3 and scrub it first:' >&2
+    echo '    podman run --rm -v DIR:/data:Z kukan-staging scrub' >&2
     exit 1
 fi
 
 # The scrubber sets every PSN token to the '__dummy__' sentinel. A real npsso
 # token here means an unscrubbed copy of production.
-if sqlite3 db.sqlite3 \
+if sqlite3 "$DB" \
         "select count(*) from tempmon_psnapikey where code != '__dummy__'" \
         | grep -qv '^0$'; then
     echo 'ERROR: the database contains a live PSN token.' >&2
     echo 'This looks like an unscrubbed copy of production. Run:' >&2
-    echo '    manage.py scrub_local_db --yes-i-am-not-in-production' >&2
+    echo '    podman run --rm -v DIR:/data:Z kukan-staging scrub' >&2
     exit 1
 fi
 
-if sqlite3 db.sqlite3 "select count(*) from django_session" | grep -qv '^0$'; then
+if sqlite3 "$DB" "select count(*) from django_session" | grep -qv '^0$'; then
     echo 'ERROR: the database contains live sessions; scrub it first.' >&2
     exit 1
 fi

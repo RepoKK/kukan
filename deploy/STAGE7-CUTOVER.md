@@ -61,14 +61,17 @@ The point of the container is that this cutover otherwise gets performed for
 the first time on the live site.
 
 ```bash
-# A scrubbed *copy*. The working db.sqlite3 is excluded from the build context
-# by .containerignore, because it holds a live npsso token and live sessions.
-cp /path/to/backup.sqlite3 deploy/staging-db.sqlite3
-KUKAN_DB_PATH=deploy/staging-db.sqlite3 \
-    uv run manage.py scrub_local_db --yes-i-am-not-in-production
-
 podman build -t kukan-staging -f Containerfile .
-podman run --rm -p 8443:8443 --name kukan-staging kukan-staging
+
+# A scrubbed *copy*, on a bind mount. No database is baked into the image, and
+# .containerignore keeps the working one out of the build context — it holds a
+# live npsso token and live sessions.
+mkdir -p ~/kukan-staging-data
+cp /path/to/backup.sqlite3 ~/kukan-staging-data/db.sqlite3
+podman run --rm -v ~/kukan-staging-data:/data:Z kukan-staging scrub
+
+podman run --rm -p 127.0.0.1:8443:8443 -v ~/kukan-staging-data:/data:Z \
+    --name kukan-staging kukan-staging
 ```
 
 **This has not run to completion yet.** The dev container confines every
@@ -78,6 +81,11 @@ header of `Containerfile` has the detail. Run the build somewhere with ordinary
 rootless podman before trusting any of what follows; everything past the `dnf`
 step, including whether the anki 24.11 wheel installs against glibc 2.34, is
 still unverified.
+
+**`deploy/PROD-BOX-STAGING.md` is how to do that on the production box** — a
+separate user account, a loopback-only port, reached over an SSH tunnel. It is
+the recommended way, because CentOS Stream 9 and glibc 2.34 are exactly what
+cannot be reproduced elsewhere, and the anki wheel ceiling depends on them.
 
 The entrypoint refuses to start on an unscrubbed database, then runs the
 rehearsal checks itself: `/static` and `/.well-known` served by httpd rather

@@ -305,6 +305,30 @@ class StagingParityTest(SimpleTestCase):
                     f'{key} in deploy/staging.env does not look like a '
                     f'placeholder. This file is committed.')
 
+    def test_no_database_is_baked_into_the_image(self):
+        """An image is an easy thing to hand to somebody, and the database
+        carries password hashes, a live PSN token and live sessions. It arrives
+        on a bind mount instead, so there is no version of this image that
+        contains one — including the layers a `docker save` would keep after a
+        later `rm`."""
+        with open(os.path.join(REPO_ROOT, 'Containerfile'), encoding='utf-8') as f:
+            containerfile = f.read()
+        for line in containerfile.splitlines():
+            if line.startswith('COPY'):
+                with self.subTest(line=line):
+                    self.assertNotIn('sqlite', line.lower())
+
+    def test_the_image_can_scrub_its_own_database(self):
+        """The prod box has no development environment — no Python 3.12, no uv,
+        no compiler — and installing one just to run a management command would
+        be a change to the machine being tested. The image already has a
+        virtualenv, so it does the scrubbing."""
+        entrypoint = read_deploy_file('staging-entrypoint.sh')
+        self.assertIn('scrub_local_db --yes-i-am-not-in-production', entrypoint)
+        # Under dev settings: scrub_local_db refuses to run unless DEBUG is on,
+        # and that guard is not one to work around.
+        self.assertIn('DJANGO_SETTINGS_MODULE=kukansite.settings.dev', entrypoint)
+
     def test_staging_env_does_not_shadow_the_real_env_file(self):
         """A guard against the obvious catastrophe: staging.env is committed,
         /etc/kukan/kukan.env is not, and they must never be the same file."""

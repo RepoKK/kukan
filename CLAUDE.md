@@ -99,7 +99,10 @@ Django, 404s, and renewal fails silently until the certificate expires.
 The staging container (`Containerfile`) runs `kukansite.settings.prod` against
 `deploy/staging.env` and a scrubbed database, and refuses to start until its own checks pass.
 It is the only place the production settings module, the proxy and the TLS path get exercised
-before the live box.
+before the live box. The database arrives on a bind mount at `/data` and is scrubbed by the
+image itself (`podman run ... kukan-staging scrub`), so no image ever contains one.
+`deploy/PROD-BOX-STAGING.md` runs it on the production box under a separate account — the only
+way to test the `anki==24.11` ceiling, which exists because of that box's glibc 2.34.
 
 `smoke_urls` is the cheap breadth-first net: it proves each view imports, its template compiles
 and its queries run. Use it after any dependency or template change.

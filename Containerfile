@@ -14,10 +14,23 @@
 #
 # BUILD AND RUN
 #
-#   # from the repo root, with a scrubbed database at ./db.sqlite3
 #   podman build -t kukan-staging -f Containerfile .
-#   podman run --rm -p 8443:8443 --name kukan-staging kukan-staging
+#
+#   # A copy of the database, scrubbed using this image's own virtualenv, so
+#   # that running staging needs nothing on the host but podman.
+#   mkdir -p ~/kukan-staging-data
+#   cp /path/to/backup.sqlite3 ~/kukan-staging-data/db.sqlite3
+#   podman run --rm -v ~/kukan-staging-data:/data:Z kukan-staging scrub
+#
+#   podman run --rm -p 127.0.0.1:8443:8443 -v ~/kukan-staging-data:/data:Z \
+#       --name kukan-staging kukan-staging
 #   # then: https://localhost:8443/  (accept the self-signed certificate)
+#
+# The database is a bind mount, not baked in. Three reasons: rebuilding the
+# image after a code change does not mean re-copying data; the working
+# db.sqlite3 cannot end up in an image even by accident; and the scrub can run
+# inside the container, which is what makes this practical on a box that has no
+# development environment. See deploy/PROD-BOX-STAGING.md.
 #
 # STILL UNVERIFIED — and now for a known reason. Stage 7 installed podman 5.8.3
 # in the dev container and attempted the build. It gets as far as the `dnf`
@@ -78,18 +91,16 @@ RUN uv sync --locked --no-dev --no-install-project
 COPY . .
 RUN uv sync --locked --no-dev
 
-# The database, from an explicit path rather than whatever ./db.sqlite3 happens
-# to be. .containerignore excludes the working development copy outright: it
-# holds a live PSN npsso token and live session cookies, and an image is a very
-# easy thing to hand to somebody.
+# The database lives on a bind mount at /data, and no database is baked into
+# the image at all. .containerignore excludes the working copy from the build
+# context as well — it holds a live PSN npsso token and live session cookies,
+# and an image is a very easy thing to hand to somebody.
 #
-#   cp ~/nightly-backup.sqlite3 deploy/staging-db.sqlite3
-#   KUKAN_DB_PATH=deploy/staging-db.sqlite3 \
-#       uv run manage.py scrub_local_db --yes-i-am-not-in-production
-#
-# The entrypoint checks the result anyway and refuses to start if the token or
-# the sessions are still there.
-COPY deploy/staging-db.sqlite3 /opt/kukan/db.sqlite3
+# `podman run ... kukan-staging scrub` scrubs whatever is mounted there, using
+# this image's virtualenv. The entrypoint checks the result on every start and
+# refuses to serve if the token or the sessions are still present.
+ENV KUKAN_DB_PATH=/data/db.sqlite3
+RUN mkdir -p /data
 
 # A self-signed certificate. Staging is not reachable from outside the host, so
 # the only thing this needs to do is exercise the same TLS code path as prod.
