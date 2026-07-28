@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from tempmon.models import PsGame, PlaySession, GamePerSessionInfo
+from tempmon.models import GamePerSessionInfo, PlaySession, PsGame
 
 
 @admin.register(PsGame)

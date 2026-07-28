@@ -37,7 +37,7 @@ class Command(FBaseCommand):
     def __init__(self):
         super().__init__()
         virtual_env = os.path.join(sys.exec_prefix, 'bin', 'activate')
-        self.base_string = '{{}} source {}; python {{}}/manage.py {{}}'.format(virtual_env)
+        self.base_string = f'{{}} source {virtual_env}; python {{}}/manage.py {{}}'
         self.cron_cfg = getattr(settings, 'CRON_CFG', [])
 
     def _cron_cmd(self, cfg):
@@ -54,7 +54,7 @@ class Command(FBaseCommand):
             try:
                 list_cfg_string.append(self._cron_cmd(cfg))
             except KeyError as e:
-                self.stdout.write('Key {} not found in config: {}'.format(e, cfg))
+                self.stdout.write(f'Key {e} not found in config: {cfg}')
                 return ''
         return '\n'.join(list_cfg_string) + '\n'
 
@@ -65,9 +65,8 @@ class Command(FBaseCommand):
                 cron = subprocess.Popen("crontab", stdin=subprocess.PIPE)
                 cron.communicate(cron_content.encode())
 
-                self.stdout.write('Set cron as:\n{}'.format(cron_content))
+                self.stdout.write(f'Set cron as:\n{cron_content}')
             else:
                 self.stdout.write(
-                    'Generated cron:\n{}\nUse the --exec flag to replace existing cron'.format(
-                        cron_content)
+                    f'Generated cron:\n{cron_content}\nUse the --exec flag to replace existing cron'
                 )

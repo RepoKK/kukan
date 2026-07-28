@@ -1,9 +1,23 @@
 from django.contrib import admin
 
 from kukan.models import TestSource
-from .models import Kanji, KanjiDetails, Reading, Bushu, Classification, YomiType, YomiJoyo, Example, Kanken
-from .models import Kotowaza, KoukiBushu, TestResult
-from .models import Bunrui, Yoji
+
+from .models import (
+    Bunrui,
+    Bushu,
+    Classification,
+    Example,
+    Kanji,
+    KanjiDetails,
+    Kanken,
+    Kotowaza,
+    KoukiBushu,
+    Reading,
+    TestResult,
+    Yoji,
+    YomiJoyo,
+    YomiType,
+)
 
 
 class KanjiInline(admin.TabularInline):

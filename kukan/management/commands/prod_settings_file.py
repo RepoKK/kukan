@@ -1,7 +1,9 @@
 import os
+
 from django.conf import settings
-from utils_django.dropbox import upload, download
 from django.core.management import BaseCommand
+
+from utils_django.dropbox import download, upload
 
 
 class Command(BaseCommand):

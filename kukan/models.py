@@ -131,12 +131,11 @@ class Kanji(models.Model):
                 lst.append('<a href="' + reverse('kukan:kanji_detail', kwargs={'pk': kj}) + '">' + kj.kanji + '</a>')
             list_fld.append([self.jitai['alt'][0], "、 ".join(lst)])
 
-        if self.jitai['std'][1] != self:
-            if self.kanjidetails.std_kanji is not None:
-                list_fld.append(['標準字体',
-                                 '<a href="'
-                                 + reverse('kukan:kanji_detail', kwargs={'pk': self.jitai['std'][1]}) + '">'
-                                 + str(self.jitai['std'][1].kanji) + '</a>'])
+        if self.jitai['std'][1] != self and self.kanjidetails.std_kanji is not None:
+            list_fld.append(['標準字体',
+                             '<a href="'
+                             + reverse('kukan:kanji_detail', kwargs={'pk': self.jitai['std'][1]}) + '">'
+                             + str(self.jitai['std'][1].kanji) + '</a>'])
         return list_fld
 
     @cached_property
@@ -272,7 +271,7 @@ class Kotowaza(models.Model):
     definition = models.CharField('諺の意味', max_length=10000, blank=True)
 
     def __str__(self):
-        return '{1} - {0}'.format(self.kotowaza, self.pk)
+        return f'{self.pk} - {self.kotowaza}'
 
     def get_absolute_url(self):
         return reverse('kukan:kotowaza_detail', kwargs={'pk': self.pk})
@@ -391,8 +390,7 @@ class Example(models.Model):
         link = ''
         if self.word:
             simple = re.sub(r'（.*）', '', str(self.word))
-            link = "<a href=https://dictionary.goo.ne.jp/srch/all/" + simple + "/m0u/>{}</a>".format(
-                self.word)
+            link = "<a href=https://dictionary.goo.ne.jp/srch/all/" + simple + f"/m0u/>{self.word}</a>"
         return link
 
     def goo_link_exact(self):
@@ -447,25 +445,25 @@ class Example(models.Model):
                     reading_match = reading_selected[i] == str(joyo_exmap.reading.id)
                 if not (joyo_exmap.kanji.kanji == word[i] and reading_match):
                     raise AssertionError
-        except (AssertionError, IndexError):
+        except (AssertionError, IndexError) as err:
             logger.error(f'Trying to modify a Joyo reading for {self}({self.pk}); '
                          f'word: {word}, reading_selected: {reading_selected}')
-            raise AssertionError('Existing Joyo reading cannot be modified')
+            raise AssertionError('Existing Joyo reading cannot be modified') from err
 
         map_list = []
-        for map_order, (kj, reading) in enumerate(zip(word, reading_selected)):
+        for map_order, (kj, reading) in enumerate(zip(word, reading_selected, strict=False)):
             kanji = Kanji.qget(kj)
 
-            if map_order in joyo_exmaps_per_order.keys():
+            if map_order in joyo_exmaps_per_order:
                 ex_map = joyo_exmaps_per_order[map_order]
             elif reading[:6] == 'Ateji_':
-                ex_map, create = self.exmap_set.get_or_create(kanji=kanji,
-                                                              example=self,
-                                                              map_order=map_order,
-                                                              is_ateji=True,
-                                                              in_joyo_list=False)
+                ex_map, _create = self.exmap_set.get_or_create(kanji=kanji,
+                                                               example=self,
+                                                               map_order=map_order,
+                                                               is_ateji=True,
+                                                               in_joyo_list=False)
             else:
-                ex_map, create = self.exmap_set.get_or_create(kanji=kanji,
+                ex_map, _create = self.exmap_set.get_or_create(kanji=kanji,
                                                               reading=Reading.objects.get(kanji=kj, id=reading),
                                                               example=self,
                                                               map_order=map_order,
@@ -598,8 +596,8 @@ class TestResult(models.Model):
     def save(self, *args, **kwargs):
         self.score = 0
         for i in range(1, 11):
-            self.score += getattr(self, 'item_{:02d}'.format(i))
+            self.score += getattr(self, f'item_{i:02d}')
         super().save(*args, **kwargs)
 
     def __str__(self):
-        return '{} {} {} - {}'.format(self.name, self.kanken.kyu, self.test_number, self.date)
+        return f'{self.name} {self.kanken.kyu} {self.test_number} - {self.date}'

@@ -6,27 +6,24 @@ import re
 import urllib.parse
 from collections import Counter, namedtuple
 from io import StringIO
-from unittest.mock import mock_open, patch, MagicMock
+from unittest.mock import MagicMock, mock_open, patch
 
 import requests
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.db.models import Count, Q
 from django.http import QueryDict
-from django.test import Client
-from django.test import TestCase
+from django.test import Client, TestCase
 from django.urls import reverse
 
 from kukan.apps import kukanConfig
 from kukan.exporting import Exporter
 from kukan.forms import ExampleForm, KotowazaForm
-from kukan.jautils import JpnText, hir2kat
-from kukan.jautils import kat2hir
-from kukan.models import Kanji, Example, Reading, ExMap, Kanken, YomiJoyo, Kotowaza, Bushu
+from kukan.jautils import JpnText, hir2kat, kat2hir
+from kukan.models import Bushu, Example, ExMap, Kanji, Kanken, Kotowaza, Reading, YomiJoyo
 from kukan.onlinepedia import DefinitionKanjipedia
-from kukan.templatetags.ja_tags import furigana_ruby, furigana_remove, furigana_bracket, furigana_html
-from kukan.test_helpers import FixtureAppLevel, FixtureKukan, FixWebKukan, PatchRequestsGet
-from kukan.test_helpers import FixtureKanji
+from kukan.templatetags.ja_tags import furigana_bracket, furigana_html, furigana_remove, furigana_ruby
+from kukan.test_helpers import FixtureAppLevel, FixtureKanji, FixtureKukan, FixWebKukan, PatchRequestsGet
 
 # Override SECURE_SSL_REDIRECT to avoid redirection of non-secured requests
 settings.SECURE_SSL_REDIRECT = False
@@ -110,7 +107,7 @@ class FuriganaTest(TestCase):
             surface = pattern.replace('-', '')
             reading = pattern.replace('漢字', 'かんじ').replace('-', '')
             tok_surface = pattern.split('-')
-            tok_reading = [x for x in pattern.replace('かな', '').replace('漢字', 'かんじ').split('-')]
+            tok_reading = list(pattern.replace('かな', '').replace('漢字', 'かんじ').split('-'))
 
             with self.subTest(pattern=pattern):
                 with patch('kukan.jautils.JpnText.LightTokenizer.tokenize') as mock_tokenize, \
@@ -121,7 +118,7 @@ class FuriganaTest(TestCase):
 
                     JpnText.from_text(surface)
 
-                    self.assertListEqual([(s, r) if r else (s,) for s, r in zip(tok_surface, tok_reading)],
+                    self.assertListEqual([(s, r) if r else (s,) for s, r in zip(tok_surface, tok_reading, strict=False)],
                                          [x[0] for x in mock_text_token.call_args_list])
 
         with self.subTest(pattern='empty'):
@@ -140,7 +137,7 @@ class FuriganaTest(TestCase):
                         patch('kukan.jautils.JpnText._check_furigana'):
                     mock_text_token_init.return_value = None
                     JpnText.from_text(word)
-                    self.assertListEqual([(w, f) if f else (w,) for w, f in zip(word_elements, furigana_elements)],
+                    self.assertListEqual([(w, f) if f else (w,) for w, f in zip(word_elements, furigana_elements, strict=False)],
                                          [x[0] for x in mock_text_token_init.call_args_list])
 
     def test_from_ruby(self):
@@ -349,7 +346,7 @@ class ExampleFormTest(TestCase):
     def check_reading_selected(self, expected, word, example, currently_set):
         self.assertEqual(expected,
                          self.call_get_yomi(word, example, '', currently_set).json()['reading_selected'],
-                         'Issue with word={}, currently_set={}'.format(word, currently_set))
+                         f'Issue with word={word}, currently_set={currently_set}')
 
     def call_get_yomi(self, word='', example='', word_native='', reading_selected=None):
         ex_id = Example.objects.get(word=example).id if example else ''
@@ -648,7 +645,7 @@ class KotowazaFormTest(TestCase):
 
 class TestExport(TestCase):
     kanji_per_kyu = '一万丁不久並丈乏且串茅丐'
-    fixtures = ['baseline', '汀', '渚', '渚', '覧'] + list(kanji_per_kyu)
+    fixtures = ['baseline', '汀', '渚', '渚', '覧', *list(kanji_per_kyu)]
 
     output_templt_kaki_hyogai = 'Kakitori\t書き取り\t{pk}\t"<span class=tag_hyogai>表外</span>' \
                                 + '{kind}:<span class=""font-color01"">{yomi}</span>"\t{word}\t{kanken}\r\n'
@@ -682,7 +679,7 @@ class TestExport(TestCase):
                                          else str(Reading.objects.get(kanji=x[0],
                                                                       reading_simple=x[1].translate(kat2hir)).id)
                                          for x in kanji_list])
-            form_data = {'word': word, 'yomi': 'にせよみ', 'sentence': '{}:{}'.format(ex_kind, word),
+            form_data = {'word': word, 'yomi': 'にせよみ', 'sentence': f'{ex_kind}:{word}',
                          'definition': '言葉の定義', 'ex_kind': ex_kind, 'yomi_native': '',
                          'reading_selected': reading_selected}
             form = ExampleForm(form_data, instance=None)
@@ -705,7 +702,7 @@ class TestExport(TestCase):
             try:
                 self.assertEqual(number_line + 7, len(m.mock_calls))
                 for idx, ex in enumerate(qry):
-                    name, m_args, m_kwargs = m.mock_calls[idx + 6]
+                    _name, m_args, _m_kwargs = m.mock_calls[idx + 6]
                     file_write = m_args[0]
                     if ex.ex_kind == Example.KOTOWAZA:
                         kotowaza_args = {'kotowaza_yomi': ex.kotowaza.yomi,
@@ -785,7 +782,7 @@ class TestExport(TestCase):
         self.assertEqual([{'kanken__kyu': kanken.kyu, 'ex_kind': ex_kind, 'kanken__count': 1}
                           for kanken in Kanken.objects.all()
                           for ex_kind in [x[0] for x in Example.EX_KIND_CHOICES
-                                          if not x[0] in [Example.HYOGAI, Example.JUKUICHI]]],
+                                          if x[0] not in [Example.HYOGAI, Example.JUKUICHI]]],
                          list(Example.objects.exclude(ex_kind=Example.HYOGAI).values('kanken__kyu', 'ex_kind')
                               .annotate(Count('kanken')).order_by('pk')))
         self.assertEqual([{'kanken__kyu': kanken.kyu, 'ex_kind': ex_kind, 'kanken__count': 1}
@@ -957,7 +954,7 @@ class TestFilters(TestCase):
                 line = meaning_lines[0]
                 search_obj = re.search('value(.*)', line)
                 self.assertIsNotNone(search_obj)
-                self.assertEqual("'{}'".format(character_list), urllib.parse.unquote(search_obj[0][7:-2]))
+                self.assertEqual(f"'{character_list}'", urllib.parse.unquote(search_obj[0][7:-2]))
 
         character_list = 'Test "#$%&\'()"'
         response = self.client.get('/example/list/', {'page': 1, 'sort_by': 'kanken',
@@ -980,12 +977,12 @@ class TestIndexView(TestCase):
 
     def assertCheckResponse(self, view_name, data, expected_query_string):
         response = self.client.post(reverse('kukan:index'), follow=True, data=data)
-        base_url = reverse('kukan:{}'.format(view_name))
+        base_url = reverse(f'kukan:{view_name}')
         if expected_query_string is None:
             self.assertRedirects(response, base_url)
         else:
             expected_query_string = urllib.parse.quote(expected_query_string, safe='=&')
-            self.assertRedirects(response, '{}?{}'.format(base_url, expected_query_string))
+            self.assertRedirects(response, f'{base_url}?{expected_query_string}')
         # Check the filters are correct
         request_keys = QueryDict(urllib.parse.unquote(response.request['QUERY_STRING'])).keys()
         view_filters = [x.label for x in response.context_data['view'].filters]
@@ -997,7 +994,7 @@ class TestIndexView(TestCase):
         ]:
             with self.subTest(search_text=search_text):
                 if expected_query_string is not None:
-                    expected_query_string = '{}&日課=日課に出る'.format(expected_query_string)
+                    expected_query_string = f'{expected_query_string}&日課=日課に出る'
                 self.assertCheckResponse('yoji_list',
                                          {'search': search_text, 'yoji': '四字熟語'},
                                          expected_query_string)
@@ -1084,7 +1081,7 @@ class TestExampleCreateExmap(TestCase):
         :param is_joyo: iterable of boolean, defining if the corresponding reading is a Joyo one.
         """
         cleaned_word = ''.join([x for x in word if Kanji.objects.filter(kanji=x).exists()])
-        for pos, (kj, reading, joyo) in enumerate(zip(cleaned_word, readings, is_joyo)):
+        for pos, (_kj, reading, joyo) in enumerate(zip(cleaned_word, readings, is_joyo, strict=False)):
             if reading[0] == 'A':
                 exmap = ExMap.objects.get(example=example, kanji=cleaned_word[pos], map_order=pos)
                 self.assertTrue(exmap.is_ateji)

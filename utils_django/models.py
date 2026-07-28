@@ -10,7 +10,7 @@ class ManagementCommandRun(models.Model):
     updated_time = models.DateTimeField('Timestamp', auto_now=True)
 
     def __repr__(self):
-        return 'Command {} ({}), start time: {}'.format(self.cmd_name, self.cmd_pid, self.updated_time)
+        return f'Command {self.cmd_name} ({self.cmd_pid}), start time: {self.updated_time}'
 
     def __str__(self):
         return repr(self)

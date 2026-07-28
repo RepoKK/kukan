@@ -4,8 +4,7 @@ import weakref
 from collections import namedtuple
 
 import pandas as pd
-from anki.collection import Collection
-from anki.collection import ImportCsvRequest
+from anki.collection import Collection, ImportCsvRequest
 from anki.sync_pb2 import SyncStatusResponse
 from django.conf import settings
 
@@ -106,7 +105,7 @@ class AnkiProfile:
         comments = [
                '#separator:tab',
                '#html:true'
-                   ] + ([f'#guid column:1'] if with_guid else []) + [
+                   ] + (['#guid column:1'] if with_guid else []) + [
                 f'#notetype column:{with_guid+1}',
                 f'#deck column:{with_guid+2}'
         ]
@@ -120,7 +119,7 @@ class AnkiProfile:
     def apply_to_anki(self):
         decks = [d.name for d in self.profile['decks']]
         assert not len(set(decks) -
-                       set(e.name for e in self.col.decks.all_names_and_ids()))
+                       {e.name for e in self.col.decks.all_names_and_ids()})
 
         res_df = pd.DataFrame('-', decks,
                               ['added', 'updated', 'deleted', 'unchanged'])

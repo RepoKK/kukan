@@ -60,8 +60,7 @@ class Command(BaseCommand):
         client.force_login(self.get_user(options['username']))
 
         skip = dict(DEFAULT_SKIP)
-        skip.update({name: 'skipped on the command line'
-                     for name in options['skip']})
+        skip.update(dict.fromkeys(options['skip'], 'skipped on the command line'))
 
         checked, failures, skipped = [], [], []
         for name in sorted(set(iter_url_names(get_resolver()))):
@@ -92,8 +91,8 @@ class Command(BaseCommand):
             try:
                 return user_model.objects.get(
                     **{user_model.USERNAME_FIELD: username})
-            except user_model.DoesNotExist:
-                raise CommandError(f'No such user: {username}')
+            except user_model.DoesNotExist as err:
+                raise CommandError(f'No such user: {username}') from err
         user = user_model.objects.filter(is_superuser=True).first()
         if user is None:
             raise CommandError(

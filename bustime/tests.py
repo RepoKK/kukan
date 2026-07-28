@@ -185,7 +185,7 @@ class GetTimeToNextHanaTest(TestCase):
                 f'<table><tr>{cells}</tr>'
                 f'<tr>{blank_row}</tr>'
                 f'<tr>{blank_row}</tr></table>'
-                f'</body></html>').encode('utf-8')
+                f'</body></html>').encode()
 
 
 class BusTimeMainViewTest(TestCase):
@@ -229,13 +229,12 @@ class BusTimeMainViewTest(TestCase):
     def test_each_direction_requests_its_own_timetable_url(self):
         for station, expected in [('新宿駅西口', 'slst=702'),
                                   ('花園町', 'slst=1235')]:
-            with self.subTest(station=station):
-                with freeze_time('2026-07-28 10:00:00'), \
+            with self.subTest(station=station), freeze_time('2026-07-28 10:00:00'), \
                         patch('bustime.views.urllib.request.urlopen') as m:
-                    m.return_value.read.return_value = self.page
-                    self.client.get(reverse('bustime:bustime_main'),
-                                    {'station': station})
-                    self.assertIn(expected, m.call_args[0][0])
+                m.return_value.read.return_value = self.page
+                self.client.get(reverse('bustime:bustime_main'),
+                                {'station': station})
+                self.assertIn(expected, m.call_args[0][0])
 
     def test_hot_day_is_true_in_summer(self):
         """Drives a hot-weather warning; the window is July to September."""

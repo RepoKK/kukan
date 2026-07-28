@@ -201,7 +201,6 @@ class TestAjaxRowRendering(AjaxListTestBase):
         self.assertEqual(data['table_data']['data'][0]['kanken'], '準１級')
 
     def test_datetime_is_formatted_to_the_minute(self):
-        import re
         data = self.get_ajax('kukan:example_list', 単語='斌')
         self.assertRegex(data['table_data']['data'][0]['updated_time'],
                          r'^\d{4}\.\d{2}\.\d{2} \d{2}:\d{2}$')

@@ -15,30 +15,36 @@ Single self-hosted CentOS Stream 9 box, Apache + mod_wsgi + SQLite.
 
 ## Running it
 
-The venv lives at `.venv/` (Python 3.11). There is no activate step in the commands below;
-`.venv/bin/python` is enough **except** that the test suite needs a real prefix on `sys.path`,
-which it now derives from `sys.prefix` rather than `$VIRTUAL_ENV`.
+Dependencies are managed by [uv](https://docs.astral.sh/uv/). `pyproject.toml` lists the direct
+ones, `uv.lock` pins the full transitive set and is committed — there is no `requirements.txt`.
+`uv sync` builds `.venv/`; `uv run` uses it without an activate step.
 
 ```bash
-.venv/bin/python manage.py check
-.venv/bin/python manage.py test              # 411 tests, ~36 s
-.venv/bin/python manage.py smoke_urls        # GETs every no-arg URL as a superuser
-.venv/bin/python manage.py runserver
+uv sync                              # or `uv sync --locked` to fail on a stale lock
+uv run manage.py check
+uv run manage.py test                # 425 tests, ~34 s
+uv run manage.py test --shuffle      # randomised order; what CI runs
+uv run manage.py smoke_urls          # GETs every no-arg URL as a superuser
+uv run manage.py runserver
+uv run ruff check .                  # and `--fix` to apply
 ```
+
+After editing `pyproject.toml`, run `uv lock` and commit the result. CI uses `--locked`, so a
+forgotten lock fails the build rather than silently resolving to different versions.
 
 `smoke_urls` is the cheap breadth-first net: it proves each view imports, its template compiles
 and its queries run. Use it after any dependency or template change.
 
 A development database goes at `db.sqlite3` in this directory (gitignored via `*db*`). Get one
 from the nightly Dropbox backup rather than building it from fixtures — several views only show
-their interesting behaviour with real data.
+their interesting behaviour with real data. That copy carries real password hashes, a live PSN
+token and live sessions, so strip them before using it anywhere but your own machine:
+
+```bash
+uv run manage.py scrub_local_db --yes-i-am-not-in-production
+```
 
 ## Things that will bite you
-
-- **`settings.py` appends `mod_wsgi.server` to `INSTALLED_APPS` on Linux**, but `mod_wsgi` is not
-  in `requirements.txt`. Nothing in the repo calls it — Apache uses its own compiled `.so`. Until
-  those two lines go, a Linux dev box needs `dnf install httpd-devel` and `pip install mod_wsgi`
-  or *every* `manage.py` command fails on import.
 - **`tempmon/views.py` runs a DB query and a PSN network login at import time.** With no
   `db.sqlite3` present every command logs `OperationalError: no such table: tempmon_psnapikey`.
   It is caught and harmless, but it is why the module is hard to test.

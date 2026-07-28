@@ -1,17 +1,18 @@
 import functools
-import os
-import inspect
 import importlib
+import inspect
+import os
 import pickle
-from io import StringIO
 from abc import ABC, abstractmethod
+from io import StringIO
 from unittest.mock import patch
 
 import requests
-from django.core.management import call_command
 from django.conf import settings
-from kukan.models import Kanji
+from django.core.management import call_command
+
 from kukan import models
+from kukan.models import Kanji
 
 # To create the fixtures, run some of the following from the console
 #
@@ -122,7 +123,7 @@ class FixtureKanji(FixtureModelLevel):
 
 
 class FixWebContents(TestHelpers):
-    """
+    r"""
     Class used to create a file with the content of a web page.
     To be used with Mock for testing
 

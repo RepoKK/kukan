@@ -1,8 +1,10 @@
 import json
+import re
+
 from django import template
 from django.utils.safestring import mark_safe
+
 from kukan.jautils import JpnText, kat2hir
-import re
 
 register = template.Library()
 
@@ -27,7 +29,7 @@ def add_furigana(plain_text, furigana_text):
     """Add furigana as Ruby HTML on top of text"""
 
     if furigana_text:
-        res = mark_safe('<ruby>{}<rt>{}</rt></ruby>'.format(plain_text, furigana_text.translate(kat2hir)))
+        res = mark_safe(f'<ruby>{plain_text}<rt>{furigana_text.translate(kat2hir)}</rt></ruby>')
     else:
         res = plain_text
     return res
@@ -65,7 +67,7 @@ def render_single_field(field, is_horizontal=False):
 @register.simple_tag()
 def add_vuejs_field_properties(form):
     list_vuejs_prop = []
-    for name, field in form.fields.items():
+    for name, _field in form.fields.items():
         list_vuejs_prop.append("{}: {},".format(name, json.dumps(form[name].value() or '')))
-        list_vuejs_prop.append("{}_notifications: {{ items: [], type: 'is-info' }},".format(name))
+        list_vuejs_prop.append(f"{name}_notifications: {{ items: [], type: 'is-info' }},")
     return mark_safe('\n'.join(list_vuejs_prop))

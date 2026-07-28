@@ -5,22 +5,22 @@ from functools import reduce
 
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.core.paginator import Paginator, EmptyPage
+from django.core.paginator import EmptyPage, Paginator
 from django.db.models import Count
 from django.http import JsonResponse
-from django.urls import reverse
-from django.urls import reverse_lazy
+from django.urls import reverse, reverse_lazy
 from django.utils import timezone
 from django.views import generic
 from django.views.generic.base import TemplateView
-from django.views.generic.edit import CreateView, UpdateView, DeleteView
+from django.views.generic.edit import CreateView, DeleteView, UpdateView
 
 from kukan.exporting import ExporterAsResp
 from kukan.jautils import JpnText
 from kukan.onlinepedia import DefinitionWordBase
+
 from .filters import *
-from .forms import SearchForm, ExampleForm, ExportForm, KotowazaForm
-from .models import Kanji, Reading, Example, ExMap, Yoji, TestResult, Kotowaza
+from .forms import ExampleForm, ExportForm, KotowazaForm, SearchForm
+from .models import Example, ExMap, Kanji, Kotowaza, Reading, TestResult, Yoji
 
 logger = logging.getLogger(__name__)
 
@@ -110,7 +110,7 @@ class TableData:
                 'visible': True
             }
             self.get_choice_display = None
-            meta = getattr(model, '_meta')
+            meta = model._meta
             if in_props['name'] in [x.name for x in meta.get_fields()]:
                 fld = meta.get_field(in_props['name'])
                 if self.props['type'] == '':
@@ -123,7 +123,7 @@ class TableData:
 
                 choices_list = getattr(fld, 'choices', None)
                 if choices_list is not None:
-                    self.get_choice_display = {x: y for x, y in choices_list}
+                    self.get_choice_display = dict(choices_list)
 
                 self.props.update({
                     'label': fld.verbose_name if fld.verbose_name != '' else fld.name,
@@ -243,7 +243,7 @@ class AjaxList(LoginRequiredMixin, generic.TemplateView):
     # noinspection PyUnusedLocal
     def get_stats(self, qry, p, start_time, end_time):
         return [str(p.count) + ' ' + self.object_counter,
-                'Q:' + '{:d}'.format(int((end_time - start_time)*1000))]
+                'Q:' + f'{int((end_time - start_time)*1000):d}']
 
     def get_filtered_list(self, request):
         qry = self.model.objects.all()
@@ -473,7 +473,7 @@ def yoji_anki(request):
     if operation in ['add', 'remove']:
         try:
             yoji = Yoji.objects.get(yoji=req_yoji)
-            yoji.in_anki = True if operation == 'add' else False
+            yoji.in_anki = operation == 'add'
             yoji.save()
             status = 'success'
             in_anki = 'true' if yoji.in_anki else 'false'
@@ -529,7 +529,7 @@ def get_yomi(request):
             reading_data['selected'] = None
             readings_output.append(None)
 
-        ex_map_in_joyo = joyo_members.get(idx, None)
+        ex_map_in_joyo = joyo_members.get(idx)
         if ex_map_in_joyo:
             r = ExMap.ateji_option_disp if ex_map_in_joyo.is_ateji else ex_map_in_joyo.reading.reading
             if r != reading_data['selected'] or ex_map_in_joyo.kanji.kanji != kj:
@@ -559,7 +559,7 @@ def get_similar_word(request):
     sim_count = qry_sim.count()
     if sim_count > 0:
         str_more = '、...' if sim_count > 5 else ''
-        sim_word = ['単語を含む既存の例文（{}件）：'.format(sim_count),
+        sim_word = [f'単語を含む既存の例文（{sim_count}件）：',
                     '、'.join([x.word + ('（' + x.yomi + '）' if x.yomi != '' else '')
                               for x in qry_sim[:5]]) + str_more]
     else:
@@ -577,12 +577,9 @@ def get_goo(request):
         word = request.GET.get('word', None)
     link = request.GET.get('link', None)
 
-    logger.info('word: [{}], link: [{}]'.format(word, link))
+    logger.info(f'word: [{word}], link: [{link}]')
 
-    if link:
-        definition_word = DefinitionWordBase.from_link(link)
-    else:
-        definition_word = DefinitionWordBase.from_word(word)
+    definition_word = DefinitionWordBase.from_link(link) if link else DefinitionWordBase.from_word(word)
 
     if definition_word:
         definition, yomi, candidates = definition_word.get_definition()
@@ -591,7 +588,7 @@ def get_goo(request):
 
     data = {'definition': definition, 'reading': yomi, 'candidates': candidates if len(candidates) > 0 else ''}
 
-    logger.info('data: {}'.format(data))
+    logger.info(f'data: {data}')
 
     return JsonResponse(data)
 

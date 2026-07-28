@@ -10,8 +10,8 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/2.0/ref/settings/
 """
 
+import contextlib
 import os
-import sys
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -45,9 +45,6 @@ INSTALLED_APPS = [
     'bustime',
     'tempmon'
 ]
-
-if sys.platform == 'linux':
-    INSTALLED_APPS.append('mod_wsgi.server')
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -228,7 +225,5 @@ ANKI_ACCOUNTS = {
               'backup': False}
 }
 
-try:
+with contextlib.suppress(ImportError):
     from kukansite.settings_prod import *
-except ImportError as e:
-    pass

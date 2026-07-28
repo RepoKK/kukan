@@ -11,7 +11,7 @@ from unittest.mock import patch
 
 from django.conf import settings
 from django.core.management import call_command
-from django.test import SimpleTestCase, override_settings, TestCase
+from django.test import SimpleTestCase, TestCase, override_settings
 from freezegun import freeze_time
 from pyfakefs.fake_filesystem_unittest import TestCaseMixin
 
@@ -40,7 +40,7 @@ class OrderFromAttrDecorator(TestCase):
 
     def assertListStrictlyIdentical(self, first, second):
         self.assertCountEqual(first, second)
-        for a, b in zip(first, second):
+        for a, b in zip(first, second, strict=False):
             self.assertIs(a, b)
 
     def test_all(self):
@@ -137,14 +137,13 @@ class TestPerRunFileHandler(SimpleTestCase, TestCaseMixin):
         with self.get_handler('test_base_name') as handler:
             handler.setLevel(logging.DEBUG)
 
-        self.assertEqual(r'<PerRunFileHandler {} {} (DEBUG)>'.format(
-            self.log_dir, handler.log_file_name), repr(handler))
+        self.assertEqual(rf'<PerRunFileHandler {self.log_dir} {handler.log_file_name} (DEBUG)>', repr(handler))
         mock.assert_called()
 
     def test_logs_house_cleaning(self):
         prev_logs = 'prev_logs'
         logs_dir = self.log_dir
-        list_existing_log_file = ['{}_20180130-12000{}.log'.format(self.base_name, idx) for idx in range(10)]
+        list_existing_log_file = [f'{self.base_name}_20180130-12000{idx}.log' for idx in range(10)]
         list_extra_file = ['dummy', 'dummy2']
 
         for file_path in [os.path.join(logs_dir, f) for f in list_existing_log_file + list_extra_file]:
@@ -163,18 +162,18 @@ class TestPerRunFileHandler(SimpleTestCase, TestCaseMixin):
 
         # Case a new file has same timestamp as a backed up one
         os.remove(os.path.join(logs_dir, handler.log_file_name))
-        file2 = '{}_20180130-120005.log'.format(self.base_name)
+        file2 = f'{self.base_name}_20180130-120005.log'
         self.fs.create_file(os.path.join(logs_dir, file2), contents=file2)
 
         with self.get_handler(backup_count=10) as handler:
             self.assertCountEqual(os.listdir(logs_dir), ['dummy', 'dummy2', handler.log_file_name, prev_logs])
             self.assertCountEqual(os.listdir(os.path.join(logs_dir, prev_logs)),
-                                  [f + '.bz2' for f in list_existing_log_file[2:] + [file1, file2[:-4] + '_1.log']])
+                                  [f + '.bz2' for f in [*list_existing_log_file[2:], file1, file2[:-4] + '_1.log']])
 
 
 class TestFBaseCommand(TestCase, TestCaseMixin):
     def setUp(self):
-        current_dir = Path.cwd()
+        Path.cwd()
         self.setUpPyfakefs()
         # sys.prefix is the virtualenv root when running inside one, and the
         # interpreter prefix otherwise. Unlike VIRTUAL_ENV it is always set, so
@@ -202,11 +201,11 @@ class TestFBaseCommand(TestCase, TestCaseMixin):
         self.handler.close()
         self.handler = None
 
-    class MakeTestCmd(object):
+    class MakeTestCmd:
         def __call__(self, decorated):
             decorated.cmd_name = 'test_f_base_cmd'
             decorated.default_handler_name = 'default_file_test'
-            decorated.__module__ = '{}.{}'.format(__name__, decorated.cmd_name)
+            decorated.__module__ = f'{__name__}.{decorated.cmd_name}'
             return decorated
 
     @MakeTestCmd()
@@ -247,7 +246,7 @@ class TestFBaseCommand(TestCase, TestCaseMixin):
         )
         end_string = 'TTT End execution, took 0 minutes\n'
 
-        with open(os.path.join(self.log_dir, cmd_log_name), 'r') as f:
+        with open(os.path.join(self.log_dir, cmd_log_name)) as f:
             self.assertEqual(
                 start_string + 'TTT Test\n' + end_string,
                 str(f.read()))
@@ -267,8 +266,7 @@ class TestFBaseCommand(TestCase, TestCaseMixin):
             call_command(Command())
 
             with open(glob.glob(os.path.join(self.log_dir, Command.cmd_name + '*'))[0]) as f:
-                self.assertIn('Execution of command {} took more than {} minutes'.format(
-                    Command.cmd_name, Command.warning_time), str(f.read()))
+                self.assertIn(f'Execution of command {Command.cmd_name} took more than {Command.warning_time} minutes', str(f.read()))
 
     @freeze_time("2019-01-14 03:21:34")
     def test_lock_model_repr(self):
@@ -286,9 +284,9 @@ class TestFBaseCommand(TestCase, TestCaseMixin):
         rec_expected_repr = 'Command test_cmd (1234), start time: 2019-01-14 03:21:34+00:00'
         with self.assertRaises(FBaseCommand.CommandInProgress):
             call_command(TestFBaseCommand.DummyCommand())
-        with open(self.info_log_path, 'r') as f:
+        with open(self.info_log_path) as f:
             self.assertEqual(
-                'TTT Failed to run test_f_base_cmd, already running command: {}\n'.format(rec_expected_repr),
+                f'TTT Failed to run test_f_base_cmd, already running command: {rec_expected_repr}\n',
                 str(f.read()))
 
         try:
@@ -389,8 +387,8 @@ class TestSetCron(TestCase):
             with patch('utils_django.management.commands.set_cron.subprocess') as mock_sp:
                 call_command('set_cron', '--exec', stdout=out)
                 self.assertEqual(
-                    ('05 12 * * 1-5 source {}; '
-                     'python base/manage.py test_cmd\n'.format(self.virtual_env)),
+                    (f'05 12 * * 1-5 source {self.virtual_env}; '
+                     'python base/manage.py test_cmd\n'),
                     mock_sp.Popen.mock_calls[1][1][0].decode()
                 )
 

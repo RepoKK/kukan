@@ -23,5 +23,5 @@ def field_name(obj, field):
 def get(o, index):
     try:
         return o[index]
-    except:
+    except Exception:
         return "ERROR my filter get"

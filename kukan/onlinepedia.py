@@ -1,9 +1,10 @@
-from abc import ABC, abstractmethod
-from lxml import html
-import requests
-import re
-import html2text
 import logging
+import re
+from abc import ABC, abstractmethod
+
+import html2text
+import requests
+from lxml import html
 
 import kukan.jautils as jau
 
@@ -83,7 +84,7 @@ class DefinitionKanjipedia(DefinitionWordBase):
     word_base_link = 'https://www.kanjipedia.jp/'
 
     def search_def(self):
-        link = 'https://www.kanjipedia.jp/search?k={}&wt=1&sk=perfect'.format(self.word)
+        link = f'https://www.kanjipedia.jp/search?k={self.word}&wt=1&sk=perfect'
         page = requests.get(link)
         logger.info(f'Search Kanjipedia: {link}')
 
@@ -109,14 +110,19 @@ class DefinitionKanjipedia(DefinitionWordBase):
             self.yomi = self.yomi.replace('－', '')
             for i, p in enumerate(pg.xpath('//*[@id="kotobaExplanationSection"]/p')):
                 text = html.tostring(p, encoding='unicode')
-                text = re.sub(r'<span>(.*?)</span>', r'**【\1】**　', text, re.MULTILINE)
+                # NB: re.MULTILINE used to be passed positionally here, which
+                # is re.sub's `count` parameter, not `flags` — so these only
+                # ever replaced the first 8 matches (re.MULTILINE == 8) and the
+                # flag was never applied. Definitions with more than 8 spans or
+                # images kept the rest as raw HTML.
+                text = re.sub(r'<span>(.*?)</span>', r'**【\1】**　', text, flags=re.MULTILINE)
                 h = html2text.HTML2Text()
                 h.ignore_links = True
-                text = re.sub(r'<img.[^,>]+ alt="">', r'=>　', text, re.MULTILINE)
+                text = re.sub(r'<img.[^,>]+ alt="">', r'=>　', text, flags=re.MULTILINE)
                 text = h.handle(re.sub(r'<img.*? alt="(.*?)"(?: class="imgSize\d+")?>',
-                                       r'**【\1】**　', text, re.MULTILINE))
+                                       r'**【\1】**　', text, flags=re.MULTILINE))
                 if i == 0:
-                    text = text.translate({ord('①') + i: '\n\n{}. '.format(1 + i) for i in range(20)})
+                    text = text.translate({ord('①') + i: f'\n\n{1 + i}. ' for i in range(20)})
                 self.definition += text
             self.definition = self.definition.strip()
         except IndexError:
@@ -130,7 +136,7 @@ class DefinitionGoo(DefinitionWordBase):
     word_base_link = 'https://dictionary.goo.ne.jp'
 
     def search_def(self):
-        link = 'https://dictionary.goo.ne.jp/srch/jn/{}/m1u/'.format(self.word)
+        link = f'https://dictionary.goo.ne.jp/srch/jn/{self.word}/m1u/'
         page = requests.get(link)
         logger.info(f'Search Goo: {link}')
 

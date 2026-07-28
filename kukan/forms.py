@@ -1,11 +1,12 @@
 from django.db import transaction
-from django.forms import Form, ModelForm, CharField, TextInput, ChoiceField, Select, ValidationError
+from django.forms import CharField, ChoiceField, Form, ModelForm, Select, TextInput, ValidationError
 from django.utils.translation import gettext_lazy as _
 
 import kukan.jautils as jau
 from kukan.anki_dj import AnkiProfile
 from kukan.jautils import JpnText
-from .models import Kanji, Example, Kotowaza
+
+from .models import Example, Kanji, Kotowaza
 
 
 class SearchForm(Form):
@@ -87,7 +88,7 @@ class BForm(ModelForm):
         @staticmethod
         def override_widget_template(f, **kwargs):
             formfield = f.formfield(**kwargs)
-            if type(formfield.widget) in BForm.Meta.override.keys():
+            if type(formfield.widget) in BForm.Meta.override:
                 formfield.widget.template_name = BForm.Meta.override[type(formfield.widget)]
             return formfield
 
@@ -176,7 +177,7 @@ class ExampleForm(BForm):
         return sentence
 
     def clean(self):
-        cleaned_data = super(ExampleForm, self).clean()
+        cleaned_data = super().clean()
         sentence = cleaned_data.get('sentence')
         yomi = cleaned_data.get('yomi')
         word = cleaned_data.get('word_native')
@@ -217,14 +218,14 @@ class ExampleForm(BForm):
                                    params={'word': word}))
 
         if cleaned_data.get('ex_kind') == Example.JUKUICHI:
-            if not '・' in word:
+            if '・' not in word:
                 self.add_error('word',
                                ValidationError(
                                    _('単語「%(word)s」には「・」が含まれていない'),
                                    code='invalid',
                                    params={'word': word}))
 
-            if not '・' in yomi:
+            if '・' not in yomi:
                 self.add_error('yomi',
                                ValidationError(
                                    _('読み「%(yomi)s」には「・」が含まれていない'),

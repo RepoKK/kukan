@@ -18,7 +18,7 @@ class OrderFromAttr:
         return operator_function
 
     def __call__(self, cls):
-        for opname in ['__{}__'.format(i) for i in self.comp_operators]:
+        for opname in [f'__{i}__' for i in self.comp_operators]:
             setattr(cls, opname, self.create_operator_function(opname))
         return cls
 

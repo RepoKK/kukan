@@ -25,8 +25,19 @@ import datetime as dt
 from django.core.exceptions import ValidationError
 from django.test import TestCase
 
-from kukan.models import (Bunrui, Example, ExMap, Kanji, Kanken, Kotowaza,
-                          Reading, TestResult, TestSource, Yoji, YomiJoyo)
+from kukan.models import (
+    Bunrui,
+    Example,
+    ExMap,
+    Kanji,
+    Kanken,
+    Kotowaza,
+    Reading,
+    TestResult,
+    TestSource,
+    Yoji,
+    YomiJoyo,
+)
 
 
 class ReadingRenderingTest(TestCase):

@@ -1,12 +1,12 @@
+import itertools
 import json
 import logging
-from datetime import timedelta
-from datetime import datetime
+from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
+from django import forms
 from django.conf import settings
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django import forms
 from django.core.exceptions import ValidationError
 from django.db import OperationalError
 from django.http import JsonResponse
@@ -14,15 +14,13 @@ from django.urls import reverse_lazy
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import DetailView, UpdateView
 from psnawp_api import PSNAWP
-from psnawp_api.core.psnawp_exceptions import PSNAWPNotFound, \
-    PSNAWPAuthenticationError
+from psnawp_api.core.psnawp_exceptions import PSNAWPAuthenticationError, PSNAWPNotFound
+from psnawp_api.utils.endpoints import API_PATH, BASE_PATH
 
-from kukan.filters import FGenericDateRange, FGenericMinMax, FFilter, \
-    FGenericString
+from kukan.filters import FFilter, FGenericDateRange, FGenericMinMax, FGenericString
 from kukan.forms import BForm
 from kukan.views import AjaxList, TableData
-from tempmon.models import PlaySession, DataPoint, PsGame, PsnApiKey
-from psnawp_api.utils.endpoints import BASE_PATH, API_PATH
+from tempmon.models import DataPoint, PlaySession, PsGame, PsnApiKey
 
 logger = logging.getLogger(__name__)
 
@@ -75,10 +73,7 @@ class PSN:
 
 # Global instance to avoid the overhead everytime this is called
 try:
-    if (token := PsnApiKey.objects.first().code) != '__dummy__':
-        psn = PSN(token)
-    else:
-        psn = None
+    psn = PSN(token) if (token := PsnApiKey.objects.first().code) != '__dummy__' else None
 except PSNAWPAuthenticationError as e:
     logger.error(f'Failed to login to PSN: {e}')
     psn = None
@@ -104,7 +99,7 @@ class PsnApiKeyForm(BForm):
         try:
             new_psn = PSN(new_token)
         except PSNAWPAuthenticationError as e:
-            raise ValidationError(f'Failed to authenticate: {e}')
+            raise ValidationError(f'Failed to authenticate: {e}') from e
 
         self.cleaned_data['new_psn'] = new_psn
 
@@ -119,7 +114,7 @@ def add_temp_point(request):
 
         if body.pop('API_KEY', None) != settings.TEMPMON_API_KEY:
             logger.error('Received tempmon data with wrong API_KEY')
-            return JsonResponse({'result': f'Failure - wrong API_KEY'})
+            return JsonResponse({'result': 'Failure - wrong API_KEY'})
 
         pt = DataPoint(**body)
         PlaySession.add_point(pt, psn.get_current_game())
@@ -161,7 +156,7 @@ class TempMonViewMixin:
     """Mixin used to display the Tempmon header in red if not logged"""
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['psn_ok'] = (psn != None)
+        context['psn_ok'] = (psn is not None)
         return context
 
 
@@ -249,7 +244,7 @@ class PlaySessionGraphView(LoginRequiredMixin, TempMonViewMixin, DetailView):
         context['temp_delta'] = [
             {'x': (t2 - session.start_time.timestamp())/60,
              'y': d[t2][0] - d[t1][0]}
-            for t1, t2 in zip(list_time, list_time[1:])
+            for t1, t2 in itertools.pairwise(list_time)
         ]
 
         unique_game_ordered = []

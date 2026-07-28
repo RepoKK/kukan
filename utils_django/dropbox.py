@@ -1,8 +1,9 @@
 import logging
+
 import dropbox
-from dropbox.files import WriteMode
-from dropbox.exceptions import ApiError, AuthError
 from django.conf import settings
+from dropbox.exceptions import ApiError, AuthError
+from dropbox.files import WriteMode
 
 logger = logging.getLogger(__name__)
 

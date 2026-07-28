@@ -68,7 +68,7 @@ class DropboxUploadTest(TestCase):
 
     def test_uploads_the_file_contents(self):
         dbx_helper.upload('/tmp/local.db', '/remote/local.db')
-        args, kwargs = self.dbx.files_upload.call_args
+        args, _kwargs = self.dbx.files_upload.call_args
         self.assertEqual(args[0], b'file-contents')
         self.assertEqual(args[1], '/remote/local.db')
 

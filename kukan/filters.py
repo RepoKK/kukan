@@ -7,6 +7,7 @@ from datetime import datetime, timedelta
 from django.db.models import Max, Min, Q
 
 import kukan.jautils as jau
+
 from .models import KoukiBushu, Reading
 
 
@@ -46,8 +47,9 @@ class FFilter(ABC):
         self.value = ''
 
     def to_json(self):
-        return "{{'name':'{}', 'label':'{}', 'extra':{}, 'value':'{}'}}".format(
-            self.kind, self.label, self.get_extra_json(), urllib.parse.quote(self.value))
+        return (f"{{'name':'{self.kind}', 'label':'{self.label}', "
+                f"'extra':{self.get_extra_json()}, "
+                f"'value':'{urllib.parse.quote(self.value)}'}}")
 
     def get_extra_json(self):
         return "{}"
@@ -87,7 +89,7 @@ class FGenericCheckbox(FFilter):
         sys_list = [x[self.field] for x in self.model.objects.order_by(self.order).distinct().values(self.field)]
         try:
             sys_list.pop(sys_list.index(None))
-            sys_list = [self.none_label] + sys_list if self.none_position == 'start' else sys_list + [self.none_label]
+            sys_list = [self.none_label, *sys_list] if self.none_position == 'start' else [*sys_list, self.none_label]
         except ValueError:
             pass
         ret = [{'native': idx, 'label': x, 'col': idx % self.nb_col} for idx, x in enumerate(sys_list)]
@@ -251,7 +253,7 @@ class FBushu(FFilter):
         dct = collections.defaultdict(list)
         for x in KoukiBushu.objects.values_list('bushu', 'kakusu'):
             dct[x[1]].append(x[0])
-        ret = {'listBushu': [{'strokeNumber': k, 'bushu': dct[k]} for k in dct.keys()],
+        ret = {'listBushu': [{'strokeNumber': k, 'bushu': dct[k]} for k in dct],
                'kakusu': KoukiBushu.objects.aggregate(min=Min('kakusu'), max=Max('kakusu'))}
         return json.dumps(ret)
 

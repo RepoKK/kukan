@@ -1,12 +1,12 @@
+import datetime as dt
+import itertools
 import pickle
 from collections import defaultdict
 from dataclasses import dataclass
-
-from django.db import models
-import datetime as dt
 from datetime import UTC
 
-from django.db.models import Sum, Max
+from django.db import models
+from django.db.models import Max, Sum
 from django.utils.timezone import now
 
 
@@ -90,7 +90,7 @@ class PlaySession(models.Model):
         d = self.data_dict
         list_of_times = sorted(d.keys())
         res = defaultdict(lambda: 0)
-        for t1, t2 in zip(list_of_times, list_of_times[1:]):
+        for t1, t2 in itertools.pairwise(list_of_times):
             res[d[t1][3]] += (t2 - t1)
         return res
 

@@ -29,8 +29,7 @@ from django.test import Client, TestCase
 from django.urls import reverse
 
 from tempmon.models import DataPoint, GamePerSessionInfo, PlaySession, PsGame
-from tempmon.views import (FGenericMinMaxDurationMin, PSN,
-                           PlaySessionGraphView, format_duration)
+from tempmon.views import PSN, FGenericMinMaxDurationMin, PlaySessionGraphView, format_duration
 
 # A session with a known shape: three games, some idle time, 10-second steps.
 SESSION_START = 1703643862  # 2023-12-27T11:24:22+09:00

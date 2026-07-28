@@ -1,8 +1,8 @@
 import re
-from janome.tokenizer import Tokenizer
 from multiprocessing.connection import Client
 
 from django.conf import settings
+from janome.tokenizer import Tokenizer
 
 katakana_chart = ('ァアィイゥウェエォオカガキギクグケゲコゴサザシジスズセゼソゾタダチヂッツヅテデトドナニヌネノ'
                   'ハバパヒビピフブプヘベペホボポマミムメモャヤュユョヨラリルレロヮワヰヱヲンヴヵヶヽヾ')
@@ -60,15 +60,13 @@ class JpnText:
             return self.origin
 
         def furigana_bracket(self):
-            return '[{}|{}|f]'.format(self.origin, self.furigana) if self.furigana else self.origin
+            return f'[{self.origin}|{self.furigana}|f]' if self.furigana else self.origin
 
         def furigana_ruby(self):
-            return '<ruby>{}<rt>{}</rt></ruby>'.format(
-                self.origin, self.furigana) if self.furigana else self.origin
+            return f'<ruby>{self.origin}<rt>{self.furigana}</rt></ruby>' if self.furigana else self.origin
 
         def furigana_simple(self):
-            return ' {}[{}]'.format(
-                self.origin, self.furigana) if self.furigana else self.origin
+            return f' {self.origin}[{self.furigana}]' if self.furigana else self.origin
 
         def hiragana(self):
             return self.furigana or self.origin.translate(kat2hir)
@@ -91,7 +89,7 @@ class JpnText:
             sentinel_text = 'sentinel'
             kanji_pattern = '[一-龥]'
             if re.search(kanji_pattern, origin):
-                split_token = re.split(u'({}+)'.format(kanji_pattern), '{0}{1}{0}'.format(sentinel_text, origin))
+                split_token = re.split(f'({kanji_pattern}+)', f'{sentinel_text}{origin}{sentinel_text}')
 
                 pre_kanji = split_token[0][len(sentinel_text):] if split_token[0] != sentinel_text else ''
                 post_kanji = split_token[-1][:-len(sentinel_text)] if split_token[-1] != sentinel_text else ''
@@ -102,7 +100,7 @@ class JpnText:
                 if not all([furigana.startswith(pre_kanji.translate(kat2hir)),
                             furigana.endswith(post_kanji.translate(kat2hir)),
                             kanji, kana]):
-                    raise ValueError('origin [{}] does not match furigana [{}]'.format(origin, furigana))
+                    raise ValueError(f'origin [{origin}] does not match furigana [{furigana}]')
 
                 if pre_kanji:
                     token_list.append(cls(pre_kanji))
@@ -111,7 +109,7 @@ class JpnText:
                     token_list.append(cls(post_kanji))
             else:
                 if origin.translate(kat2hir) != furigana and origin not in katakana_chart:
-                    raise ValueError('origin [{}] does not match furigana [{}]'.format(origin, furigana))
+                    raise ValueError(f'origin [{origin}] does not match furigana [{furigana}]')
                 token_list = [cls(origin)]
 
             return token_list
@@ -191,10 +189,9 @@ class JpnText:
         self._furigana_errors = []
         reconverted = self.furigana('none')
         if self.text != reconverted:
-            self._furigana_errors.append('元の文章を復元出来ない: 「{}」'.format(reconverted))
-        if self.expected_yomi:
-            if self.hiragana() != self.expected_yomi:
-                self._furigana_errors.append('推測振り仮名と元の読み方が合致しない')
+            self._furigana_errors.append(f'元の文章を復元出来ない: 「{reconverted}」')
+        if self.expected_yomi and self.hiragana() != self.expected_yomi:
+            self._furigana_errors.append('推測振り仮名と元の読み方が合致しない')
 
     def get_furigana_errors(self):
         return self._furigana_errors

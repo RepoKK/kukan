@@ -124,7 +124,7 @@ class FBaseCommand(BaseCommand):
             except Exception as e:
                 logger.exception(e)
                 logger.error(f'Failed to complete a command '
-                             f'{self.cmd_name}: {str(e)}')
+                             f'{self.cmd_name}: {e!s}')
                 raise e
 
             time_spent = (time.time() - start_time) / 60

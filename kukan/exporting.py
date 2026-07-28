@@ -11,7 +11,8 @@ from django.template.loader import render_to_string
 from kukan.anki_dj import AnkiProfile
 from kukan.jautils import JpnText
 from kukan.templatetags.ja_tags import furigana_ruby
-from .models import Kanji, Example, Yoji
+
+from .models import Example, Kanji, Yoji
 
 
 class Exporter:
@@ -88,10 +89,10 @@ class Exporter:
                                           if len(alt) > 1 else '') for alt in
                                 [std_to_alt.get(k, k) for k in word]])
             if word != alt_word:
-                word = word + '[{}]'.format(alt_word)
+                word = word + f'[{alt_word}]'
 
             if example.word_variation != '':
-                word += '\n（{}）'.format(example.word_variation)
+                word += f'\n（{example.word_variation}）'
 
             writer.writerow(['Kakitori', '書き取り',
                              example.id,
@@ -132,10 +133,10 @@ class Exporter:
                                           if len(alt) > 1 else '') for alt in
                                 [std_to_alt.get(k, k) for k in word]])
             if word != alt_word:
-                word = word + '[{}]'.format(alt_word)
+                word = word + f'[{alt_word}]'
 
             if example.word_variation != '':
-                word += '\n（{}）'.format(example.word_variation)
+                word += f'\n（{example.word_variation}）'
 
             writer.writerow(['Yomi',
                              '読み',
@@ -195,7 +196,7 @@ class Exporter:
             test_end[yoji.yoji[2:4]].append(yoji.yoji[0:2])
 
         for yoji in Yoji.objects.filter(in_anki=True):
-            cloze = "{{{{c{0}::{1}::{2}}}}}{{{{c{3}::{4}::{5}}}}}".format(
+            cloze = "{{{{c{}::{}::{}}}}}{{{{c{}::{}::{}}}}}".format(
                 yoji.anki_cloze[0],
                 yoji.yoji[0:2],
                 '、'.join([x for x in test_end[yoji.yoji[2:4]]

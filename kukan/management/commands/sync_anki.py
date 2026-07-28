@@ -17,8 +17,8 @@ class Command(FBaseCommand):
             '--profile',
             dest='profile',
             default='',
-            help=f'Only sync this profile'
-                 f' (all defined profiles are sync by default)',
+            help='Only sync this profile'
+                 ' (all defined profiles are sync by default)',
         )
         parser.add_argument(
             '--max_delete_count',

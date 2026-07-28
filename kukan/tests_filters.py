@@ -25,11 +25,18 @@ import json
 
 from django.test import RequestFactory, TestCase
 
-from kukan.filters import (FBushu, FFilter, FGenericCheckbox, FGenericDateRange,
-                           FGenericMinMax, FGenericString, FGenericYesNo,
-                           FYomi, FYomiSimple)
-from kukan.models import (Classification, JisClass, Kanji, Kanken, KoukiBushu,
-                          Reading, YomiJoyo, YomiType)
+from kukan.filters import (
+    FBushu,
+    FFilter,
+    FGenericCheckbox,
+    FGenericDateRange,
+    FGenericMinMax,
+    FGenericString,
+    FGenericYesNo,
+    FYomi,
+    FYomiSimple,
+)
+from kukan.models import Classification, JisClass, Kanji, Kanken, KoukiBushu, Reading, YomiJoyo, YomiType
 
 
 class FilterTestBase(TestCase):
@@ -92,7 +99,7 @@ class FilterTestBase(TestCase):
         """Assert the kanji surviving `flt_string`, as an unordered set."""
         qry = Kanji.objects.all() if qry is None else qry
         result = flt_obj.add_to_query(flt_string, qry)
-        self.assertEqual(set(k.kanji for k in result), set(expected))
+        self.assertEqual({k.kanji for k in result}, set(expected))
 
 
 class TestFFilterRequestPlumbing(FilterTestBase):
@@ -110,7 +117,7 @@ class TestFFilterRequestPlumbing(FilterTestBase):
     def test_present_parameter_is_applied(self):
         request = self.factory.get('/kanji/list/', {'画数': '5'})
         result = self.flt.filter(request, Kanji.objects.all())
-        self.assertEqual(set(k.kanji for k in result), {'汀', '叩'})
+        self.assertEqual({k.kanji for k in result}, {'汀', '叩'})
 
     def test_empty_parameter_raises_known_defect(self):
         """KNOWN DEFECT, pinned rather than endorsed.
@@ -254,7 +261,7 @@ class TestFYomiSimple(FilterTestBase):
 
     def assertReadings(self, flt_string, expected):
         result = self.flt.add_to_query(flt_string, Reading.objects.all())
-        self.assertEqual(set(r.reading_simple for r in result), set(expected))
+        self.assertEqual({r.reading_simple for r in result}, set(expected))
 
     def test_starts_with(self):
         self.assertReadings('こ_位始', ['こう'])
@@ -355,7 +362,7 @@ class TestFGenericDateRange(TestCase):
 
     def assertStarts(self, flt_string, expected):
         result = self.flt.add_to_query(flt_string, self.model.objects.all())
-        self.assertEqual(set(s.start_time for s in result), set(expected))
+        self.assertEqual({s.start_time for s in result}, set(expected))
 
     def test_single_date_covers_the_whole_jst_day(self):
         """Both 00:30 and 23:30 JST belong to 2024-01-01, and nothing else does.

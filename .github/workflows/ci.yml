@@ -1,0 +1,102 @@
+name: CI
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+  # The suite talks to no network service, so a weekly run is a cheap way to
+  # notice a dependency that has gone missing or a base image that has moved.
+  schedule:
+    - cron: '0 3 * * 1'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Anything that reaches for the network in a test is a bug; these make the
+  # failure obvious rather than slow.
+  PYTHONWARNINGS: default
+  PYTHONDONTWRITEBYTECODE: '1'
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Install dependencies
+        run: uv sync --locked
+
+      - name: ruff check
+        run: uv run ruff check --output-format=github .
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      # --locked fails rather than silently re-resolving, so a pyproject edit
+      # that was not accompanied by `uv lock` is caught here instead of
+      # producing a CI run against different versions than anyone tested.
+      - name: Install dependencies
+        run: uv sync --locked
+
+      - name: Django system checks
+        run: uv run manage.py check
+
+      # The repo has no unapplied model changes; a missing migration otherwise
+      # only shows up on deploy.
+      - name: No missing migrations
+        run: uv run manage.py makemigrations --check --dry-run
+
+      # --shuffle randomises test order. The suite shares fixtures heavily, so
+      # this is what catches a test that only passes because another one ran
+      # first. The seed is printed on failure and can be replayed with
+      # `manage.py test --shuffle <seed>`.
+      - name: Tests
+        run: uv run manage.py test --shuffle
+
+      - name: Coverage
+        run: |
+          uv run coverage run manage.py test
+          uv run coverage report
+
+  # Proves the checked-in lock file still resolves and that the app boots from
+  # a clean install, which is the thing that breaks silently between stages.
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Install dependencies
+        run: uv sync --locked
+
+      # smoke_urls needs a database with a superuser in it. An empty migrated
+      # DB is enough: it proves every view imports, its template compiles and
+      # its queries run.
+      - name: Build an empty database
+        run: |
+          uv run manage.py migrate --no-input
+          uv run manage.py shell -c "
+          from django.contrib.auth.models import User
+          User.objects.create_superuser('ci', 'ci@example.com', 'ci-password')
+          "
+
+      - name: Smoke every no-argument URL
+        run: uv run manage.py smoke_urls --verbosity 2

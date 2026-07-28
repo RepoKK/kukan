@@ -22,7 +22,7 @@ class PerRunFileHandler(logging.FileHandler):
         self.logs_house_cleaning()
 
         now = datetime.datetime.strftime(datetime.datetime.now(), '%Y%m%d-%H%M%S')
-        self.log_file_name = '{}_{}.log'.format(self.log_name_base, now)
+        self.log_file_name = f'{self.log_name_base}_{now}.log'
 
         super().__init__(os.path.join(self.log_dir, self.log_file_name), 'a', encoding, delay)
 
@@ -36,7 +36,7 @@ class PerRunFileHandler(logging.FileHandler):
         :rtype: bool, True if the file is a log created by this handler.
         """
         correct_base_name = filename[:len(self.log_name_base)] == self.log_name_base
-        match_pattern = re.match(r'^{}_\d{{8}}-\d{{6}}(_\d+)?.log(.bz2)?$'.format(self.log_name_base),
+        match_pattern = re.match(rf'^{self.log_name_base}_\d{{8}}-\d{{6}}(_\d+)?.log(.bz2)?$',
                                  filename)
         return all([correct_base_name, match_pattern])
 
@@ -55,7 +55,7 @@ class PerRunFileHandler(logging.FileHandler):
             idx = 0
             while os.path.exists(target_file_name):
                 idx = idx + 1
-                target_file_name = os.path.join(log_backup_dir_path, '{}_{}.log.bz2'.format(file_name[:-4], idx))
+                target_file_name = os.path.join(log_backup_dir_path, f'{file_name[:-4]}_{idx}.log.bz2')
 
             with open(source_file_name, 'rb') as source_file, open(target_file_name, 'wb') as target_file:
                 target_file.write(bz2.compress(source_file.read(), 9))
@@ -66,4 +66,4 @@ class PerRunFileHandler(logging.FileHandler):
 
     def __repr__(self):
         level = logging.getLevelName(self.level)
-        return '<%s %s %s (%s)>' % (self.__class__.__name__, self.log_dir, self.log_file_name, level)
+        return f'<{self.__class__.__name__} {self.log_dir} {self.log_file_name} ({level})>'

@@ -1,12 +1,11 @@
-import datetime
 import datetime as dt
+import math
 import re
 import urllib.request
 from io import StringIO
+from zoneinfo import ZoneInfo
 
-import numpy as np
 import pandas as pd
-import pytz
 import requests
 from django.http import JsonResponse
 from django.views.generic import TemplateView
@@ -18,7 +17,7 @@ def get_bus_time(url, station, line, direction):
     today_type = re.search('(..)ダイヤ</a>で運行しております。',
                            page)[1]
 
-    tz = pytz.timezone('Asia/Tokyo')
+    tz = ZoneInfo('Asia/Tokyo')
     list_times = []
 
     for df in df_all:
@@ -26,7 +25,7 @@ def get_bus_time(url, station, line, direction):
                   for c in df.columns if c != '時'}
         if header == {f'【{station}】 {line} {direction}行（{today_type}）'}:
 
-            now = tz.localize(dt.datetime.now())
+            now = dt.datetime.now().replace(tzinfo=tz)
 
             df = (df.set_index('時')
                   .dropna(axis='index', how='all')
@@ -37,12 +36,10 @@ def get_bus_time(url, station, line, direction):
             for r in df.iterrows():
                 hour = r[0]
                 for minute in r[1]:
-                    if np.isnan(minute):
+                    if math.isnan(minute):
                         continue
-                    bus_time = tz.localize(
-                        dt.datetime.combine(dt.date.today(),
-                                            dt.time(hour, int(minute)))
-                    )
+                    bus_time = dt.datetime.combine(
+                        dt.date.today(), dt.time(hour, int(minute)), tzinfo=tz)
                     if bus_time > now:
                         list_times.append(bus_time)
     return list_times
@@ -103,6 +100,6 @@ class BusTimeMain(TemplateView):
                                   'class': class_main}
         context['busStopOther'] = {'name': stationOther,
                                    'class': class_other}
-        context['hot_day'] = 6 < datetime.datetime.now().month < 10
+        context['hot_day'] = 6 < dt.datetime.now().month < 10
         return context
 

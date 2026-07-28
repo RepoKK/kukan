@@ -20,7 +20,7 @@ mocks `Collection`, so the tests describe the API surface that pin protects —
 """
 import os
 import tempfile
-from unittest.mock import MagicMock, call, patch
+from unittest.mock import MagicMock, patch
 
 import pandas as pd
 from anki.sync_pb2 import SyncStatusResponse
