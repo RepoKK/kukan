@@ -34,6 +34,7 @@ RUN dnf -y install --setopt=install_weak_deps=False \
         httpd mod_ssl \
         sqlite \
         gcc \
+        curl \
     && dnf clean all \
     && rm -rf /var/cache/dnf
 
@@ -66,6 +67,11 @@ RUN openssl req -x509 -nodes -newkey rsa:2048 -days 365 \
 COPY deploy/staging-httpd.conf /etc/httpd/conf.d/kukan.conf
 COPY deploy/staging-entrypoint.sh /usr/local/bin/staging-entrypoint.sh
 RUN chmod +x /usr/local/bin/staging-entrypoint.sh
+
+# The ACME webroot. Empty in staging — there is no certificate to renew here —
+# but it has to exist for the Alias to resolve, and the entrypoint writes a
+# marker into it to prove httpd serves it rather than proxying it.
+RUN mkdir -p /opt/kukan/.well-known/acme-challenge /opt/kukan/static
 
 # httpd's stock config also listens on 80 and would collide.
 RUN sed -i 's/^Listen 80$/Listen 8080/' /etc/httpd/conf/httpd.conf \

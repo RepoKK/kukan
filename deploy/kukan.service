@@ -1,0 +1,80 @@
+# systemd unit for the kukanjiten.com application server.
+#
+# INSTALL AS:  /etc/systemd/system/kukan.service
+#
+#   sudo install -o root -g root -m 0644 deploy/kukan.service \
+#        /etc/systemd/system/kukan.service
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now kukan.service
+#   systemctl status kukan.service
+#   journalctl -u kukan.service -f
+#
+# This replaces mod_wsgi: Apache no longer runs the application in-process, it
+# proxies to this. See deploy/kukanjiten-httpd.conf and STAGE7-CUTOVER.md.
+
+[Unit]
+Description=kukanjiten.com (gunicorn)
+Documentation=https://github.com/RepoKK/kukan
+After=network-online.target
+Wants=network-online.target
+# Not Requires=: Apache serving 502s is a better failure mode than Apache being
+# down, and httpd also serves the certbot webroot, which must stay reachable
+# even when the application will not start.
+Before=httpd.service
+
+# If it crash-loops, stop trying: a missing environment variable is not going
+# to fix itself, and 'failed' in systemctl status is more visible than a
+# process silently restarting every five seconds forever. These two are [Unit]
+# options, not [Service] ones — systemd moved them in v229 and still accepts
+# the old placement silently, doing nothing.
+StartLimitIntervalSec=300
+StartLimitBurst=5
+
+[Service]
+Type=notify
+NotifyAccess=main
+
+# Same account that owns the checkout and the SQLite file today. The `kukan`
+# group is what /etc/kukan/kukan.env is readable by (root:kukan 0640).
+User=fred
+Group=kukan
+
+WorkingDirectory=/home/fred/kukan
+
+# Every secret. prod.py raises ImproperlyConfigured and the process refuses to
+# start if one is missing, so a truncated env file fails here, loudly, instead
+# of at the first request.
+EnvironmentFile=/etc/kukan/kukan.env
+Environment=DJANGO_SETTINGS_MODULE=kukansite.settings.prod
+Environment=PYTHONUNBUFFERED=1
+
+ExecStart=/home/fred/kukan/.venv/bin/gunicorn \
+    --config /home/fred/kukan/deploy/gunicorn.conf.py \
+    kukansite.wsgi:application
+
+# Graceful reload: finishes in-flight requests, then re-execs the worker. This
+# is what a deploy uses; `restart` drops connections.
+ExecReload=/bin/kill -s HUP $MAINPID
+
+KillMode=mixed
+KillSignal=SIGTERM
+TimeoutStopSec=30
+
+Restart=on-failure
+RestartSec=5
+
+# Hardening. Deliberately moderate: ProtectHome would hide /home, which is
+# where the checkout, the database and the backup directory all live.
+NoNewPrivileges=true
+PrivateTmp=true
+# /usr, /boot and /etc read-only. /home stays writable — the SQLite file, its
+# -wal and -shm siblings, and logs/ are all under it.
+ProtectSystem=full
+ProtectKernelTunables=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+
+SyslogIdentifier=kukan
+
+[Install]
+WantedBy=multi-user.target

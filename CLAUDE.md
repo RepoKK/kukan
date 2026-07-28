@@ -2,7 +2,7 @@
 
 Django site behind [kukanjiten.com](https://kukanjiten.com/) — Japanese kanji study material for
 the Kanken exam, plus an Anki sync pipeline and two bolted-on utilities (`bustime`, `tempmon`).
-Single self-hosted CentOS Stream 9 box, Apache + mod_wsgi + SQLite.
+Single self-hosted CentOS Stream 9 box, Apache in front of gunicorn, SQLite.
 Python 3.12, Django 6.0.
 
 ## Apps
@@ -64,6 +64,42 @@ KUKAN_LIVE_WEB_TESTS=1 uv run manage.py test kukan.tests.TestDefinitionReal
 
 After editing `pyproject.toml`, run `uv lock` and commit the result. CI uses `--locked`, so a
 forgotten lock fails the build rather than silently resolving to different versions.
+
+## Deployment
+
+Apache owns :443, TLS, `/static` and `/.well-known`, and proxies everything else to gunicorn on
+`127.0.0.1:8000` under systemd. It no longer loads Python. Everything needed is in `deploy/`,
+and `deploy/STAGE7-CUTOVER.md` is the runbook.
+
+| File | Installs as |
+|---|---|
+| `deploy/kukan.service` | `/etc/systemd/system/kukan.service` |
+| `deploy/kukanjiten-httpd.conf` | `/etc/httpd/conf.d/kukan.conf` |
+| `deploy/kukan.env.example` | `/etc/kukan/kukan.env` (root:kukan 0640) |
+| `deploy/gunicorn.conf.py` | read in place from the checkout |
+
+```bash
+git pull && uv sync --locked
+.venv/bin/python manage.py migrate
+.venv/bin/python manage.py collectstatic --no-input
+sudo systemctl reload kukan          # not `restart httpd` any more
+journalctl -u kukan -f
+```
+
+**`ProxyPass /` must stay below every `Alias`**, each of which needs its own
+`ProxyPass <path> !`. mod_proxy takes the first matching rule, so an alias underneath the
+catch-all is dead — and for `/.well-known` that means certbot's challenge gets proxied to
+Django, 404s, and renewal fails silently until the certificate expires.
+`kukansite/tests_deploy.py` asserts the ordering; the staging container proves it at runtime.
+
+**One worker, four threads.** One writer for one SQLite file, and one resident Janome
+`Tokenizer` (+50 MB). `DATABASES['OPTIONS']` therefore carries WAL, `busy_timeout` and
+`transaction_mode=IMMEDIATE` — four threads on one file need all three.
+
+The staging container (`Containerfile`) runs `kukansite.settings.prod` against
+`deploy/staging.env` and a scrubbed database, and refuses to start until its own checks pass.
+It is the only place the production settings module, the proxy and the TLS path get exercised
+before the live box.
 
 `smoke_urls` is the cheap breadth-first net: it proves each view imports, its template compiles
 and its queries run. Use it after any dependency or template change.

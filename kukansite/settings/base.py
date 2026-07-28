@@ -85,6 +85,33 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
+        # Concurrency. Under mod_wsgi the application was effectively a single
+        # process serving one request at a time, so none of this was needed.
+        # Gunicorn with `--threads 4` means four threads share one database
+        # file, and stock SQLite answers a contended write with an immediate
+        # "database is locked" rather than waiting.
+        #
+        #   journal_mode=WAL   readers stop blocking the writer and vice versa.
+        #                      Persisted in the file, so it survives a restart.
+        #   synchronous=NORMAL the pairing SQLite documents for WAL: still
+        #                      crash-safe, without an fsync per commit.
+        #   busy_timeout       wait up to 5s for a lock instead of failing at
+        #                      once. Covers the nightly backup and sync_anki
+        #                      jobs, which write from a separate process.
+        #
+        # transaction_mode IMMEDIATE takes the write lock when the transaction
+        # opens rather than at its first write. Without it, two transactions
+        # that both start read-only and then try to upgrade deadlock, and
+        # SQLite cannot resolve that by waiting — one gets SQLITE_BUSY with no
+        # safe retry. Requires Django 5.1+.
+        'OPTIONS': {
+            'init_command': (
+                'PRAGMA journal_mode=WAL;'
+                'PRAGMA synchronous=NORMAL;'
+                'PRAGMA busy_timeout=5000;'
+            ),
+            'transaction_mode': 'IMMEDIATE',
+        },
     }
 }
 

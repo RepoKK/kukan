@@ -10,6 +10,21 @@ cd /opt/kukan
 
 VENV=/opt/kukan/.venv/bin
 
+# Staging runs the *production* settings module, not dev. That is the whole
+# value of it: prod.py is the one that raises ImproperlyConfigured on a missing
+# variable and turns on SSL redirect, HSTS and secure cookies, and none of that
+# gets exercised anywhere else. deploy/staging.env supplies a complete set of
+# deliberately fake values so it can start.
+#
+# `set -a` exports everything the file defines — the same mechanism systemd's
+# EnvironmentFile and the cron prefix in set_cron.py use, so all three read the
+# file identically.
+set -a
+# shellcheck disable=SC1091
+. /opt/kukan/deploy/staging.env
+set +a
+export DJANGO_SETTINGS_MODULE=kukansite.settings.prod
+
 echo '==> Checking the database has been scrubbed'
 if [ ! -f db.sqlite3 ]; then
     echo 'ERROR: no db.sqlite3 in the image.' >&2
@@ -40,12 +55,13 @@ echo '==> Applying migrations'
 echo '==> Collecting static files'
 "$VENV/python" manage.py collectstatic --no-input --clear
 
+# The same config file production uses, so staging rehearses the real worker
+# and thread counts rather than a guess at them. Flags here would defeat the
+# point; anything staging-specific goes through the env vars the config reads.
 echo '==> Starting gunicorn on 127.0.0.1:8000'
-"$VENV/python" -m gunicorn kukansite.wsgi:application \
-    --bind 127.0.0.1:8000 \
-    --workers 3 \
-    --access-logfile - \
-    --error-logfile - \
+"$VENV/python" -m gunicorn \
+    --config /opt/kukan/deploy/gunicorn.conf.py \
+    kukansite.wsgi:application \
     &
 GUNICORN_PID=$!
 
@@ -65,5 +81,73 @@ for _ in $(seq 1 30); do
     sleep 1
 done
 
-echo '==> Starting httpd in the foreground on 8443'
-exec httpd -DFOREGROUND
+echo '==> Starting httpd on 8443'
+httpd -DFOREGROUND &
+HTTPD_PID=$!
+trap 'kill "$GUNICORN_PID" "$HTTPD_PID" 2>/dev/null || true' EXIT
+
+echo '==> Waiting for httpd'
+for _ in $(seq 1 30); do
+    if (echo > /dev/tcp/127.0.0.1/8443) >/dev/null 2>&1; then
+        break
+    fi
+    if ! kill -0 "$HTTPD_PID" 2>/dev/null; then
+        echo 'ERROR: httpd exited during startup.' >&2
+        exit 1
+    fi
+    sleep 1
+done
+
+# --- Rehearsal checks ---------------------------------------------------------
+# The reason this container exists. Each of these is a cutover mistake that is
+# cheap here and expensive on the box.
+CURL='curl --insecure --silent --show-error --output /dev/null --write-out %{http_code}'
+
+fail() { echo "STAGING CHECK FAILED: $*" >&2; exit 1; }
+
+echo '==> Checking httpd serves /static itself, rather than proxying it'
+# A marker file rather than a real asset: this asserts the Alias wins over the
+# catch-all ProxyPass. Django has no /static/ route in production, so if the
+# proxy wins this is a 404.
+echo staging > /opt/kukan/static/.staging-marker
+code=$($CURL "https://127.0.0.1:8443/static/.staging-marker")
+[ "$code" = 200 ] || fail "/static/ returned $code; the ProxyPass is shadowing the Alias"
+
+echo '==> Checking httpd serves /.well-known itself, rather than proxying it'
+# This is the one that costs a certificate in production: certbot writes the
+# challenge token to the webroot, and if httpd proxies the URL to gunicorn
+# instead of reading the file, renewal fails silently until the cert expires.
+mkdir -p /opt/kukan/.well-known/acme-challenge
+echo staging > /opt/kukan/.well-known/acme-challenge/.staging-marker
+code=$($CURL "https://127.0.0.1:8443/.well-known/acme-challenge/.staging-marker")
+[ "$code" = 200 ] || fail "/.well-known/ returned $code; certbot renewal would fail"
+
+echo '==> Checking the application responds through the proxy'
+# 302 to /login, not 200: prod settings deny by default via
+# LoginRequiredMiddleware. A 500 here means the app is up but broken; a 502
+# means gunicorn is not reachable.
+code=$($CURL "https://127.0.0.1:8443/")
+case "$code" in
+    302) ;;
+    502) fail '/ returned 502; httpd cannot reach gunicorn' ;;
+    *)   fail "/ returned $code; expected a 302 to /login" ;;
+esac
+
+echo '==> Checking Django was told the request was HTTPS'
+# Without RequestHeader set X-Forwarded-Proto, SECURE_SSL_REDIRECT sends the
+# browser to https, httpd proxies it, Django sees http again, and the site is
+# an infinite redirect loop. The tell is a Location on http://.
+location=$(curl --insecure --silent --output /dev/null \
+    --write-out '%{redirect_url}' "https://127.0.0.1:8443/")
+case "$location" in
+    https://*) ;;
+    http://*)  fail "redirect went to $location; X-Forwarded-Proto is not reaching Django" ;;
+esac
+
+echo '==> All staging checks passed. Serving on https://localhost:8443/'
+
+# Exit when either process does, so the container does not sit there healthy
+# with half of it dead.
+wait -n
+echo 'A service exited; shutting down.' >&2
+exit 1
