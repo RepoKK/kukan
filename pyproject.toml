@@ -15,7 +15,7 @@ requires-python = ">=3.12,<3.13"
 dependencies = [
     # Stage 6 walks 4.2 -> 5.0 -> 5.1 -> 5.2 -> 6.0, one minor per commit with
     # the suite green at each, so a regression is attributable to one release.
-    "Django>=5.1,<5.2",
+    "Django>=5.2,<6.0",
     # PINNED CEILING: anki 25.02+ ships manylinux_2_35 wheels and the prod host
     # (CentOS Stream 9) has glibc 2.34, so 24.11 is the highest usable version.
     # Do not bump without checking `ldd --version` on the box.
