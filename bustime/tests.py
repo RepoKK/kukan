@@ -52,9 +52,18 @@ class GetBusTimeTest(TestCase):
     def setUp(self):
         self.page = load_page('timetable_shinjuku.html')
 
-    def get_times(self, frozen_time, station_args=SHINJUKU):
+    def get_times(self, jst_wall_clock, station_args=SHINJUKU):
+        """Freeze at the given *Tokyo* wall-clock time.
+
+        The argument is a JST wall clock because that is what the timetable is
+        published in and what these assertions reason about. It is converted to
+        a real instant before freezing, so the test does not depend on the
+        host's timezone — this suite runs on a UTC-clocked container and the
+        production box is on JST.
+        """
+        frozen = dt.datetime.fromisoformat(f'{jst_wall_clock}+09:00')
         from bustime.views import get_bus_time
-        with freeze_time(frozen_time), \
+        with freeze_time(frozen), \
                 patch('bustime.views.urllib.request.urlopen') as urlopen:
             urlopen.return_value.read.return_value = self.page
             return get_bus_time('http://example.invalid/', *station_args)
@@ -91,6 +100,30 @@ class GetBusTimeTest(TestCase):
         page has no such row; this pins that assumption."""
         times = self.get_times('2026-07-28 05:00:00')
         self.assertTrue(all(t.date() == dt.date(2026, 7, 28) for t in times))
+
+    def test_result_depends_on_the_instant_not_the_host_clock(self):
+        """The same moment, written in two timezones, must give one answer.
+
+        `get_bus_time` used to do `datetime.now().replace(tzinfo=JST)`, which
+        takes the host's wall clock and merely relabels it. That is correct
+        only when the host is already on JST — production is, this container
+        and CI are not, so the page listed buses that had already departed.
+
+        Freezing the same instant as 10:00+09:00 and as 01:00Z is the cheapest
+        way to state that the host's zone must not matter.
+        """
+        from bustime.views import get_bus_time
+
+        def times_at(frozen):
+            with freeze_time(frozen), \
+                    patch('bustime.views.urllib.request.urlopen') as urlopen:
+                urlopen.return_value.read.return_value = self.page
+                return get_bus_time('http://example.invalid/', *SHINJUKU)
+
+        as_jst = times_at(dt.datetime.fromisoformat('2026-07-28 10:00:00+09:00'))
+        as_utc = times_at(dt.datetime.fromisoformat('2026-07-28 01:00:00+00:00'))
+        self.assertEqual(as_jst, as_utc)
+        self.assertTrue(as_jst)
 
     def test_unknown_station_returns_empty(self):
         """No header matches, so nothing is collected — quietly."""
@@ -196,8 +229,10 @@ class BusTimeMainViewTest(TestCase):
         self.client = Client()
         self.page = load_page('timetable_shinjuku.html')
 
-    def get_page(self, frozen_time='2026-07-28 10:00:00', **params):
-        with freeze_time(frozen_time), \
+    def get_page(self, jst_wall_clock='2026-07-28 10:00:00', **params):
+        """As GetBusTimeTest.get_times: the time is a Tokyo wall clock."""
+        frozen = dt.datetime.fromisoformat(f'{jst_wall_clock}+09:00')
+        with freeze_time(frozen), \
                 patch('bustime.views.urllib.request.urlopen') as urlopen:
             urlopen.return_value.read.return_value = self.page
             return self.client.get(reverse('bustime:bustime_main'), params)
@@ -229,7 +264,8 @@ class BusTimeMainViewTest(TestCase):
     def test_each_direction_requests_its_own_timetable_url(self):
         for station, expected in [('新宿駅西口', 'slst=702'),
                                   ('花園町', 'slst=1235')]:
-            with self.subTest(station=station), freeze_time('2026-07-28 10:00:00'), \
+            frozen = dt.datetime.fromisoformat('2026-07-28 10:00:00+09:00')
+            with self.subTest(station=station), freeze_time(frozen), \
                         patch('bustime.views.urllib.request.urlopen') as m:
                 m.return_value.read.return_value = self.page
                 self.client.get(reverse('bustime:bustime_main'),

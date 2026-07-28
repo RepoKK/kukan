@@ -11,6 +11,7 @@ from django.core.exceptions import ValidationError
 from django.db import OperationalError
 from django.http import JsonResponse
 from django.urls import reverse_lazy
+from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import DetailView, UpdateView
 from psnawp_api import PSNAWP
@@ -340,7 +341,11 @@ class PlaytimeMonthlyView(TempMonViewMixin, LoginRequiredMixin, DetailView):
         context = super().get_context_data(**kwargs)
 
         # Calculate the date 24 months ago from the current date
-        current_date = datetime.now()
+        # timezone.now() is UTC-aware; datetime.now() was naive, and comparing
+        # a naive value against an aware DateTimeField makes Django assume UTC
+        # and emit a RuntimeWarning. Harmless on a 720-day window, but Django
+        # tightens this over time and it is wrong regardless.
+        current_date = timezone.now()
         two_years_ago = current_date - timedelta(days=24*30)  # Approximately 24 months
 
         # Get all games with play_time

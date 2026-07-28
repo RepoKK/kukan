@@ -10,6 +10,11 @@ import requests
 from django.http import JsonResponse
 from django.views.generic import TemplateView
 
+# Every time in this module is a Tokyo wall-clock time: the timetable, the
+# realtime feed and the "is it hot" window are all published in JST. The host's
+# own clock is never the right reference — see the comments at each use.
+JST = ZoneInfo('Asia/Tokyo')
+
 
 def get_bus_time(url, station, line, direction):
     page = urllib.request.urlopen(url).read().decode()
@@ -17,7 +22,6 @@ def get_bus_time(url, station, line, direction):
     today_type = re.search('(..)ダイヤ</a>で運行しております。',
                            page)[1]
 
-    tz = ZoneInfo('Asia/Tokyo')
     list_times = []
 
     for df in df_all:
@@ -25,7 +29,12 @@ def get_bus_time(url, station, line, direction):
                   for c in df.columns if c != '時'}
         if header == {f'【{station}】 {line} {direction}行（{today_type}）'}:
 
-            now = dt.datetime.now().replace(tzinfo=tz)
+            # now(tz), not now().replace(tzinfo=tz): the latter takes the
+            # system-local wall clock and merely relabels it as JST. On a
+            # UTC-clocked host that is nine hours early, so the page lists
+            # buses that departed hours ago. Production happens to run on a
+            # JST clock, which is why this was invisible there.
+            now = dt.datetime.now(JST)
 
             df = (df.set_index('時')
                   .dropna(axis='index', how='all')
@@ -38,8 +47,11 @@ def get_bus_time(url, station, line, direction):
                 for minute in r[1]:
                     if math.isnan(minute):
                         continue
+                    # The timetable is a JST wall clock, so the date it is
+                    # combined with must be today *in Tokyo*, not the host's
+                    # local date.
                     bus_time = dt.datetime.combine(
-                        dt.date.today(), dt.time(hour, int(minute)), tzinfo=tz)
+                        now.date(), dt.time(hour, int(minute)), tzinfo=JST)
                     if bus_time > now:
                         list_times.append(bus_time)
     return list_times
@@ -100,6 +112,8 @@ class BusTimeMain(TemplateView):
                                   'class': class_main}
         context['busStopOther'] = {'name': stationOther,
                                    'class': class_other}
-        context['hot_day'] = 6 < dt.datetime.now().month < 10
+        # Tokyo's month, not the host's: on a UTC clock the last nine hours of
+        # 30 September are still September locally but already October in JST.
+        context['hot_day'] = 6 < dt.datetime.now(JST).month < 10
         return context
 

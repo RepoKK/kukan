@@ -26,11 +26,11 @@
 
 FROM quay.io/centos/centos:stream9
 
-# Python 3.11, matching .python-version. Stage 5 moves both this line and that
-# file to 3.12 together — they must not drift apart, or staging stops being a
-# rehearsal of production.
+# Python 3.12, matching .python-version. These two must not drift apart, or
+# staging stops being a rehearsal of production. Available from AppStream on
+# CentOS Stream 9 as of stage 5.
 RUN dnf -y install --setopt=install_weak_deps=False \
-        python3.11 python3.11-devel \
+        python3.12 python3.12-devel \
         httpd mod_ssl \
         sqlite \
         gcc \
@@ -40,7 +40,7 @@ RUN dnf -y install --setopt=install_weak_deps=False \
 # uv, matching the version the project is developed against.
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 
-ENV UV_PYTHON=python3.11 \
+ENV UV_PYTHON=python3.12 \
     UV_PROJECT_ENVIRONMENT=/opt/kukan/.venv \
     UV_COMPILE_BYTECODE=1 \
     UV_LINK_MODE=copy \
