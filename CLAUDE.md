@@ -21,7 +21,7 @@ which it now derives from `sys.prefix` rather than `$VIRTUAL_ENV`.
 
 ```bash
 .venv/bin/python manage.py check
-.venv/bin/python manage.py test              # 87 tests, ~30 s
+.venv/bin/python manage.py test              # 411 tests, ~36 s
 .venv/bin/python manage.py smoke_urls        # GETs every no-arg URL as a superuser
 .venv/bin/python manage.py runserver
 ```
@@ -57,6 +57,26 @@ their interesting behaviour with real data.
 Plain `django.test.TestCase` with fixtures, `override_settings` and `Client`. No pytest.
 `tempmon.tests.TestPsn` is a live contract test against the PlayStation Network and is skipped
 unless the `psn_token` environment variable is set.
+
+Each app's original tests live in `tests.py`; the characterisation tests added before the
+dependency upgrades are in `tests_<topic>.py` alongside them (Django's default `test*.py`
+discovery picks both up). Coverage is 92%; measure it with:
+
+```bash
+.venv/bin/python -m coverage run --source=. \
+    --omit='*/migrations/*,*/tests.py,*/tests_*.py,.venv/*,manage.py' manage.py test
+.venv/bin/python -m coverage report --sort=miss
+```
+
+Two conventions worth keeping:
+
+- **Known-defect tests** assert the buggy behaviour and say so in the docstring, so the suite
+  stays green while the defect stays visible. Fixing the defect is meant to turn them red.
+  Currently: empty numeric filter values (`kukan/tests_filters.py`) and the tempmon duration
+  filter (`tempmon/tests_views.py`).
+- **Recorded web pages** for the scrapers go under `fixtures/Web/` as raw HTML. The older
+  `FixWebKukan` helper pickles a `requests.Response`, which stops loading when `requests` is
+  upgraded — don't add new fixtures in that format.
 
 ## Conventions
 
