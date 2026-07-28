@@ -40,6 +40,18 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    # Deny by default (Django 5.1). Every view requires a login unless it is
+    # explicitly marked @login_not_required.
+    #
+    # Adopted because opting *in* per view had already failed twice, silently:
+    # AjaxList.dispatch routed `?ajax=1` around LoginRequiredMixin and served
+    # every list as JSON to anonymous callers, and PsnApiKeyUpdateView — the
+    # form that sets the PlayStation npsso token — simply never had the mixin.
+    # Both were live on kukanjiten.com. A view that forgets the mixin now fails
+    # closed instead of open.
+    #
+    # Must come after AuthenticationMiddleware, which sets request.user.
+    'django.contrib.auth.middleware.LoginRequiredMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]

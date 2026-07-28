@@ -142,20 +142,45 @@ class TestEveryNamedViewIsClassified(TestCase):
     write an access-control test for it.
     """
 
+    # Placeholders tried, in order, for URLs that take a single argument. The
+    # target need not exist: an unauthenticated caller must be redirected
+    # before the view ever looks the object up, so a 404 is already a failure.
+    PLACEHOLDER_ARGS = [1, '1', '閲']
+
     def get_checkable_urls(self):
-        """Named, no-argument, non-admin URLs, with their reversed path."""
-        from django.urls import NoReverseMatch, get_resolver
+        """Every named non-admin URL, with a reversed path.
+
+        Parameterised URLs are included by substituting a placeholder
+        argument. They were previously skipped, and that gap is not
+        theoretical: it is why this sweep did not catch
+        `tempmon:psn_npsso_update` — the form that sets the PlayStation npsso
+        token — being reachable by anyone, on the live site.
+        """
+        from django.urls import get_resolver
 
         from kukan.management.commands.smoke_urls import iter_url_names
 
         for name in sorted(set(iter_url_names(get_resolver()))):
             if name.startswith('admin:'):
                 continue
+            url = self.reverse_with_placeholder(name)
+            if url is not None:
+                yield name, url
+
+    def reverse_with_placeholder(self, name):
+        """Reverse `name`, supplying a placeholder argument if it needs one."""
+        from django.urls import NoReverseMatch
+
+        try:
+            return reverse(name)
+        except NoReverseMatch:
+            pass
+        for arg in self.PLACEHOLDER_ARGS:
             try:
-                yield name, reverse(name)
+                return reverse(name, args=[arg])
             except NoReverseMatch:
-                # Needs arguments; not reachable by a bare probe.
                 continue
+        return None
 
     def test_non_public_views_redirect_anonymous_callers(self):
         client = Client(raise_request_exception=False)
@@ -170,6 +195,19 @@ class TestEveryNamedViewIsClassified(TestCase):
                     f'If it is meant to be public, add it to '
                     f'PUBLIC_URL_NAMES with a reason.')
                 self.assertIn('/login', response['Location'])
+
+    def test_sweep_reaches_parameterised_urls(self):
+        """Guards the guard.
+
+        If placeholder substitution ever stops working, the sweep silently
+        shrinks back to no-argument URLs and goes on passing while covering
+        less. These three all take arguments, and psn_npsso_update is the one
+        that was actually exposed.
+        """
+        covered = {name for name, _ in self.get_checkable_urls()}
+        for name in ['psn_npsso_update', 'kukan:kanji_detail',
+                     'kukan:example_detail']:
+            self.assertIn(name, covered)
 
     def test_public_list_is_accurate(self):
         """Guards against the allow-list rotting: every name in it must still

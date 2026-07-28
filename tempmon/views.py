@@ -6,6 +6,7 @@ from zoneinfo import ZoneInfo
 
 from django import forms
 from django.conf import settings
+from django.contrib.auth.decorators import login_not_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import ValidationError
 from django.db import OperationalError
@@ -107,6 +108,7 @@ class PsnApiKeyForm(BForm):
         return new_token
 
 
+@login_not_required
 @csrf_exempt
 def add_temp_point(request):
     try:

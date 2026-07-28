@@ -20,16 +20,22 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
 from django.contrib.auth import views as auth_views
+from django.contrib.auth.decorators import login_not_required
 from django.urls import include, path, re_path
 
 urlpatterns = [
     path('bustime/', include('bustime.urls')),
     path('', include('kukan.urls')),
-    re_path(r'^login/$', auth_views.LoginView.as_view(), name='login'),
+    # The login form obviously cannot require a login, and logout has to work
+    # for a session that has already expired. LoginRequiredMiddleware denies by
+    # default, so both are marked explicitly.
+    re_path(r'^login/$', login_not_required(auth_views.LoginView.as_view()),
+            name='login'),
     # POST-only from Django 5.0. next_page belongs on as_view(): the old form
     # passed it as a URLconf extra-kwargs dict, which LogoutView never read, so
     # the redirect target was silently the LOGOUT_REDIRECT_URL default.
-    path('logout/', auth_views.LogoutView.as_view(next_page='login'),
+    path('logout/',
+         login_not_required(auth_views.LogoutView.as_view(next_page='login')),
          name='logout'),
     path('admin/', admin.site.urls),
     path('tempmon/', include('tempmon.urls')),

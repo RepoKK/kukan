@@ -7,7 +7,9 @@ from zoneinfo import ZoneInfo
 
 import pandas as pd
 import requests
+from django.contrib.auth.decorators import login_not_required
 from django.http import JsonResponse
+from django.utils.decorators import method_decorator
 from django.views.generic import TemplateView
 
 # Every time in this module is a Tokyo wall-clock time: the timetable, the
@@ -57,6 +59,10 @@ def get_bus_time(url, station, line, direction):
     return list_times
 
 
+# bustime is a personal bus timetable with no user data, and is deliberately
+# reachable without logging in. LoginRequiredMiddleware denies by default, so
+# that has to be stated rather than assumed.
+@login_not_required
 def get_time_to_next_hana(_):
     url = 'https://tobus.jp/blsys/navi?LCD=&VCD=cresultrsi&ECD=aprslt&slst=1235'
     page = requests.get(
@@ -85,6 +91,7 @@ def get_time_to_next_hana(_):
     })
 
 
+@method_decorator(login_not_required, name='dispatch')
 class BusTimeMain(TemplateView):
     template_name = "bustime/bustime_main.html"
 
