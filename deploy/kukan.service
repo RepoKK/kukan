@@ -10,7 +10,7 @@
 #   journalctl -u kukan.service -f
 #
 # This replaces mod_wsgi: Apache no longer runs the application in-process, it
-# proxies to this. See deploy/kukanjiten-httpd.conf and STAGE7-CUTOVER.md.
+# proxies to this. See deploy/kukanjiten-httpd.conf and deploy/UPGRADE.md.
 
 [Unit]
 Description=kukanjiten.com (gunicorn)

@@ -69,7 +69,7 @@ forgotten lock fails the build rather than silently resolving to different versi
 
 Apache owns :443, TLS, `/static` and `/.well-known`, and proxies everything else to gunicorn on
 `127.0.0.1:8000` under systemd. It no longer loads Python. Everything needed is in `deploy/`,
-and `deploy/STAGE7-CUTOVER.md` is the runbook.
+and `deploy/UPGRADE.md` is the runbook.
 
 | File | Installs as |
 |---|---|
@@ -109,7 +109,7 @@ The staging container (`Containerfile`) runs `kukansite.settings.prod` against
 It is the only place the production settings module, the proxy and the TLS path get exercised
 before the live box. The database arrives on a bind mount at `/data` and is scrubbed by the
 image itself (`podman run ... kukan-staging scrub`), so no image ever contains one.
-`deploy/PROD-BOX-STAGING.md` runs it on the production box under a separate account — the only
+`deploy/REHEARSAL.md` runs it on the production box under a separate account — the only
 way to test the `anki==24.11` ceiling, which exists because of that box's glibc 2.34.
 
 `smoke_urls` is the cheap breadth-first net: it proves each view imports, its template compiles

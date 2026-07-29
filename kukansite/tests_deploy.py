@@ -20,7 +20,7 @@ running behaviour (deploy/staging-entrypoint.sh); this file checks the text, so
 the check still runs on a machine with no container runtime.
 
 Parsing Apache configuration properly is out of scope — `httpd -t` does that,
-and STAGE7-CUTOVER.md says to run it. What is asserted here is only ordering
+and deploy/UPGRADE.md says to run it. What is asserted here is only ordering
 and presence.
 """
 import os
