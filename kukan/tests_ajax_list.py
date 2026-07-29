@@ -1,24 +1,29 @@
 """Contract tests for `AjaxList` and `TableData`.
 
-Seven list pages share one engine. The browser loads an HTML shell, then the
-Vue table re-requests the same URL with `ajax=1` and renders whatever JSON
-comes back. That JSON is an undeclared API: no serializer, no schema, just
-whatever `get_list` happens to assemble.
+kanji_list and test_result_list are the two list pages still on `AjaxList`
+(kotowaza_list, yoji_list and example_list have moved to `FilteredListView` --
+see `kukan.tests_listview`). The browser loads an HTML shell, then the Vue
+table re-requests the same URL with `?ajax=1` and renders whatever JSON comes
+back. That JSON is an undeclared API: no serializer, no schema, just whatever
+`get_list` happens to assemble.
 
-Two reasons to pin it now rather than in Stage 9:
+Two reasons to pin it:
 
-* Stage 10 replaces the Vue frontend with HTMX/Alpine. Whatever the new
-  frontend consumes, these tests describe what the old one was given, so the
-  replacement can be checked against the real shape instead of against
-  somebody's memory of it.
+* Whatever the HTMX/Alpine rewrite consumes for these two remaining pages,
+  this describes what the Vue frontend was given, so the replacement can be
+  checked against the real shape instead of against somebody's memory of it.
 * `TableData.FieldProps` reads `verbose_name`, `choices` and
   `get_internal_type()` off the model meta API. Those are exactly the surfaces
   Django 6.0 moves, and a change there degrades column labels and types
-  silently — the page still renders, it is just wrong.
+  silently — the page still renders, it is just wrong. Most of that is now
+  pinned directly against `TableData` (`TestTableDataUnit`), independent of
+  any view, since `TableData` itself is not going away — `FilteredListView`
+  reuses it unchanged.
 
 The HTML-shell path and the ajax path are tested separately because they build
 their context by different routes and only the ajax one touches the database.
 """
+import datetime as dt
 import json
 import re
 
@@ -26,7 +31,7 @@ from django.contrib.auth.models import User
 from django.test import Client, TestCase
 from django.urls import reverse
 
-from kukan.models import Example, Kanji, Kotowaza
+from kukan.models import Kanji, Kanken, Kotowaza, TestResult, TestSource
 from kukan.views import TableData
 
 
@@ -39,12 +44,14 @@ class AjaxListTestBase(TestCase):
     fixtures = ['baseline', '閲', '覧', '斌', '劉', '遥']
 
     def setUp(self):
-        Example.objects.create(word='閲する', yomi='ケミスル',
-                               sentence='膨大な資料を閲する', is_joyo=False)
-        Example.objects.create(word='斌斌', yomi='ヒンピン',
-                               sentence='恩師の斌斌たる人柄が偲ばれる', is_joyo=False)
-        Example.objects.create(word='劉覧', yomi='リュウラン', sentence='劉覧',
-                               is_joyo=False)
+        source = TestSource.objects.create(series='漢検過去問題集', kyu='2級', year='2024')
+        kanken = Kanken.objects.get(kyu='２級')
+        TestResult.objects.create(kanken=kanken, source=source, name='OGU',
+                                  test_number=1, date=dt.date(2024, 1, 5))
+        TestResult.objects.create(kanken=kanken, source=source, name='COGU',
+                                  test_number=2, date=dt.date(2024, 2, 10))
+        TestResult.objects.create(kanken=kanken, source=source, name='OGU',
+                                  test_number=3, date=dt.date(2024, 3, 15))
         User.objects.create_user('test_user', password='pwd')
         self.client = Client()
         self.client.post('/login/', {'username': 'test_user', 'password': 'pwd'})
@@ -57,13 +64,9 @@ class AjaxListTestBase(TestCase):
 
 
 class TestAjaxEnvelope(AjaxListTestBase):
-    """The top-level shape of the ajax response, for every list view."""
+    """The top-level shape of the ajax response, for every remaining view."""
 
-    # kukan:kotowaza_list and kukan:yoji_list are gone from here: both moved
-    # off AjaxList onto FilteredListView (kukan.tests_listview), which has no
-    # ?ajax=1 JSON envelope to test in the first place.
-    list_views = ['kukan:kanji_list', 'kukan:example_list',
-                  'kukan:test_result_list']
+    list_views = ['kukan:kanji_list', 'kukan:test_result_list']
 
     def test_envelope_keys(self):
         for name in self.list_views:
@@ -76,44 +79,44 @@ class TestAjaxEnvelope(AjaxListTestBase):
 
     def test_page_is_an_integer_not_a_string(self):
         """`int(page)` in get_list; the Vue pager compares it numerically."""
-        data = self.get_ajax('kukan:example_list', page='1')
+        data = self.get_ajax('kukan:test_result_list', page='1')
         self.assertEqual(data['table_data']['page'], 1)
 
     def test_default_sort_is_reported_back(self):
-        data = self.get_ajax('kukan:example_list')
-        self.assertEqual(data['table_data']['sort_by'], 'kanken')
+        data = self.get_ajax('kukan:test_result_list')
+        self.assertEqual(data['table_data']['sort_by'], '-date')
 
     def test_explicit_sort_is_reported_back(self):
-        data = self.get_ajax('kukan:example_list', sort_by='word')
-        self.assertEqual(data['table_data']['sort_by'], 'word')
-        words = [cell_text(row['word']) for row in data['table_data']['data']]
-        self.assertEqual(words, sorted(words))
+        data = self.get_ajax('kukan:test_result_list', sort_by='test_number')
+        self.assertEqual(data['table_data']['sort_by'], 'test_number')
+        numbers = [row['test_number'] for row in data['table_data']['data']]
+        self.assertEqual(numbers, sorted(numbers))
 
     def test_descending_sort(self):
-        data = self.get_ajax('kukan:example_list', sort_by='-word')
-        words = [cell_text(row['word']) for row in data['table_data']['data']]
-        self.assertEqual(words, sorted(words, reverse=True))
+        data = self.get_ajax('kukan:test_result_list', sort_by='-test_number')
+        numbers = [row['test_number'] for row in data['table_data']['data']]
+        self.assertEqual(numbers, sorted(numbers, reverse=True))
 
     def test_unknown_sort_falls_back_to_the_default(self):
         """`?sort_by=nope` used to reach order_by() and raise FieldError, so
         it was a 500."""
-        data = self.get_ajax('kukan:example_list', sort_by='nope')
-        self.assertEqual(data['table_data']['sort_by'], 'kanken')
+        data = self.get_ajax('kukan:test_result_list', sort_by='nope')
+        self.assertEqual(data['table_data']['sort_by'], '-date')
 
     def test_relation_traversal_is_rejected(self):
         """Ordering by an undisplayed related field leaks something about its
         values and forces an expensive join."""
-        data = self.get_ajax('kukan:example_list',
-                             sort_by='kanjis__kanjidetails__anki_English')
-        self.assertEqual(data['table_data']['sort_by'], 'kanken')
+        data = self.get_ajax('kukan:test_result_list',
+                             sort_by='kanken__item_01_name')
+        self.assertEqual(data['table_data']['sort_by'], '-date')
 
     def test_random_ordering_is_rejected(self):
-        data = self.get_ajax('kukan:example_list', sort_by='?')
-        self.assertEqual(data['table_data']['sort_by'], 'kanken')
+        data = self.get_ajax('kukan:test_result_list', sort_by='?')
+        self.assertEqual(data['table_data']['sort_by'], '-date')
 
     def test_descending_prefix_is_allowed_on_a_real_column(self):
-        data = self.get_ajax('kukan:example_list', sort_by='-word')
-        self.assertEqual(data['table_data']['sort_by'], '-word')
+        data = self.get_ajax('kukan:test_result_list', sort_by='-test_number')
+        self.assertEqual(data['table_data']['sort_by'], '-test_number')
 
     def test_every_list_default_sort_is_itself_sortable(self):
         """A default that is not on its own allow-list would loop back to
@@ -128,46 +131,48 @@ class TestAjaxEnvelope(AjaxListTestBase):
                 self.assertEqual(again['table_data']['sort_by'], sort_by)
 
     def test_total_results_counts_the_whole_query_not_the_page(self):
-        data = self.get_ajax('kukan:example_list')
+        data = self.get_ajax('kukan:test_result_list')
         self.assertEqual(data['total_results'], 3)
         self.assertEqual(len(data['table_data']['data']), 3)
 
     def test_stats_is_a_count_and_a_timing(self):
-        data = self.get_ajax('kukan:example_list')
+        data = self.get_ajax('kukan:test_result_list')
         count, timing = data['stats']
         self.assertEqual(count, '3 件')
         self.assertTrue(timing.startswith('Q:'))
 
     def test_filter_narrows_the_result(self):
-        data = self.get_ajax('kukan:example_list', 単語='斌')
+        data = self.get_ajax('kukan:test_result_list', 名前='COGU')
         self.assertEqual(data['total_results'], 1)
-        self.assertEqual(cell_text(data['table_data']['data'][0]['word']),
-                         '斌斌')
+        # std_str applies regardless of type -- only BooleanField columns get
+        # format_identical, so a numeric column still renders as a string.
+        self.assertEqual(data['table_data']['data'][0]['test_number'], '2')
 
     def test_filter_matching_nothing_returns_an_empty_page(self):
         """No rows is not the same as page-out-of-range; both must be 200."""
-        data = self.get_ajax('kukan:example_list', 単語='存在しない')
+        data = self.get_ajax('kukan:test_result_list', 問題番号='999')
         self.assertEqual(data['total_results'], 0)
         self.assertEqual(data['table_data']['data'], [])
 
     def test_page_out_of_range_returns_the_empty_envelope(self):
         """The EmptyPage branch: a degraded envelope with a *string* stat."""
-        data = self.get_ajax('kukan:example_list', page='99')
+        data = self.get_ajax('kukan:test_result_list', page='99')
         self.assertEqual(data['total_results'], 0)
         self.assertEqual(data['table_data']['data'], [])
         self.assertEqual(data['stats'], '0 件')
 
     def test_page_size_is_twenty(self):
-        # Words must contain a kanji from the fixture: Example.save() derives
-        # kanken from the characters of `word` and raises without one.
+        source = TestSource.objects.get()
+        kanken = Kanken.objects.get(kyu='２級')
         for i in range(25):
-            Example.objects.create(word=f'閲{i:02}', yomi='エツ', sentence='',
-                                   is_joyo=False)
-        data = self.get_ajax('kukan:example_list')
+            TestResult.objects.create(
+                kanken=kanken, source=source, name='OGU',
+                test_number=100 + i, date=dt.date(2024, 6, 1))
+        data = self.get_ajax('kukan:test_result_list')
         self.assertEqual(data['total_results'], 28)
         self.assertEqual(len(data['table_data']['data']), 20)
 
-        page2 = self.get_ajax('kukan:example_list', page='2')
+        page2 = self.get_ajax('kukan:test_result_list', page='2')
         self.assertEqual(len(page2['table_data']['data']), 8)
 
 
@@ -175,28 +180,20 @@ class TestAjaxColumns(AjaxListTestBase):
     """The `columns` block drives the table header and cell rendering."""
 
     def test_column_properties(self):
-        data = self.get_ajax('kukan:example_list')
+        data = self.get_ajax('kukan:test_result_list')
         columns = {c['field']: c for c in data['table_data']['columns']}
-        self.assertEqual(set(columns), {'word', 'yomi', 'sentence', 'kanken',
-                                        'is_joyo', 'ex_kind', 'updated_time'})
-        self.assertEqual(set(columns['word']),
+        self.assertIn('name', columns)
+        self.assertEqual(set(columns['name']),
                          {'field', 'label', 'type', 'visible', 'name'})
 
     def test_label_comes_from_verbose_name(self):
         """This is the Japanese column header; losing it degrades to a field
         name silently."""
         columns = {c['field']: c
-                   for c in self.get_ajax('kukan:example_list')
+                   for c in self.get_ajax('kukan:test_result_list')
                    ['table_data']['columns']}
-        self.assertEqual(columns['word']['label'], '単語')
-        self.assertEqual(columns['sentence']['label'], '例文')
-        self.assertEqual(columns['is_joyo']['label'], '常表例')
-
-    def test_boolean_field_is_typed_bool(self):
-        columns = {c['field']: c
-                   for c in self.get_ajax('kukan:example_list')
-                   ['table_data']['columns']}
-        self.assertEqual(columns['is_joyo']['type'], 'bool')
+        self.assertEqual(columns['name']['label'], '名前')
+        self.assertEqual(columns['date']['label'], '日付')
 
     def test_numeric_field_is_typed_numeric(self):
         columns = {c['field']: c
@@ -215,31 +212,17 @@ class TestAjaxColumns(AjaxListTestBase):
 class TestAjaxRowRendering(AjaxListTestBase):
     """Cell values, including the raw HTML the table injects with v-html."""
 
-    def test_boolean_stays_a_json_boolean(self):
-        """format_identical, not str(): the Vue table renders a checkbox."""
-        data = self.get_ajax('kukan:example_list')
-        self.assertIs(data['table_data']['data'][0]['is_joyo'], False)
-
     def test_choice_field_is_rendered_as_its_display_value(self):
-        data = self.get_ajax('kukan:example_list')
-        self.assertEqual(data['table_data']['data'][0]['ex_kind'], '書き取り')
-
-    def test_link_column_is_wrapped_in_an_anchor(self):
-        """Raw HTML in the JSON. Pinned because Stage 10 has to reproduce or
-        deliberately replace it."""
-        data = self.get_ajax('kukan:example_list', 単語='斌')
-        pk = Example.objects.get(word='斌斌').pk
-        self.assertEqual(data['table_data']['data'][0]['word'],
-                         f'<a href="/example/{pk}/">斌斌</a>')
+        data = self.get_ajax('kukan:test_result_list', 名前='OGU')
+        self.assertEqual(data['table_data']['data'][0]['name'], '大具')
 
     def test_foreign_key_is_stringified(self):
-        data = self.get_ajax('kukan:example_list', 単語='斌')
-        self.assertEqual(data['table_data']['data'][0]['kanken'], '準１級')
+        data = self.get_ajax('kukan:test_result_list')
+        self.assertEqual(data['table_data']['data'][0]['kanken'], '２級')
 
-    def test_datetime_is_formatted_to_the_minute(self):
-        data = self.get_ajax('kukan:example_list', 単語='斌')
-        self.assertRegex(data['table_data']['data'][0]['updated_time'],
-                         r'^\d{4}\.\d{2}\.\d{2} \d{2}:\d{2}$')
+    def test_date_is_formatted_without_a_time_component(self):
+        data = self.get_ajax('kukan:test_result_list', 問題番号='1')
+        self.assertEqual(data['table_data']['data'][0]['date'], '2024.01.05')
 
     def test_none_renders_as_empty_string(self):
         """std_str maps None to '' so the cell is blank, not the text 'None'."""
@@ -252,7 +235,7 @@ class TestHtmlShellContext(AjaxListTestBase):
     """The non-ajax page: filter definitions and an empty table placeholder."""
 
     def test_context_keys(self):
-        response = self.client.get(reverse('kukan:example_list'))
+        response = self.client.get(reverse('kukan:test_result_list'))
         self.assertEqual(response.status_code, 200)
         for key in ['filter_list', 'active_filters', 'table_data',
                     'list_title', 'is_mobile_card', 'FFilter']:
@@ -260,39 +243,45 @@ class TestHtmlShellContext(AjaxListTestBase):
 
     def test_table_data_starts_empty(self):
         """The shell ships no rows; the Vue table fetches them immediately."""
-        response = self.client.get(reverse('kukan:example_list'))
+        response = self.client.get(reverse('kukan:test_result_list'))
         table_data = json.loads(response.context['table_data'])
         self.assertEqual(table_data['data'], [])
         self.assertEqual(table_data['columns'], '')
 
     def test_filter_list_contains_every_configured_filter(self):
-        response = self.client.get(reverse('kukan:example_list'))
+        response = self.client.get(reverse('kukan:test_result_list'))
         filter_list = response.context['filter_list']
-        for label in ['単語', '漢検', '種類', '例文', '作成', '変更', '意味']:
+        for label in ['名前', '漢検', '問題集', '問題番号', '日付']:
             self.assertIn(f"'label':'{label}'", filter_list)
 
     def test_active_filters_records_positions_of_applied_filters(self):
         """Indices into the filter list, used to auto-open those panels."""
-        response = self.client.get(reverse('kukan:example_list'), {'単語': '斌'})
+        response = self.client.get(
+            reverse('kukan:test_result_list'), {'名前': 'OGU'})
         self.assertEqual(response.context['active_filters'], [0])
 
     def test_unknown_query_parameter_is_ignored(self):
-        response = self.client.get(reverse('kukan:example_list'),
+        response = self.client.get(reverse('kukan:test_result_list'),
                                    {'not_a_filter': 'x'})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.context['active_filters'], [])
 
     def test_filter_value_is_echoed_back_into_the_filter_list(self):
-        response = self.client.get(reverse('kukan:example_list'), {'単語': '斌'})
-        self.assertIn("'value':'%E6%96%8C'", response.context['filter_list'])
+        response = self.client.get(
+            reverse('kukan:test_result_list'), {'名前': 'OGU'})
+        self.assertIn("'value':'OGU'", response.context['filter_list'])
 
     def test_list_title(self):
-        response = self.client.get(reverse('kukan:example_list'))
-        self.assertEqual(response.context['list_title'], '例文')
+        response = self.client.get(reverse('kukan:kanji_list'))
+        self.assertEqual(response.context['list_title'], '漢字')
 
 
 class TestTableDataUnit(TestCase):
-    """`TableData` in isolation, for the branches the list views do not reach."""
+    """`TableData` in isolation, for the branches the two remaining
+    AjaxList-based list views do not reach -- and, increasingly, for
+    coverage that used to only exist through a page that has since moved to
+    FilteredListView. TableData itself is not going anywhere: FilteredListView
+    reuses it unchanged, so none of this is at risk of going stale early."""
 
     fixtures = ['baseline', '閲']
 
@@ -331,8 +320,23 @@ class TestTableDataUnit(TestCase):
         kotowaza = Kotowaza.objects.create(kotowaza='猿も木から落ちる')
         self.assertEqual(link(kotowaza), f'/example/{kotowaza.pk}')
 
+    def test_link_column_wraps_the_value_in_an_escaped_anchor(self):
+        """format_html, not string concatenation (fixed alongside the first
+        FilteredListView migration): the label is escaped, and the result is
+        marked safe so a template can render it without a second escaping
+        pass double-encoding the anchor tag itself."""
+        from django.utils.safestring import SafeString
+
+        kotowaza = Kotowaza.objects.create(kotowaza='<script>alert(1)</script>')
+        table = TableData(Kotowaza, [
+            {'name': 'kotowaza', 'link': TableData.FieldProps.link_pk('kotowaza')}])
+        value = table.get_table_row(kotowaza)['kotowaza']
+        self.assertIsInstance(value, SafeString)
+        self.assertIn(f'href="/kotowaza/{kotowaza.pk}/"', value)
+        self.assertNotIn('<script>', value)
+        self.assertIn('&lt;script&gt;', value)
+
     def test_format_date_has_no_time_component(self):
-        import datetime as dt
         self.assertEqual(
             TableData.FieldProps.format_date(dt.date(2024, 3, 9)),
             '2024.03.09')
@@ -346,3 +350,29 @@ class TestTableDataUnit(TestCase):
                                      {'name': 'yomi', 'visible': False}])
         visible = {c['field']: c['visible'] for c in table.get_col_template()}
         self.assertEqual(visible, {'kotowaza': True, 'yomi': False})
+
+    def test_boolean_field_is_typed_bool(self):
+        from kukan.models import Example
+
+        table = TableData(Example, ['is_joyo'])
+        self.assertEqual(table.get_col_template()[0]['type'], 'bool')
+
+    def test_choice_field_is_rendered_as_its_display_value(self):
+        from kukan.models import Example
+
+        example = Example.objects.create(
+            word='閲する', yomi='けみする', sentence='書類を閲する',
+            definition='', ex_kind=Example.KAKI, is_joyo=False)
+        table = TableData(Example, ['ex_kind'])
+        self.assertEqual(table.get_table_row(example)['ex_kind'], '書き取り')
+
+    def test_boolean_value_stays_a_python_bool_not_a_string(self):
+        """format_identical, not str(): a server-rendered checkbox column
+        needs a real bool to branch on, same as the Vue table's v-if did."""
+        from kukan.models import Example
+
+        example = Example.objects.create(
+            word='閲する', yomi='けみする', sentence='',
+            definition='', ex_kind=Example.KAKI, is_joyo=False)
+        table = TableData(Example, ['is_joyo'])
+        self.assertIs(table.get_table_row(example)['is_joyo'], False)

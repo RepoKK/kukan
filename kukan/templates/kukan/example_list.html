@@ -1,0 +1,18 @@
+{% extends 'base_ext.html' %}
+{% load util_tags %}
+
+{% block title %}{{ list_title }}{% endblock %}
+
+{% block content %}
+<h1 class="title">{{ list_title }}</h1>
+
+<form hx-get="{{ request.path }}" hx-target="#results" hx-push-url="true" hx-swap="outerHTML"
+      hx-trigger="input changed delay:400ms, change, submit">
+    {% for filter, value in filters %}
+    {% render_filter filter value %}
+    {% endfor %}
+    <button class="button is-primary" type="submit">適用</button>
+</form>
+
+{% include 'ui/_table.html' %}
+{% endblock %}

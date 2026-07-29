@@ -377,9 +377,9 @@ class YojiList(FilteredListView):
     cell_overrides = {'in_anki': 'ui/anki_toggle_cell.html'}
 
 
-class ExampleList(AjaxList):
+class ExampleList(FilteredListView):
     model = Example
-    template_name = 'kukan/default_list.html'
+    template_name = 'kukan/example_list.html'
     default_sort = 'kanken'
     list_title = '例文'
     filters = [

@@ -178,6 +178,91 @@ class YojiListContractTest(TestCase):
         self.assertContains(response, 'editEnabled')
 
 
+class ExampleListContractTest(TestCase):
+    """ExampleList: the third page moved off AjaxList, needing string,
+    checkbox, yes/no and daterange -- no new filter kind, but the first page
+    to combine all four."""
+
+    fixtures = ['baseline', '閲', '覧']
+
+    def setUp(self):
+        from kukan.models import Example
+
+        User.objects.create_user('test_user', password='pwd')
+        self.client = Client()
+        self.client.login(username='test_user', password='pwd')
+        self.kemisuru = Example.objects.create(
+            word='閲する', yomi='けみする', sentence='書類を閲する',
+            definition='調べ確かめる', ex_kind=Example.KAKI, is_joyo=False)
+        self.ranran = Example.objects.create(
+            word='覧覧', yomi='らんらん', sentence='',
+            definition='', ex_kind=Example.YOMI, is_joyo=True)
+
+    def test_a_normal_request_renders_the_full_page(self):
+        response = self.client.get(reverse('kukan:example_list'))
+        self.assertContains(response, 'navbar-burger')
+        self.assertContains(response, '<table')
+
+    def test_no_vue_or_buefy_remains(self):
+        response = self.client.get(reverse('kukan:example_list'))
+        content = response.content.decode()
+        self.assertNotIn('vue_app', content)
+        self.assertNotIn('buefy', content.lower())
+        self.assertNotIn('v-filter', content)
+
+    def test_string_filter_narrows_by_pk(self):
+        response = self.client.get(
+            reverse('kukan:example_list'), {'単語': '閲する'})
+        self.assertEqual(
+            {e.pk for e in response.context['object_list']},
+            {self.kemisuru.pk})
+
+    def test_checkbox_filter_narrows_by_pk(self):
+        """FGenericCheckbox.get_choices() lists the raw stored values
+        (values('ex_kind')), not their display text -- 'YOMI', not '読み'."""
+        response = self.client.get(
+            reverse('kukan:example_list'), {'種類': 'YOMI'})
+        self.assertEqual(
+            {e.pk for e in response.context['object_list']},
+            {self.ranran.pk})
+
+    def test_yes_no_filter_narrows_by_pk(self):
+        response = self.client.get(
+            reverse('kukan:example_list'), {'例文': '例文有り'})
+        self.assertEqual(
+            {e.pk for e in response.context['object_list']},
+            {self.kemisuru.pk})
+
+    def test_boolean_column_renders_a_checkmark_not_true_false(self):
+        response = self.client.get(reverse('kukan:example_list'))
+        content = response.content.decode()
+        self.assertIn('mdi-check', content)
+        self.assertNotIn('>True<', content)
+        self.assertNotIn('>False<', content)
+
+    def test_special_characters_in_a_filter_value_round_trip_safely(self):
+        """The historical regression this replaces (kukan.tests.TestFilters,
+        issue #12) was quotes and JS-special characters breaking
+        FFilter.to_json() -- a hand-built, single-quoted JS object literal,
+        not valid JSON. That mechanism is gone for this page: the value now
+        lands in an HTML attribute through Django's own autoescaping, which
+        is safe against this class of bug by construction rather than by
+        care taken in a hand-rolled serialiser. Asserted against Django's
+        own escape() rather than a hand-picked expected string, so this
+        tracks the real behaviour rather than assuming it."""
+        from django.utils.html import escape
+
+        for value in ['ABC DEF', "A', 'yomi'",
+                      r'",/?:@&=+$#()!`~^[]|_/\\*.',
+                      'Test "#$%&\'()"']:
+            with self.subTest(value=value):
+                response = self.client.get(
+                    reverse('kukan:example_list'), {'意味': value})
+                self.assertEqual(response.status_code, 200)
+                self.assertContains(
+                    response, f'name="意味" value="{escape(value)}"')
+
+
 class UtilTagsTest(TestCase):
     """The two template helpers FilteredListView's rendering depends on."""
 
