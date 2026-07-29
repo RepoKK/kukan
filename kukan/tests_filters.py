@@ -21,13 +21,11 @@ Two areas are worth the attention they get here:
   invisible to any grep for 'exclude'.
 """
 import datetime as dt
-import json
 
 from django.test import RequestFactory, TestCase
 
 from kukan.filters import (
     FBushu,
-    FFilter,
     FGenericCheckbox,
     FGenericDateRange,
     FGenericMinMax,
@@ -200,28 +198,28 @@ class TestFGenericCheckbox(FilterTestBase):
     def test_none_label_combines_with_real_values(self):
         self.assertFiltered(self.flt, '常用漢字, 常用・人名以外', ['校', '森', '叩'])
 
-    def test_extra_json_lists_values_with_none_at_the_end(self):
-        extra = json.loads(self.flt.get_extra_json())
+    def test_choices_list_values_with_none_at_the_end(self):
+        extra = self.flt.get_choices()
         self.assertEqual(extra['comptype'], 'b-checkbox')
         labels = [e['label'] for e in extra['elements']]
         self.assertEqual(labels[-1], '常用・人名以外')
         self.assertIn('常用漢字', labels)
 
-    def test_extra_json_can_put_none_first(self):
+    def test_choices_can_put_none_first(self):
         flt = FGenericCheckbox('種別', 'classification__classification', Kanji,
                                none_label='未設定', none_position='start')
-        labels = [e['label'] for e in json.loads(flt.get_extra_json())['elements']]
+        labels = [e['label'] for e in flt.get_choices()['elements']]
         self.assertEqual(labels[0], '未設定')
 
     def test_two_column_layout_alternates_the_col_index(self):
         flt = FGenericCheckbox('漢検', 'kanken__kyu', Kanji, is_two_column=True)
-        cols = [e['col'] for e in json.loads(flt.get_extra_json())['elements']]
+        cols = [e['col'] for e in flt.get_choices()['elements']]
         self.assertEqual(cols, [0, 1])
 
     def test_no_null_rows_means_no_none_entry(self):
         """The ValueError branch: nothing to pop, so no sentinel is appended."""
         flt = FGenericCheckbox('漢検', 'kanken__kyu', Kanji, none_label='未設定')
-        labels = [e['label'] for e in json.loads(flt.get_extra_json())['elements']]
+        labels = [e['label'] for e in flt.get_choices()['elements']]
         self.assertNotIn('未設定', labels)
 
 
@@ -245,9 +243,9 @@ class TestFGenericYesNo(FilterTestBase):
         flt = FGenericYesNo('種別', 'classification__classification', '常用漢字')
         self.assertFiltered(flt, 'nonsense', ['汀', '叩'])
 
-    def test_extra_json_is_a_radio_pair(self):
+    def test_choices_are_a_radio_pair(self):
         flt = FGenericYesNo('日課', 'in_anki', True, '出る', '出ない')
-        extra = json.loads(flt.get_extra_json())
+        extra = flt.get_choices()
         self.assertEqual(extra['comptype'], 'b-radio')
         self.assertEqual([e['label'] for e in extra['elements']],
                          ['出る', '出ない'])
@@ -319,8 +317,8 @@ class TestFBushu(FilterTestBase):
     def test_multiple_bushu(self):
         self.assertFiltered(self.flt, '木水', ['校', '森', '汀'])
 
-    def test_extra_json_groups_by_stroke_count(self):
-        extra = json.loads(self.flt.get_extra_json())
+    def test_choices_group_by_stroke_count(self):
+        extra = self.flt.get_choices()
         self.assertEqual(extra['kakusu'], {'min': 3, 'max': 4})
         by_strokes = {g['strokeNumber']: set(g['bushu'])
                       for g in extra['listBushu']}
@@ -405,36 +403,27 @@ class TestFGenericDateRange(TestCase):
                                 self.jan_02_noon, self.jan_05_noon])
 
 
-class TestFilterSerialisation(FilterTestBase):
-    """`to_json` feeds the Vue components. Stage 10 replaces that frontend, so
-    these pin the current shape as the reference to port against."""
+class TestFilterKind(FilterTestBase):
+    """`kind` selects the rendering partial via
+    `kukan.templatetags.util_tags.FILTER_TEMPLATES`. A typo here means a
+    KeyError at render time, not a degraded widget, so pin the values."""
 
-    def test_to_json_shape(self):
-        """Note '~' survives quoting: it is unreserved in RFC 3986, so the
-        range separator reaches the browser as-is."""
-        flt = FGenericMinMax('画数', 'strokes')
-        flt.value = '5~10'
-        self.assertEqual(
-            flt.to_json(),
-            "{'name':'v-filter-min-max', 'label':'画数', "
-            "'extra':{}, 'value':'5~10'}")
-
-    def test_value_is_url_quoted(self):
-        """Labels and values are Japanese and go into a URL."""
-        flt = FGenericString('漢字', 'kanji')
-        flt.value = '校'
-        self.assertIn('%E6%A0%A1', flt.to_json())
-
-    def test_kind_is_the_vue_component_name(self):
-        self.assertEqual(FBushu().kind, 'v-filter-bushu')
-        self.assertEqual(FYomi().kind, 'v-filter-yomi')
-        self.assertEqual(FYomiSimple('reading').kind, 'v-filter-yomi-simple')
-        self.assertEqual(FGenericDateRange('d', 'f').kind, 'v-filter-daterange')
-        self.assertEqual(FGenericString('s', 'f').kind, 'v-filter-string')
+    def test_kind_selects_the_rendering_partial(self):
+        from kukan.templatetags.util_tags import FILTER_TEMPLATES
+        self.assertEqual(FBushu().kind, 'bushu')
+        self.assertEqual(FYomi().kind, 'yomi')
+        self.assertEqual(FYomiSimple('reading').kind, 'yomi-simple')
+        self.assertEqual(FGenericDateRange('d', 'f').kind, 'daterange')
+        self.assertEqual(FGenericString('s', 'f').kind, 'string')
+        self.assertEqual(FGenericMinMax('m', 'f').kind, 'min-max')
         self.assertEqual(FGenericCheckbox('c', 'kanken__kyu', Kanji).kind,
-                         'v-filter-checkbox')
+                         'checkbox')
+        self.assertEqual(
+            FGenericYesNo('y', 'f', True).kind, 'checkbox')
 
-    def test_context_strings_are_present(self):
-        ctx = FFilter.get_filter_context_strings()['FFilter']
-        self.assertEqual(ctx['transl']['apply'], '適用')
-        self.assertIn('@apply="handleApply"', ctx['template']['std'])
+        for flt in [FBushu(), FYomi(), FYomiSimple('reading'),
+                    FGenericDateRange('d', 'f'), FGenericString('s', 'f'),
+                    FGenericMinMax('m', 'f'),
+                    FGenericCheckbox('c', 'kanken__kyu', Kanji),
+                    FGenericYesNo('y', 'f', True)]:
+            self.assertIn(flt.kind, FILTER_TEMPLATES)

@@ -3,17 +3,18 @@ from django.template.loader import render_to_string
 
 register = template.Library()
 
-# One partial per FFilter.kind. kind still holds the old Vue component name
-# (e.g. "v-filter-string") -- reused as a dispatch key rather than renamed,
-# since it is exactly the distinction a rendering partial needs too.
+# One partial per FFilter.kind. `kind` used to name a Vue component
+# ("v-filter-string"); with the Vue filter bar deleted it is purely the key
+# this table dispatches on, so the prefix went with it. Adding a filter type
+# to a page means adding a row here, not editing that page's template.
 FILTER_TEMPLATES = {
-    'v-filter-string': 'ui/filters/string.html',
-    'v-filter-checkbox': 'ui/filters/checkbox.html',
-    'v-filter-yomi-simple': 'ui/filters/yomi_simple.html',
-    'v-filter-min-max': 'ui/filters/min_max.html',
-    'v-filter-yomi': 'ui/filters/yomi.html',
-    'v-filter-bushu': 'ui/filters/bushu.html',
-    'v-filter-daterange': 'ui/filters/daterange.html',
+    'string': 'ui/filters/string.html',
+    'checkbox': 'ui/filters/checkbox.html',
+    'yomi-simple': 'ui/filters/yomi_simple.html',
+    'min-max': 'ui/filters/min_max.html',
+    'yomi': 'ui/filters/yomi.html',
+    'bushu': 'ui/filters/bushu.html',
+    'daterange': 'ui/filters/daterange.html',
 }
 
 

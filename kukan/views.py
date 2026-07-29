@@ -1,12 +1,11 @@
+import json
 import logging
-import time
 from collections import defaultdict, deque
 from functools import reduce
 
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.core.paginator import EmptyPage, Paginator
-from django.db.models import Count
+from django.db.models import Count, Q
 from django.http import JsonResponse
 from django.urls import reverse, reverse_lazy
 from django.utils import timezone
@@ -15,12 +14,22 @@ from django.views import generic
 from django.views.generic.base import TemplateView
 from django.views.generic.edit import CreateView, DeleteView, UpdateView
 
+import kukan.jautils as jau
 from kukan.exporting import ExporterAsResp
 from kukan.jautils import JpnText
 from kukan.listview import FilteredListView
 from kukan.onlinepedia import DefinitionWordBase
 
-from .filters import *
+from .filters import (
+    FBushu,
+    FGenericCheckbox,
+    FGenericDateRange,
+    FGenericMinMax,
+    FGenericString,
+    FGenericYesNo,
+    FYomi,
+    FYomiSimple,
+)
 from .forms import ExampleForm, ExportForm, KotowazaForm, SearchForm
 from .models import Example, ExMap, Kanji, Kotowaza, Reading, TestResult, Yoji
 
@@ -196,129 +205,6 @@ class TableData:
 
     def get_table_full(self, lst):
         return {'columns': self.get_col_template(), 'data': self.get_table_data(lst)}
-
-
-class AjaxList(LoginRequiredMixin, generic.TemplateView):
-    model = None
-    table_data = None
-    default_sort = None
-    filters = None
-    list_title = 'LIST_TITLE'
-    is_mobile_card = True
-
-    def __init__(self):
-        super().__init__()
-        self.object_counter = '件'
-
-    def dispatch(self, request, *args, **kwargs):
-        # The ajax branch below bypasses super().dispatch(), which is where
-        # LoginRequiredMixin does its work, so the check has to happen here.
-        # Without it, `?ajax=1` served the whole table to anonymous callers
-        # while the HTML page correctly redirected to the login form.
-        if not request.user.is_authenticated:
-            return self.handle_no_permission()
-        if request.method.lower() == 'get' and request.GET.get('ajax', None) == '1':
-            handler = self.get_list
-        else:
-            handler = super().dispatch
-        return handler(request, *args, **kwargs)
-
-    def get_sortable_fields(self):
-        """Field names the table actually displays, which are the only ones
-        worth ordering by."""
-        return {col['field'] for col in self.table_data.get_col_template()}
-
-    def clean_sort_by(self, sort_by):
-        """Constrain `sort_by` to the displayed columns.
-
-        It arrives straight from the query string and used to go straight into
-        `order_by()`. Two consequences:
-
-        * an unknown name raised FieldError, so `?sort_by=nope` was a 500;
-        * any ORM path was accepted, including relation traversals such as
-          `kanjis__kanjidetails__anki_English`. Ordering by a field reveals
-          something about its values even when the field is not displayed, and
-          a deep join is expensive to run.
-
-        Anything not on the allow-list silently falls back to the default,
-        which is what the page would have shown anyway.
-        """
-        if not sort_by:
-            return self.default_sort
-        if sort_by.removeprefix('-') in self.get_sortable_fields():
-            return sort_by
-        return self.default_sort
-
-    def get_list(self, request):
-        page = request.GET.get('page', 1)
-        sort_by = self.clean_sort_by(request.GET.get('sort_by', self.default_sort))
-        table_data = {'page': int(page), 'sort_by': sort_by, 'columns': '', 'data': []}
-        start_time = time.time()
-        qry = self.get_filtered_list(request)
-
-        try:
-            p = Paginator(qry.order_by(sort_by), 20, allow_empty_first_page=True)
-            table_data.update(self.table_data.get_table_full(p.page(page).object_list))
-            end_time = time.time()
-            data = {'total_results': p.count, 'table_data': table_data,
-                    'stats': self.get_stats(qry, p, start_time, end_time)}
-            data.update(self.get_extra_json(p, page, qry))
-        except EmptyPage:
-            data = {'total_results': 0, 'table_data': table_data, 'stats': '0 ' + self.object_counter}
-
-        return JsonResponse(data)
-
-    # noinspection PyUnusedLocal,PyMethodMayBeStatic
-    def get_extra_json(self, p, page, qry):
-        return {}
-
-    # noinspection PyUnusedLocal
-    def get_stats(self, qry, p, start_time, end_time):
-        return [str(p.count) + ' ' + self.object_counter,
-                'Q:' + f'{int((end_time - start_time)*1000):d}']
-
-    def get_filtered_list(self, request):
-        qry = self.model.objects.all()
-        for flt in self.filters:
-            qry = flt.filter(request, qry)
-        return qry
-
-    def get_context_data(self, **kwargs):
-        filter_list = ""
-        for flt in self.filters:
-            flt.value = self.request.GET.get(flt.label, '')
-            filter_list += flt.to_json() + ",\n"
-        filter_list = "[" + filter_list + "]"
-
-        flt_order = []
-        for flt in self.filters:
-            flt_order.append(flt.label)
-
-        active_filters = []
-        for f_req in self.request.GET:
-            try:
-                idx = flt_order.index(f_req)
-                if idx > -1:
-                    active_filters.append(idx)
-            except ValueError:
-                pass
-
-        context = super().get_context_data(**kwargs)
-        context['filter_list'] = filter_list
-        context.update(FFilter.get_filter_context_strings())
-        context['active_filters'] = active_filters
-
-        page = self.request.GET.get('page', 1)
-        # Same allow-list as get_list, so the HTML shell and the ajax response
-        # cannot disagree about which column the table is sorted on.
-        sort_by = self.clean_sort_by(
-            self.request.GET.get('sort_by', self.default_sort))
-        context['table_data'] = json.dumps({'page': int(page), 'sort_by': sort_by, 'columns': '', 'data': []})
-
-        context['list_title'] = self.list_title
-        context['is_mobile_card'] = self.is_mobile_card
-
-        return context
 
 
 class KanjiListFilter(FilteredListView):

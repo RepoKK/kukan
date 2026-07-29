@@ -1,44 +1,20 @@
 {% extends 'tempmon/base_tabs.html' %}
-{% load static %}
+{% load util_tags %}
 
-{% block subtitle %}
-{% if psn_ok %}
-<div class="is-size-7">
-{% else %}
-<div class="is-size-3">
-{% endif %}
-    <a href="{% url 'tempmon:psn_npsso_update' 1 %}">Update NPSSO code</a>
-</div>
-{% endblock %}
+{% block page_title %}{{ list_title }}{% endblock %}
 
 {% block body3 %}
 <div class="container">
-    <div id="vue_app">
-        <div v-cloak>
-            <v-filtered-table top_title="{{list_title}}" :mobile-cards="'{{is_mobile_card}}'=='True'"></v-filtered-table>
-        </div>
-    </div>
+    <h1 class="title is-4">{{ list_title }}</h1>
+
+    <form hx-get="{{ request.path }}" hx-target="#results" hx-push-url="true" hx-swap="outerHTML"
+          hx-trigger="input changed delay:400ms, change, submit">
+        {% for filter, value in filters %}
+        {% render_filter filter value %}
+        {% endfor %}
+        <button class="button is-primary" type="submit">Apply</button>
+    </form>
+
+    {% include 'ui/_table.html' %}
 </div>
-
-<script>
-    Vue.use(Buefy.default)
-    Vue.mixin({ delimiters: ['[[',']]'] });
-</script>
-{% include 'v-filter/v-include.html' %}
-<script>
-    var mixin = {
-        data: function () {
-            return {
-                containerSize: "is-desktop",
-            }
-        },
-    }
-
-    const app_data = {
-        mixins:[mixin],
-        delimiters: ['[[', ']]'],
-    }
-    const app = new Vue(app_data)
-    app.$mount('#vue_app')
-</script>
 {% endblock %}

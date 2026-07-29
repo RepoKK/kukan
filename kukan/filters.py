@@ -1,6 +1,4 @@
 import collections
-import json
-import urllib.parse
 from abc import ABC, abstractmethod
 from datetime import datetime, timedelta
 
@@ -16,43 +14,10 @@ class FFilter(ABC):
     label = ''
     value = ''
 
-    @staticmethod
-    def get_filter_context_strings():
-        return {
-            'FFilter': {
-                'transl': {
-                    'addfilter': 'ﾌｨﾙﾀｰ追加',
-                    'apply': '適用',
-                    'value': '値',
-                    'selectall': '全選択',
-                    'range': '範囲',
-                    'exclude': '除く',
-                    'time': '時間',
-                    'date': '日付',
-                    'daterange': '日時範囲',
-                    'datestart': '開始',
-                    'dateend': '終了',
-                    'noresult': '結果ありません',
-                },
-                'template': {
-                    'std': '@apply="handleApply" @rm_fil="rm_fil" :title="title" @active-change="activeChange"'
-                           ':current_filter="filterDisp" :keep_title="keep_title"'
-                }
-            }
-        }
-
     def __init__(self, label, kind):
         self.kind = kind
         self.label = label
         self.value = ''
-
-    def to_json(self):
-        return (f"{{'name':'{self.kind}', 'label':'{self.label}', "
-                f"'extra':{self.get_extra_json()}, "
-                f"'value':'{urllib.parse.quote(self.value)}'}}")
-
-    def get_extra_json(self):
-        return "{}"
 
     def filter(self, request, qry):
         flt = request.GET.get(self.label, None)
@@ -73,7 +38,7 @@ class FGenericCheckbox(FFilter):
         self.order = order if order else field
         self.none_label = none_label
         self.none_position = none_position
-        super().__init__(title, 'v-filter-checkbox')
+        super().__init__(title, 'checkbox')
 
     def add_to_query(self, flt, qry):
         flt = flt.split(', ')
@@ -86,10 +51,7 @@ class FGenericCheckbox(FFilter):
         return qry
 
     def get_choices(self):
-        """The plain-Python form of get_extra_json's payload, for the
-        server-rendered template (kukan/templates/ui/filters/checkbox.html).
-        get_extra_json stays, JSON-serialising this same data, for the list
-        pages still on the Vue filter bar."""
+        """The choice list rendered by kukan/templates/ui/filters/checkbox.html."""
         sys_list = [x[self.field] for x in self.model.objects.order_by(self.order).distinct().values(self.field)]
         try:
             sys_list.pop(sys_list.index(None))
@@ -99,14 +61,12 @@ class FGenericCheckbox(FFilter):
         ret = [{'native': idx, 'label': x, 'col': idx % self.nb_col} for idx, x in enumerate(sys_list)]
         return {'comptype': 'b-checkbox', 'elements': ret}
 
-    def get_extra_json(self):
-        return json.dumps(self.get_choices())
 
 
 class FGenericMinMax(FFilter):
     def __init__(self, title, field):
         self.field = field
-        super().__init__(title, 'v-filter-min-max')
+        super().__init__(title, 'min-max')
 
     def add_to_query(self, flt, qry):
         flt_fct = qry.filter
@@ -129,7 +89,7 @@ class FGenericMinMax(FFilter):
 class FGenericDateRange(FFilter):
     def __init__(self, title, field):
         self.field = field
-        super().__init__(title, 'v-filter-daterange')
+        super().__init__(title, 'daterange')
 
     def add_to_query(self, flt, qry):
         flt_fct = qry.filter
@@ -164,7 +124,7 @@ class FGenericString(FFilter):
         self.field = field
         self.lh_criteria = lh_criteria if lh_criteria else self.field + '__contains'
         self.rh_fct = rh_fct if rh_fct else lambda x: x
-        super().__init__(title, 'v-filter-string')
+        super().__init__(title, 'string')
 
     def add_to_query(self, flt, qry):
         kwargs = {self.lh_criteria: self.rh_fct(flt)}
@@ -179,7 +139,7 @@ class FGenericYesNo(FFilter):
         self.label_yes = label_yes
         self.label_no = label_no
         self.inverse = inverse
-        super().__init__(title, 'v-filter-checkbox')
+        super().__init__(title, 'checkbox')
 
     def add_to_query(self, flt, qry):
         kwargs = {self.field: self.criteria}
@@ -196,14 +156,12 @@ class FGenericYesNo(FFilter):
                 'elements': [{'native': 0, 'label': self.label_yes, 'col': 0},
                             {'native': 1, 'label': self.label_no, 'col': 0}]}
 
-    def get_extra_json(self):
-        return json.dumps(self.get_choices())
 
 
 class FYomiSimple(FFilter):
     def __init__(self, field):
         self.field = field
-        super().__init__('読み', 'v-filter-yomi-simple')
+        super().__init__('読み', 'yomi-simple')
 
     def add_to_query(self, flt, qry):
         yomi, position = flt.split('_')
@@ -222,7 +180,7 @@ class FYomiSimple(FFilter):
 
 class FYomi(FFilter):
     def __init__(self):
-        super().__init__('読み', 'v-filter-yomi')
+        super().__init__('読み', 'yomi')
 
     def add_to_query(self, flt, qry):
         yomi, position, onkun, joyo = flt.split('_')
@@ -255,19 +213,16 @@ class FYomi(FFilter):
 
 class FBushu(FFilter):
     def __init__(self):
-        super().__init__('部首', 'v-filter-bushu')
+        super().__init__('部首', 'bushu')
 
     def get_choices(self):
-        """The plain-Python form of get_extra_json's payload, for the
-        server-rendered template (kukan/templates/ui/filters/bushu.html)."""
+        """The radical list rendered by kukan/templates/ui/filters/bushu.html."""
         dct = collections.defaultdict(list)
         for x in KoukiBushu.objects.values_list('bushu', 'kakusu'):
             dct[x[1]].append(x[0])
         return {'listBushu': [{'strokeNumber': k, 'bushu': dct[k]} for k in dct],
                 'kakusu': KoukiBushu.objects.aggregate(min=Min('kakusu'), max=Max('kakusu'))}
 
-    def get_extra_json(self):
-        return json.dumps(self.get_choices())
 
     def add_to_query(self, flt, qry):
         qry = qry.filter(kouki_bushu__bushu__in=flt)

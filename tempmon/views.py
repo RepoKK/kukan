@@ -16,20 +16,28 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import DetailView, UpdateView
 
 from kukan.filters import FFilter, FGenericDateRange, FGenericMinMax, FGenericString
-from kukan.forms import BForm
-from kukan.views import AjaxList, TableData
+from kukan.listview import FilteredListView
+from kukan.views import TableData
 from tempmon.models import DataPoint, PlaySession, PsGame, PsnApiKey
 from tempmon.psn import NO_GAME, PsnClient, get_psn, reset_psn
 
 logger = logging.getLogger(__name__)
 
 
-class PsnApiKeyForm(BForm):
+class PsnApiKeyForm(forms.ModelForm):
+    """A plain ModelForm — `BForm` bought this page nothing.
+
+    `BForm` exists to swap in Buefy widget templates and to stamp `v-model`
+    on every field, and this form got neither: the override table keys on the
+    exact widget type, and `PasswordInput` is not `TextInput`. The `v-model`
+    attribute was rendered onto an input no Vue instance ever mounted over.
+    """
+
     class Meta:
         model = PsnApiKey
         fields = ['code']
         widgets = {
-            'code': forms.PasswordInput(attrs={"size": "64"}),
+            'code': forms.PasswordInput(attrs={'size': '64', 'class': 'input'}),
         }
 
     def clean_code(self):
@@ -78,7 +86,7 @@ def add_temp_point(request):
 class FGenericMinMaxDurationMin(FFilter):
     def __init__(self, title, field):
         self.field = field
-        super().__init__(title, 'v-filter-min-max')
+        super().__init__(title, 'min-max')
 
     @staticmethod
     def to_timedelta(val):
@@ -128,7 +136,7 @@ class PsnApiKeyUpdateView(TempMonViewMixin, UpdateView):
         return res
 
 
-class PlaySessionListView(TempMonViewMixin, AjaxList):
+class PlaySessionListView(TempMonViewMixin, FilteredListView):
     model = PlaySession
     template_name = 'tempmon/playsession_list.html'
     default_sort = '-start_time'
@@ -451,7 +459,7 @@ class PlaytimeYearlyView(TempMonViewMixin, LoginRequiredMixin, DetailView):
         return context
 
 
-class GamesListView(TempMonViewMixin, AjaxList):
+class GamesListView(TempMonViewMixin, FilteredListView):
     model = PsGame
     template_name = 'tempmon/game_list.html'
     default_sort = '-last_played'

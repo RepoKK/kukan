@@ -1,10 +1,10 @@
-"""Contract tests for `FilteredListView`, exercised through `KotowazaList` and
-`YojiList` -- the first two of the seven list pages moved off `AjaxList`.
+"""Contract tests for `FilteredListView`, through all five kukan list pages.
 
 This is the frontend rewrite's actual regression net for list views: PKs,
 ordering and page count through the real view, not a golden-diff of HTML.
-`kukan.tests_ajax_list` keeps covering `AjaxList`/`TableData` for the list
-pages not yet migrated.
+`kukan.tests_table_data` covers `TableData` -- which `FilteredListView` reuses
+unchanged -- on its own; `tempmon.tests_listview` covers the same view class
+through tempmon's two list pages.
 """
 import datetime as dt
 

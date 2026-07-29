@@ -2,47 +2,22 @@
 {% load static %}
 
 {% block subtitle %}
-{% if psn_ok %}
-<div class="is-size-7">
+<div class="{% if psn_ok %}is-size-7{% else %}is-size-3{% endif %}">
     <a href="{% url 'tempmon:psn_npsso_update' 1 %}">Update NPSSO code</a>
 </div>
-{% else %}
-<div class="is-size-3">
-    <a href="{% url 'tempmon:psn_npsso_update' 1 %}">Update NPSSO code</a>
-</div>
-{% endif %}
 {% endblock %}
 
 {% block body2 %}
 <div class="tabs is-centered">
     <ul>
-    {% if request.path == '/tempmon/session_list/' %}
-        <li class="is-active">
-    {% else %}
-        <li>
-    {% endif %}
-    <a href="{% url 'tempmon:session_list' %}">Sessions</a></li>
-
-    {% if request.path == '/tempmon/game_list/' %}
-        <li class="is-active">
-    {% else %}
-        <li>
-    {% endif %}
-    <a href="{% url 'tempmon:game_list' %}">Games</a></li>
-
-    {% if request.path == '/tempmon/playtime_monthly/' %}
-        <li class="is-active">
-    {% else %}
-        <li>
-    {% endif %}
-    <a href="{% url 'tempmon:playtime_monthly' %}">Playtime (月)</a></li>
-
-    {% if request.path == '/tempmon/playtime_yearly/' %}
-        <li class="is-active">
-    {% else %}
-        <li>
-    {% endif %}
-    <a href="{% url 'tempmon:playtime_yearly' %}">Playtime (年)</a></li>
+        {% url 'tempmon:session_list' as tab_url %}
+        <li{% if request.path == tab_url %} class="is-active"{% endif %}><a href="{{ tab_url }}">Sessions</a></li>
+        {% url 'tempmon:game_list' as tab_url %}
+        <li{% if request.path == tab_url %} class="is-active"{% endif %}><a href="{{ tab_url }}">Games</a></li>
+        {% url 'tempmon:playtime_monthly' as tab_url %}
+        <li{% if request.path == tab_url %} class="is-active"{% endif %}><a href="{{ tab_url }}">Playtime (月)</a></li>
+        {% url 'tempmon:playtime_yearly' as tab_url %}
+        <li{% if request.path == tab_url %} class="is-active"{% endif %}><a href="{{ tab_url }}">Playtime (年)</a></li>
     </ul>
 </div>
 
