@@ -1,6 +1,6 @@
 {% load static %}
 <!doctype html>
-<html lang="ja">
+<html lang="ja" class="{% block html_class %}{% endblock %}">
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -35,9 +35,7 @@
 
         {% include 'ui/toasts.html' %}
 
-        <main>
-            {% block body %}{% endblock %}
-        </main>
+        {% block body %}{% endblock %}
 
         {% block script %}{% endblock %}
     </body>

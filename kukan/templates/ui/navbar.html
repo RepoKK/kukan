@@ -1,0 +1,102 @@
+{% load static icons %}
+<nav class="navbar is-fixed-top {{ color|default:'is-light' }}" x-data="{ open: false }">
+    <div class="navbar-brand">
+        {% if has_search %}
+        <a class="navbar-item" href="/">
+            <img src="{% static 'images/favicon/ms-icon-310x310.png' %}" width="28" height="28">
+        </a>
+        <div class="navbar-item" x-data="{ searchVal: '', focused: false }">
+            <form action="/" method="post">
+                {% csrf_token %}
+                <nav class="level">
+                    <div class="level-item">
+                        <div class="field is-grouped">
+                            <input class="input" :class="{'is-hovered': searchVal !== ''}"
+                                   style="width:190px"
+                                   name="search" type="search" placeholder="検索"
+                                   x-model="searchVal"
+                                   @focus="focused = true" @blur="focused = false">
+                            <div class="button {{ color|default:'is-light' }}" @click="searchVal = ''"
+                                 x-show="focused || searchVal !== ''">
+                                {% icon 'close-circle-outline' %}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="level-item" x-show="focused || searchVal !== ''">
+                        <div class="field is-grouped">
+                            <input type="submit" class="button {{ color|default:'is-light' }}" name="kanji" value="漢字">
+                            <input type="submit" class="button {{ color|default:'is-light' }}" name="yoji" value="四字熟語">
+                            <input type="submit" class="button {{ color|default:'is-light' }}" name="kotowaza" value="諺">
+                            <input type="submit" class="button {{ color|default:'is-light' }}" name="example" value="例文">
+                        </div>
+                    </div>
+                </nav>
+            </form>
+        </div>
+        {% endif %}
+
+        <a role="button" class="navbar-burger" :class="{'is-active': open}" @click="open = !open"
+           aria-label="menu" aria-expanded="false">
+            <span aria-hidden="true"></span>
+            <span aria-hidden="true"></span>
+            <span aria-hidden="true"></span>
+        </a>
+    </div>
+    <div class="navbar-menu" :class="{'is-active': open}">
+        <div class="navbar-end">
+            <a class="navbar-item" href="{% url 'kukan:kanji_list' %}">漢字</a>
+            <a class="navbar-item" href="{% url 'kukan:yoji_list' %}">四字熟語</a>
+            <a class="navbar-item" href="{% url 'kukan:kotowaza_list' %}">諺</a>
+            <div class="navbar-item has-dropdown is-hoverable">
+                <a class="navbar-item">例文</a>
+                <div class="navbar-dropdown is-boxed is-right">
+                    <a class="navbar-item" href="{% url 'kukan:example_list' %}">例文一覧</a>
+                    <a class="navbar-item" href="{% url 'kukan:example_add' %}">例文作成</a>
+                    <div class="navbar-divider"></div>
+                    <a class="navbar-item" href="{% url 'kukan:example_list' %}?意味=kaki">例文・書き取り未完成</a>
+                    <a class="navbar-item" href="{% url 'kukan:example_list' %}?意味=yomi">例文・読み未完成</a>
+                    <a class="navbar-item" href="{% url 'kukan:example_list' %}?意味=hyogai">例文・表外読み未完成</a>
+                    <a class="navbar-item" href="{% url 'kukan:example_list' %}?意味=kotowaza">例文・諺未完成</a>
+                </div>
+            </div>
+            <div class="navbar-item has-dropdown is-hoverable">
+                <a class="navbar-item">{% icon 'dots-horizontal' %}</a>
+                <div class="navbar-dropdown is-boxed is-right">
+                    <a class="navbar-item" href="{% url 'kukan:test_result_list' %}">
+                        {% icon 'medal' size='is-small' %}　試験結果
+                    </a>
+                    <a class="navbar-item" href="{% url 'kukan:stats' %}">
+                        {% icon 'chart-bar' size='is-small' %}　統計
+                    </a>
+                    <a class="navbar-item" href="{% url 'kukan:export' %}">
+                        {% icon 'download' size='is-small' %}　エクスポート
+                    </a>
+                    <hr class="navbar-divider">
+                    <a class="navbar-item" href="http://www.bunka.go.jp/kokugo_nihongo/sisaku/joho/joho/kijun/naikaku/pdf/joyokanjihyo_20101130.pdf">
+                        常用漢字表
+                    </a>
+                    <hr class="navbar-divider">
+                    <a class="navbar-item" href="{% url 'bustime:bustime_main' %}">
+                        <img src="{% static 'bustime/favicon/favicon-16x16.png' %}" alt="BusTime">　BusTime
+                    </a>
+                    <a class="navbar-item" href="{% url 'session_list' %}">
+                        <img src="{% static 'tempmon/favicon_io/favicon-16x16.png' %}" alt="Tempmon">　TempMon
+                    </a>
+                </div>
+            </div>
+            <div class="navbar-item has-dropdown is-hoverable">
+                <a class="navbar-item">{% icon 'account' %}</a>
+                <div class="navbar-dropdown is-boxed is-right">
+                    {# LogoutView is POST-only (Django 5.0+): a form, not a link. #}
+                    <form method="post" action="{% url 'logout' %}">
+                        {% csrf_token %}
+                        <button class="navbar-item" type="submit"
+                                style="background:none;border:none;width:100%;text-align:left;cursor:pointer">
+                            {% icon 'logout' size='is-small' %}　{{ user }}をログアウト
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</nav>

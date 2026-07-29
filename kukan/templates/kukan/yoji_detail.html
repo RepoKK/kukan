@@ -1,4 +1,5 @@
-{% extends 'kukan/base_ext.html' %}
+{% extends 'base_ext.html' %}
+{% load icons %}
 
 {% block title %}
 {{ yoji.yoji }}
@@ -26,9 +27,43 @@
             <ul>
                 <li>
                     <strong>日課：</strong>
-                    <fr-addrem-anki :in_anki_init="{{yoji.in_anki|yesno:'true,false'}}"
-                                    yoji="{{yoji.yoji}}" :edit_allowed="true">
-                    </fr-addrem-anki>
+                    <span x-data="{
+                            inAnki: {{ yoji.in_anki|yesno:'true,false' }},
+                            busy: false,
+                            toggle() {
+                                const op = this.inAnki ? 'remove' : 'add';
+                                const message = this.inAnki
+                                    ? '本当に日課の四字熟語の問題から外しますか。'
+                                    : '日課に追加しますか。';
+                                if (!confirm(message)) return;
+                                this.busy = true;
+                                const body = new FormData();
+                                body.set('yoji', '{{ yoji.yoji|escapejs }}');
+                                body.set('op', op);
+                                fetch('{% url 'kukan:yoji_anki' %}', {
+                                    method: 'POST',
+                                    headers: {'X-CSRFToken': '{{ csrf_token }}'},
+                                    body: body,
+                                }).then(r => r.json()).then(data => {
+                                    this.busy = false;
+                                    if (data.status === 'success') {
+                                        this.inAnki = data.in_anki === 'true';
+                                    } else {
+                                        alert('日課に追加・削除の失敗');
+                                    }
+                                }).catch(() => {
+                                    this.busy = false;
+                                    alert('日課に追加・削除の失敗');
+                                });
+                            }
+                        }">
+                        <span x-show="inAnki">{% icon 'check' %}</span>
+                        <a class="button is-small is-outlined"
+                           :class="[inAnki ? 'is-danger' : 'is-success', busy ? 'is-loading' : '']"
+                           @click="toggle">
+                            <span x-text="inAnki ? '解除' : '追加'"></span>
+                        </a>
+                    </span>
                 </li>
                 <li><strong>漢検：</strong>{{yoji.kanken}}</li>
                 <li><strong>外部辞典：</strong>
@@ -53,10 +88,3 @@
         </div>
     </div>
 {% endblock %}
-
-{% block vue_component %}
-{% include 'vue/vue_addrem_anki.html' %}
-{% endblock %}
-
-{% block vue_data %}
-{% endblock vue_data%}

@@ -93,7 +93,7 @@ class StatsPage(LoginRequiredMixin, TemplateView):
         data['joyo'] = 0
         data['non_joyo'] = 0
         data_list.append(data.copy())
-        context['stats_table_data'] = json.dumps(data_list)
+        context['stats_data'] = data_list
         return context
 
 

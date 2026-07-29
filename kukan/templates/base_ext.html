@@ -1,0 +1,12 @@
+{% extends 'base.html' %}
+{% block html_class %}has-navbar-fixed-top{% endblock %}
+{% block navbar %}{% include 'ui/navbar.html' with has_search=True color='is-light' %}{% endblock %}
+{% block body %}
+<section class="section" style="padding-top: 1rem; padding-bottom: 1rem">
+    <main>
+        <div class="container">
+            {% block content %}{% endblock %}
+        </div>
+    </main>
+</section>
+{% endblock %}

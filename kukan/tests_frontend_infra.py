@@ -95,3 +95,90 @@ class LoginPageUsesTheNewBaseTest(TestCase):
         post_response = self.client.post(reverse('login'), {
             'username': 'alice', 'password': 'hunter2'})
         self.assertRedirects(post_response, '/')
+
+
+class IndexPageUsesTheNewBaseTest(TestCase):
+    """index.html: the second page migrated in Wave B. It has its own
+    navbar wiring (has_search=False, since the whole page is already a
+    search form) rather than base_ext.html's, so it gets its own test."""
+
+    def setUp(self):
+        from django.contrib.auth.models import User
+        User.objects.create_user('alice', password='hunter2')
+        self.client.login(username='alice', password='hunter2')
+
+    def test_no_vue_or_buefy_remains(self):
+        response = self.client.get(reverse('kukan:index'))
+        content = response.content.decode()
+        self.assertNotIn('vue_app', content)
+        self.assertNotIn('buefy', content.lower())
+        self.assertNotIn('node_modules', content)
+
+    def test_the_navbar_search_box_is_not_duplicated(self):
+        """The page's own big search field is named "search" too, so this
+        asserts there is exactly one — not that the string is absent."""
+        response = self.client.get(reverse('kukan:index'))
+        self.assertContains(response, 'name="search"', count=1)
+
+    def test_the_page_still_has_its_own_search_form(self):
+        response = self.client.get(reverse('kukan:index'))
+        self.assertContains(response, 'name="kanji"')
+        self.assertContains(response, 'name="yoji"')
+        self.assertContains(response, 'name="kotowaza"')
+        self.assertContains(response, 'name="example"')
+
+
+class ExportPageUsesTheNewBaseTest(TestCase):
+    """export.html: b-field/b-select -> plain Bulma markup.
+
+    The view (kukan/views.py ExportView.render_to_response) reads
+    request.POST['profile'] and request.POST['choice'] directly, bypassing
+    form.cleaned_data entirely -- "choice" does not match the form field's
+    own name, "type". That mismatch has to survive the port exactly."""
+
+    def setUp(self):
+        from django.contrib.auth.models import User
+        User.objects.create_user('alice', password='hunter2')
+        self.client.login(username='alice', password='hunter2')
+
+    def test_no_vue_or_buefy_remains(self):
+        response = self.client.get(reverse('kukan:export'))
+        content = response.content.decode()
+        self.assertNotIn('vue_app', content)
+        self.assertNotIn('buefy', content.lower())
+        self.assertNotIn('<b-field', content)
+        self.assertNotIn('<b-select', content)
+
+    def test_the_select_names_still_match_what_the_view_reads(self):
+        response = self.client.get(reverse('kukan:export'))
+        self.assertContains(response, '<select name="profile">')
+        self.assertContains(response, '<select name="choice">')
+
+    def test_the_navbar_shell_is_present(self):
+        response = self.client.get(reverse('kukan:export'))
+        self.assertContains(response, 'navbar-burger')
+
+
+class StatsPageUsesTheNewBaseTest(TestCase):
+    """stats.html: a Buefy <b-table> bound to a JSON blob -> a plain Bulma
+    <table>, server-rendered from the same rows (kukan/views.py StatsPage)."""
+
+    fixtures = ['baseline']
+
+    def setUp(self):
+        from django.contrib.auth.models import User
+        User.objects.create_user('alice', password='hunter2')
+        self.client.login(username='alice', password='hunter2')
+
+    def test_no_vue_or_buefy_remains(self):
+        response = self.client.get(reverse('kukan:stats'))
+        content = response.content.decode()
+        self.assertNotIn('vue_app', content)
+        self.assertNotIn('buefy', content.lower())
+        self.assertNotIn('<b-table', content)
+        self.assertNotIn('<template>', content)
+
+    def test_every_category_row_is_rendered(self):
+        response = self.client.get(reverse('kukan:stats'))
+        for category in ['漢字', '総合読み', '音読み', '訓読み', '例文']:
+            self.assertContains(response, f'<td>{category}</td>')
