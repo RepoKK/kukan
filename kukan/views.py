@@ -10,12 +10,14 @@ from django.db.models import Count
 from django.http import JsonResponse
 from django.urls import reverse, reverse_lazy
 from django.utils import timezone
+from django.utils.html import format_html
 from django.views import generic
 from django.views.generic.base import TemplateView
 from django.views.generic.edit import CreateView, DeleteView, UpdateView
 
 from kukan.exporting import ExporterAsResp
 from kukan.jautils import JpnText
+from kukan.listview import FilteredListView
 from kukan.onlinepedia import DefinitionWordBase
 
 from .filters import *
@@ -143,7 +145,11 @@ class TableData:
             if self.get_choice_display:
                 value = self.get_choice_display[value]
             if self.link_fn is not None:
-                value = '<a href="' + self.link_fn(obj) + '/">' + str(value) + '</a>'
+                # format_html escapes both arguments; the old string
+                # concatenation here did not, which was harmless only as long
+                # as every caller kept treating the result as v-html'd JSON
+                # rather than server-rendered HTML.
+                value = format_html('<a href="{}/">{}</a>', self.link_fn(obj), value)
             return self.props['field'], value
 
         def add_link(self, obj):
@@ -387,9 +393,9 @@ class ExampleList(AjaxList):
     ])
 
 
-class KotowazaList(AjaxList):
+class KotowazaList(FilteredListView):
     model = Kotowaza
-    template_name = 'kukan/default_list.html'
+    template_name = 'kukan/kotowaza_list.html'
     default_sort = 'kotowaza'
     list_title = '諺'
     filters = [

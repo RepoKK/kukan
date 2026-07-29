@@ -1,0 +1,148 @@
+"""Contract tests for `FilteredListView`, exercised through `KotowazaList` --
+the simplest of the seven list pages (one string filter, no annotations) and
+the first one moved off `AjaxList`.
+
+This is the frontend rewrite's actual regression net for list views: PKs,
+ordering and page count through the real view, not a golden-diff of HTML.
+`kukan.tests_ajax_list` keeps covering `AjaxList`/`TableData` for the list
+pages not yet migrated.
+"""
+from django.contrib.auth.models import User
+from django.template import Context, Template
+from django.test import Client, TestCase
+from django.urls import reverse
+
+from kukan.models import Kotowaza
+
+
+class KotowazaListContractTest(TestCase):
+    def setUp(self):
+        User.objects.create_user('test_user', password='pwd')
+        self.client = Client()
+        self.client.login(username='test_user', password='pwd')
+
+    def test_requires_login(self):
+        response = Client().get(reverse('kukan:kotowaza_list'))
+        self.assertEqual(response.status_code, 302)
+        self.assertIn('/login', response['Location'])
+
+    def test_a_normal_request_renders_the_full_page(self):
+        response = self.client.get(reverse('kukan:kotowaza_list'))
+        self.assertContains(response, 'navbar-burger')
+        self.assertContains(response, '<table')
+
+    def test_an_htmx_request_renders_only_the_table_partial(self):
+        response = self.client.get(
+            reverse('kukan:kotowaza_list'), HTTP_HX_REQUEST='true')
+        self.assertNotContains(response, 'navbar-burger')
+        self.assertContains(response, '<table')
+        self.assertContains(response, 'id="results"')
+
+    def test_no_vue_or_buefy_remains(self):
+        response = self.client.get(reverse('kukan:kotowaza_list'))
+        content = response.content.decode()
+        self.assertNotIn('vue_app', content)
+        self.assertNotIn('buefy', content.lower())
+        self.assertNotIn('v-filter', content)
+
+    def test_default_sort_is_by_kotowaza(self):
+        Kotowaza.objects.create(kotowaza='2番目')
+        Kotowaza.objects.create(kotowaza='1番目')
+        response = self.client.get(reverse('kukan:kotowaza_list'))
+        self.assertEqual(
+            [k.kotowaza for k in response.context['object_list']],
+            ['1番目', '2番目'])
+
+    def test_sort_by_is_honoured(self):
+        Kotowaza.objects.create(kotowaza='2番目')
+        Kotowaza.objects.create(kotowaza='1番目')
+        response = self.client.get(
+            reverse('kukan:kotowaza_list'), {'sort_by': '-kotowaza'})
+        self.assertEqual(
+            [k.kotowaza for k in response.context['object_list']],
+            ['2番目', '1番目'])
+
+    def test_unknown_sort_by_falls_back_to_the_default(self):
+        """`?sort_by=nope` used to reach order_by() directly and 500."""
+        response = self.client.get(
+            reverse('kukan:kotowaza_list'), {'sort_by': 'nope'})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context['sort_by'], 'kotowaza')
+
+    def test_filter_narrows_the_result_by_pk(self):
+        keep = Kotowaza.objects.create(kotowaza='犬も歩けば棒に当たる')
+        Kotowaza.objects.create(kotowaza='猿も木から落ちる')
+        response = self.client.get(
+            reverse('kukan:kotowaza_list'), {'諺': '犬'})
+        self.assertEqual(
+            {k.pk for k in response.context['object_list']}, {keep.pk})
+
+    def test_filter_value_is_echoed_back_into_the_input(self):
+        response = self.client.get(
+            reverse('kukan:kotowaza_list'), {'諺': '犬'})
+        self.assertContains(response, 'name="諺" value="犬"')
+
+    def test_page_size_is_twenty(self):
+        for i in range(25):
+            Kotowaza.objects.create(kotowaza=f'諺{i:02}')
+        response = self.client.get(reverse('kukan:kotowaza_list'))
+        self.assertEqual(len(response.context['object_list']), 20)
+        self.assertEqual(response.context['page_obj'].paginator.count, 25)
+
+        page2 = self.client.get(
+            reverse('kukan:kotowaza_list'), {'page': 2})
+        self.assertEqual(len(page2.context['object_list']), 5)
+
+    def test_a_page_link_preserves_the_active_filter(self):
+        """Sort/page links are self-contained URLs (query_string_replace),
+        not hx-include -- this is the test that catches losing a filter
+        value on the second page."""
+        for i in range(25):
+            Kotowaza.objects.create(kotowaza=f'犬{i:02}')
+        Kotowaza.objects.create(kotowaza='猿も木から落ちる')
+        response = self.client.get(
+            reverse('kukan:kotowaza_list'), {'諺': '犬'})
+        self.assertContains(response, 'page=2')
+        self.assertContains(response, '%E7%8A%AC')  # 犬, percent-encoded
+
+    def test_sort_link_toggles_direction(self):
+        response = self.client.get(reverse('kukan:kotowaza_list'))
+        self.assertContains(response, 'sort_by=-kotowaza')
+
+    def test_empty_result_says_so_rather_than_an_empty_table(self):
+        response = self.client.get(
+            reverse('kukan:kotowaza_list'), {'諺': '絶対に存在しない諺'})
+        self.assertContains(response, '結果ありません')
+
+
+class UtilTagsTest(TestCase):
+    """The two template helpers FilteredListView's rendering depends on."""
+
+    def test_get_item_looks_up_a_dynamic_key(self):
+        html = Template(
+            "{% load util_tags %}{{ row|get_item:key }}"
+        ).render(Context({'row': {'諺': 'value'}, 'key': '諺'}))
+        self.assertEqual(html, 'value')
+
+    def test_get_item_defaults_to_empty_string(self):
+        html = Template(
+            "{% load util_tags %}[{{ row|get_item:'missing' }}]"
+        ).render(Context({'row': {}}))
+        self.assertEqual(html, '[]')
+
+    def test_query_string_replace_merges_into_the_existing_query(self):
+        from django.test import RequestFactory
+        request = RequestFactory().get('/kotowaza/list/?諺=犬')
+        html = Template(
+            "{% load util_tags %}{% query_string_replace request page=2 %}"
+        ).render(Context({'request': request}))
+        self.assertIn('page=2', html)
+        self.assertIn('%E8%AB%BA=%E7%8A%AC', html)  # 諺=犬, percent-encoded
+
+    def test_query_string_replace_overrides_an_existing_key(self):
+        from django.test import RequestFactory
+        request = RequestFactory().get('/kotowaza/list/?page=1')
+        html = Template(
+            "{% load util_tags %}{% query_string_replace request page=3 %}"
+        ).render(Context({'request': request}))
+        self.assertEqual(html, 'page=3')

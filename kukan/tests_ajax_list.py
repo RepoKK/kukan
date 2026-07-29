@@ -59,8 +59,11 @@ class AjaxListTestBase(TestCase):
 class TestAjaxEnvelope(AjaxListTestBase):
     """The top-level shape of the ajax response, for every list view."""
 
+    # kukan:kotowaza_list is gone from here: it moved off AjaxList onto
+    # FilteredListView (kukan.tests_listview), which has no ?ajax=1 JSON
+    # envelope to test in the first place.
     list_views = ['kukan:kanji_list', 'kukan:yoji_list', 'kukan:example_list',
-                  'kukan:kotowaza_list', 'kukan:test_result_list']
+                  'kukan:test_result_list']
 
     def test_envelope_keys(self):
         for name in self.list_views:

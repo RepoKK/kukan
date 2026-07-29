@@ -1,0 +1,55 @@
+{% load util_tags icons %}
+<div id="results">
+    <p class="mb-2">{{ page_obj.paginator.count }} 件</p>
+    <table class="table is-striped is-narrow is-fullwidth">
+        <thead>
+            <tr>
+                {% for column in columns %}
+                <th{% if column.type == 'numeric' %} class="has-text-right"{% endif %}>
+                    <a hx-get="?{% query_string_replace request sort_by=sort_links|get_item:column.field page=1 %}"
+                       hx-target="#results" hx-push-url="true" hx-swap="outerHTML">
+                        {{ column.label }}{% if column.field == active_sort_field %}{% if sort_descending %} ▼{% else %} ▲{% endif %}{% endif %}
+                    </a>
+                </th>
+                {% endfor %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in rows %}
+            <tr>
+                {% for column in columns %}
+                <td{% if column.type == 'numeric' %} class="has-text-right"{% elif column.type == 'bool' %} class="has-text-centered"{% endif %}>
+                    {% if column.type == 'bool' %}
+                        {% if row|get_item:column.field %}{% icon 'check' size='is-small' %}{% endif %}
+                    {% else %}
+                        {{ row|get_item:column.field }}
+                    {% endif %}
+                </td>
+                {% endfor %}
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="{{ columns|length }}" class="has-text-centered has-text-grey">
+                    結果ありません
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    {% if page_obj.paginator.num_pages > 1 %}
+    <nav class="pagination is-centered" role="navigation" aria-label="pagination">
+        <ul class="pagination-list">
+            {% for page_num in page_obj.paginator.page_range %}
+            <li>
+                <a class="pagination-link{% if page_num == page_obj.number %} is-current{% endif %}"
+                   hx-get="?{% query_string_replace request page=page_num %}"
+                   hx-target="#results" hx-push-url="true" hx-swap="outerHTML">
+                    {{ page_num }}
+                </a>
+            </li>
+            {% endfor %}
+        </ul>
+    </nav>
+    {% endif %}
+</div>
