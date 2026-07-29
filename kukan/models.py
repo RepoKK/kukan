@@ -10,11 +10,25 @@ from django.db import models, transaction
 from django.db.models import Max
 from django.urls import reverse
 from django.utils.functional import cached_property
+from django.utils.html import escape, format_html, format_html_join
+from django.utils.safestring import mark_safe
 
 import kukan.jautils as jau
 from utils_django.decorators import OrderFromAttr, QuickGetKey
 
 logger = logging.getLogger(__name__)
+
+
+def join_html(separator, parts):
+    """`str.join` for already-safe fragments, without unmarking them.
+
+    `'、'.join(...)` over a list of SafeStrings returns a plain str, so the
+    result gets escaped again by the template and the anchors show up as
+    literal `&lt;a href=...`. `format_html_join` is the usual answer but
+    takes a format string and argument tuples; these callers already hold
+    finished fragments.
+    """
+    return mark_safe(escape(separator).join(parts))
 
 
 class Classification(models.Model):
@@ -123,19 +137,29 @@ class Kanji(models.Model):
         list_fld = []
         for fld in ['bushu', 'kouki_bushu', 'strokes', 'classification', 'kanken', 'jis']:
             list_fld.append([self._meta.get_field(fld).verbose_name, getattr(self, fld)])
-        list_fld.append(['外部辞典', '<a href="' + self.kanjidetails.external_ref + '">漢字辞典オンライン</a>'])
+        list_fld.append(['外部辞典',
+                         format_html('<a href="{}">漢字辞典オンライン</a>',
+                                     self.kanjidetails.external_ref)])
 
-        if self.jitai['std'][1] == self and self.jitai['alt']:
-            lst = []
-            for kj in self.jitai['alt'][1]:
-                lst.append('<a href="' + reverse('kukan:kanji_detail', kwargs={'pk': kj}) + '">' + kj.kanji + '</a>')
-            list_fld.append([self.jitai['alt'][0], "、 ".join(lst)])
+        # `jitai['alt'][1]`, not `jitai['alt']`: the latter is a two-element
+        # list and so always truthy, which appended a row labelled `None`
+        # with an empty value for every kanji that has no variant form.
+        if self.jitai['std'][1] == self and self.jitai['alt'][1]:
+            list_fld.append([
+                self.jitai['alt'][0],
+                format_html_join(
+                    '、 ', '<a href="{}">{}</a>',
+                    ((reverse('kukan:kanji_detail', kwargs={'pk': kj}), kj.kanji)
+                     for kj in self.jitai['alt'][1]))])
 
         if self.jitai['std'][1] != self and self.kanjidetails.std_kanji is not None:
-            list_fld.append(['標準字体',
-                             '<a href="'
-                             + reverse('kukan:kanji_detail', kwargs={'pk': self.jitai['std'][1]}) + '">'
-                             + str(self.jitai['std'][1].kanji) + '</a>'])
+            list_fld.append([
+                '標準字体',
+                format_html(
+                    '<a href="{}">{}</a>',
+                    reverse('kukan:kanji_detail',
+                            kwargs={'pk': self.jitai['std'][1]}),
+                    self.jitai['std'][1].kanji)])
         return list_fld
 
     @cached_property
@@ -157,18 +181,14 @@ class Kanji(models.Model):
             word = re.sub(r'（.*', '', jk)
             # TODO: just to be able to do the comparison with old data
             word = re.sub(r'（.*', '', word)
-            res = '<a href=https://dictionary.goo.ne.jp/srch/all/'
-            res += word
-            res += '/m0u/>'
-            res += jk
-            res += '</a>'
-            list_jukuji.append(res)
-        res = ''
-        if len(list_jukuji) > 0:
-            res = "<tr><td class='C_read C_special' colspan=2>"
-            res += '<br>'.join(list_jukuji)
-            res += "</td></tr>"
-        return res
+            list_jukuji.append(format_html(
+                '<a href="https://dictionary.goo.ne.jp/srch/all/{}/m0u/">{}</a>',
+                word, jk))
+        if not list_jukuji:
+            return ''
+        return format_html(
+            "<tr><td class='C_read C_special' colspan=2>{}</td></tr>",
+            mark_safe('<br>'.join(list_jukuji)))
 
 
 class KanjiDetails(models.Model):
@@ -229,36 +249,40 @@ class Reading(models.Model):
         return res
 
     def get_html_format(self):
-        res = re.sub('（', "<span class='okuri'>", str(self.reading))
+        # The okurigana span is built by substitution rather than
+        # format_html, because the reading itself carries the two markers
+        # that become tags. Everything outside them is escaped first.
+        res = re.sub('（', "<span class='okuri'>", escape(str(self.reading)))
         res = re.sub('）', '</span>', res)
         if self.joyo.yomi_joyo == '常用・特別':
             res = '▽' + res
         if self.joyo.yomi_joyo == '表外':
             res = '✘ ' + res
-        return res
+        return mark_safe(res)
 
     def get_list_ex(self):
         # noinspection PyUnresolvedReferences
-        list_ex = "、".join(map(Example.get_url, list(self.example_set.all())))
-        return list_ex
+        return join_html('、', map(Example.get_url, self.example_set.all()))
 
     def get_list_ex2(self):
-        list_ex = "、".join(map(Example.get_url,
-                               Example.objects.filter(exmap__reading=self,
-                                                      exmap__in_joyo_list=True)))
-        list_ex_non_joyo = "、".join(map(Example.get_url,
-                                        Example.objects.filter(exmap__reading=self,
-                                                               exmap__in_joyo_list=False)))
+        list_ex = join_html('、', map(
+            Example.get_url,
+            Example.objects.filter(exmap__reading=self,
+                                   exmap__in_joyo_list=True)))
+        list_ex_non_joyo = join_html('、', map(
+            Example.get_url,
+            Example.objects.filter(exmap__reading=self,
+                                   exmap__in_joyo_list=False)))
         if list_ex_non_joyo != '':
-            list_ex += ' / ' + list_ex_non_joyo
+            list_ex = format_html('{} / {}', list_ex, list_ex_non_joyo)
 
         return list_ex
 
     def get_list_ex_anki(self):
-        list_ex = "、".join(map(Example.goo_link,
-                               Example.objects.filter(exmap__reading=self,
-                                                      exmap__in_joyo_list=True)))
-        return list_ex
+        return join_html('、', map(
+            Example.goo_link,
+            Example.objects.filter(exmap__reading=self,
+                                   exmap__in_joyo_list=True)))
 
     def is_joyo(self):
         return self.joyo.yomi_joyo != '表外'
@@ -380,8 +404,8 @@ class Example(models.Model):
         return reverse('kukan:example_detail', kwargs={'pk': self.pk})
 
     def get_url(self):
-        link = "<a href=" + self.get_absolute_url() + ">" + str(self.word) + "</a>"
-        return link
+        return format_html('<a href="{}">{}</a>',
+                           self.get_absolute_url(), self.word)
 
     def get_word_native(self):
         return str(self.word_native or self.word)
@@ -390,22 +414,28 @@ class Example(models.Model):
         link = ''
         if self.word:
             simple = re.sub(r'（.*）', '', str(self.word))
-            link = "<a href=https://dictionary.goo.ne.jp/srch/all/" + simple + f"/m0u/>{self.word}</a>"
+            link = format_html(
+                '<a href="https://dictionary.goo.ne.jp/srch/all/{}/m0u/">{}</a>',
+                simple, self.word)
         return link
 
     def goo_link_exact(self):
         link = ''
         if self.word:
             simple = re.sub(r'（.*）', '', str(self.word))
-            link = "<a href=https://dictionary.goo.ne.jp/srch/all/" + simple + "/m1u/>" \
-                   + '「' + str(self.word) + "」で一致する言葉を検索</a>"
+            link = format_html(
+                '<a href="https://dictionary.goo.ne.jp/srch/all/{}/m1u/">'
+                '「{}」で一致する言葉を検索</a>',
+                simple, self.word)
         return link
 
     def get_definition_html(self):
-        return markdown.markdown(self.definition)
+        # markdown() emits HTML by design; the input is the site owner's own
+        # prose, typed into the admin.
+        return mark_safe(markdown.markdown(self.definition))
 
     def get_definition2_html(self):
-        return markdown.markdown(self.definition2)
+        return mark_safe(markdown.markdown(self.definition2))
 
     def is_hyogai(self):
         return ((Kanken.objects.get(id=Kanji.objects.filter(kanji__in=self.word).
