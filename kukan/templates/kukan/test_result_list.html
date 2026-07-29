@@ -1,12 +1,18 @@
-{% extends 'kukan/base_ext.html' %}
+{% extends 'base_ext.html' %}
+{% load util_tags %}
+
+{% block title %}{{ list_title }}{% endblock %}
 
 {% block content %}
-    <v-filtered-table top_title="試験結果" :mobile-cards="true"></v-filtered-table>
-{% endblock %}
+<h1 class="title">{{ list_title }}</h1>
 
-{% block vue_data %}
-{% endblock vue_data%}
+<form hx-get="{{ request.path }}" hx-target="#results" hx-push-url="true" hx-swap="outerHTML"
+      hx-trigger="input changed delay:400ms, change, submit">
+    {% for filter, value in filters %}
+    {% render_filter filter value %}
+    {% endfor %}
+    <button class="button is-primary" type="submit">適用</button>
+</form>
 
-{% block vue_component %}
-{% include 'v-filter/v-include.html' %}
+{% include 'ui/_table.html' %}
 {% endblock %}

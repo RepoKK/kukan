@@ -413,10 +413,11 @@ class KotowazaList(FilteredListView):
     ])
 
 
-class TestResultList(AjaxList):
+class TestResultList(FilteredListView):
     model = TestResult
     template_name = 'kukan/test_result_list.html'
     default_sort = '-date'
+    list_title = '試験結果'
     filters = [
         FGenericCheckbox('名前', 'name', model),
         FGenericCheckbox('漢検', 'kanken__kyu', model, order='-kanken__difficulty'),

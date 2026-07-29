@@ -1,17 +1,26 @@
 """Contract tests for `AjaxList` and `TableData`.
 
-kanji_list and test_result_list are the two list pages still on `AjaxList`
-(kotowaza_list, yoji_list and example_list have moved to `FilteredListView` --
-see `kukan.tests_listview`). The browser loads an HTML shell, then the Vue
-table re-requests the same URL with `?ajax=1` and renders whatever JSON comes
-back. That JSON is an undeclared API: no serializer, no schema, just whatever
-`get_list` happens to assemble.
+All five kukan list pages have moved to `FilteredListView` (see
+`kukan.tests_listview`); `tempmon:game_list` is now the sole remaining view
+still on `AjaxList` and is what this file exercises `AjaxList` itself
+through. tempmon's two list views (`game_list`, `session_list`) and their
+shared shell are deferred: every other tempmon page still needs Vue/Buefy
+(the chart pages are their own later stage; `psnapikey_form.html`'s form
+renders through a Buefy widget override that is separate cleanup), so
+converting the shared shell now would break them, and there is limited
+value in a partial per-page conversion that leaves `AjaxList`/`v-filter/`
+in place for its one remaining caller anyway.
+
+The browser loads an HTML shell, then the Vue table re-requests the same URL
+with `?ajax=1` and renders whatever JSON comes back. That JSON is an
+undeclared API: no serializer, no schema, just whatever `get_list` happens to
+assemble.
 
 Two reasons to pin it:
 
-* Whatever the HTMX/Alpine rewrite consumes for these two remaining pages,
-  this describes what the Vue frontend was given, so the replacement can be
-  checked against the real shape instead of against somebody's memory of it.
+* Whatever eventually replaces this page's frontend, this describes what the
+  Vue frontend was given, so the replacement can be checked against the real
+  shape instead of against somebody's memory of it.
 * `TableData.FieldProps` reads `verbose_name`, `choices` and
   `get_internal_type()` off the model meta API. Those are exactly the surfaces
   Django 6.0 moves, and a change there degrades column labels and types
@@ -30,9 +39,11 @@ import re
 from django.contrib.auth.models import User
 from django.test import Client, TestCase
 from django.urls import reverse
+from django.utils import timezone
 
-from kukan.models import Kanji, Kanken, Kotowaza, TestResult, TestSource
+from kukan.models import Kanji, Kotowaza
 from kukan.views import TableData
+from tempmon.models import PsGame
 
 
 def cell_text(value):
@@ -41,17 +52,22 @@ def cell_text(value):
 
 
 class AjaxListTestBase(TestCase):
-    fixtures = ['baseline', '閲', '覧', '斌', '劉', '遥']
+    fixtures = ['baseline', '閲']
 
     def setUp(self):
-        source = TestSource.objects.create(series='漢検過去問題集', kyu='2級', year='2024')
-        kanken = Kanken.objects.get(kyu='２級')
-        TestResult.objects.create(kanken=kanken, source=source, name='OGU',
-                                  test_number=1, date=dt.date(2024, 1, 5))
-        TestResult.objects.create(kanken=kanken, source=source, name='COGU',
-                                  test_number=2, date=dt.date(2024, 2, 10))
-        TestResult.objects.create(kanken=kanken, source=source, name='OGU',
-                                  test_number=3, date=dt.date(2024, 3, 15))
+        now = timezone.now()
+        PsGame.objects.create(
+            title_id='CUSA00001', name='Alpha Quest',
+            play_time=dt.timedelta(minutes=30),
+            last_played=now - dt.timedelta(days=1))
+        PsGame.objects.create(
+            title_id='CUSA00002', name='Beta Racer',
+            play_time=dt.timedelta(minutes=90),
+            last_played=now - dt.timedelta(days=2))
+        PsGame.objects.create(
+            title_id='CUSA00003', name='Alpha Quest 2',
+            play_time=dt.timedelta(minutes=45),
+            last_played=now - dt.timedelta(days=3))
         User.objects.create_user('test_user', password='pwd')
         self.client = Client()
         self.client.post('/login/', {'username': 'test_user', 'password': 'pwd'})
@@ -64,122 +80,105 @@ class AjaxListTestBase(TestCase):
 
 
 class TestAjaxEnvelope(AjaxListTestBase):
-    """The top-level shape of the ajax response, for every remaining view.
-
-    kukan:kanji_list moved to FilteredListView too (kanji_list was the last
-    and hardest of the five kukan list pages -- every filter kind, plus a
-    custom get_queryset() for its ex_num annotation -- see
-    kukan.tests_listview.KanjiListFilterContractTest). kukan:test_result_list
-    is now the sole real view left on AjaxList.
-    """
-
-    list_views = ['kukan:test_result_list']
+    """The top-level shape of the ajax response, for the one remaining view."""
 
     def test_envelope_keys(self):
-        for name in self.list_views:
-            with self.subTest(view=name):
-                data = self.get_ajax(name)
-                self.assertEqual(set(data), {'total_results', 'table_data',
-                                             'stats'})
-                self.assertEqual(set(data['table_data']),
-                                 {'page', 'sort_by', 'columns', 'data'})
+        data = self.get_ajax('tempmon:game_list')
+        self.assertEqual(set(data), {'total_results', 'table_data', 'stats'})
+        self.assertEqual(set(data['table_data']),
+                         {'page', 'sort_by', 'columns', 'data'})
 
     def test_page_is_an_integer_not_a_string(self):
         """`int(page)` in get_list; the Vue pager compares it numerically."""
-        data = self.get_ajax('kukan:test_result_list', page='1')
+        data = self.get_ajax('tempmon:game_list', page='1')
         self.assertEqual(data['table_data']['page'], 1)
 
     def test_default_sort_is_reported_back(self):
-        data = self.get_ajax('kukan:test_result_list')
-        self.assertEqual(data['table_data']['sort_by'], '-date')
+        data = self.get_ajax('tempmon:game_list')
+        self.assertEqual(data['table_data']['sort_by'], '-last_played')
 
     def test_explicit_sort_is_reported_back(self):
-        data = self.get_ajax('kukan:test_result_list', sort_by='test_number')
-        self.assertEqual(data['table_data']['sort_by'], 'test_number')
-        numbers = [row['test_number'] for row in data['table_data']['data']]
-        self.assertEqual(numbers, sorted(numbers))
+        data = self.get_ajax('tempmon:game_list', sort_by='name')
+        self.assertEqual(data['table_data']['sort_by'], 'name')
+        names = [row['name'] for row in data['table_data']['data']]
+        self.assertEqual(names, sorted(names))
 
     def test_descending_sort(self):
-        data = self.get_ajax('kukan:test_result_list', sort_by='-test_number')
-        numbers = [row['test_number'] for row in data['table_data']['data']]
-        self.assertEqual(numbers, sorted(numbers, reverse=True))
+        data = self.get_ajax('tempmon:game_list', sort_by='-name')
+        names = [row['name'] for row in data['table_data']['data']]
+        self.assertEqual(names, sorted(names, reverse=True))
 
     def test_unknown_sort_falls_back_to_the_default(self):
         """`?sort_by=nope` used to reach order_by() and raise FieldError, so
         it was a 500."""
-        data = self.get_ajax('kukan:test_result_list', sort_by='nope')
-        self.assertEqual(data['table_data']['sort_by'], '-date')
+        data = self.get_ajax('tempmon:game_list', sort_by='nope')
+        self.assertEqual(data['table_data']['sort_by'], '-last_played')
 
     def test_relation_traversal_is_rejected(self):
-        """Ordering by an undisplayed related field leaks something about its
-        values and forces an expensive join."""
-        data = self.get_ajax('kukan:test_result_list',
-                             sort_by='kanken__item_01_name')
-        self.assertEqual(data['table_data']['sort_by'], '-date')
+        """Ordering by an undisplayed field leaks something about its
+        values and forces an expensive lookup."""
+        data = self.get_ajax('tempmon:game_list', sort_by='title_id')
+        self.assertEqual(data['table_data']['sort_by'], '-last_played')
 
     def test_random_ordering_is_rejected(self):
-        data = self.get_ajax('kukan:test_result_list', sort_by='?')
-        self.assertEqual(data['table_data']['sort_by'], '-date')
+        data = self.get_ajax('tempmon:game_list', sort_by='?')
+        self.assertEqual(data['table_data']['sort_by'], '-last_played')
 
     def test_descending_prefix_is_allowed_on_a_real_column(self):
-        data = self.get_ajax('kukan:test_result_list', sort_by='-test_number')
-        self.assertEqual(data['table_data']['sort_by'], '-test_number')
+        data = self.get_ajax('tempmon:game_list', sort_by='-name')
+        self.assertEqual(data['table_data']['sort_by'], '-name')
 
-    def test_every_list_default_sort_is_itself_sortable(self):
+    def test_default_sort_is_itself_sortable(self):
         """A default that is not on its own allow-list would loop back to
         itself and quietly order by nothing sensible."""
-        for name in self.list_views:
-            with self.subTest(view=name):
-                data = self.get_ajax(name)
-                sort_by = data['table_data']['sort_by']
-                self.assertIsNotNone(sort_by)
-                # Round-trips: asking for the default returns the default.
-                again = self.get_ajax(name, sort_by=sort_by)
-                self.assertEqual(again['table_data']['sort_by'], sort_by)
+        data = self.get_ajax('tempmon:game_list')
+        sort_by = data['table_data']['sort_by']
+        self.assertIsNotNone(sort_by)
+        # Round-trips: asking for the default returns the default.
+        again = self.get_ajax('tempmon:game_list', sort_by=sort_by)
+        self.assertEqual(again['table_data']['sort_by'], sort_by)
 
     def test_total_results_counts_the_whole_query_not_the_page(self):
-        data = self.get_ajax('kukan:test_result_list')
+        data = self.get_ajax('tempmon:game_list')
         self.assertEqual(data['total_results'], 3)
         self.assertEqual(len(data['table_data']['data']), 3)
 
     def test_stats_is_a_count_and_a_timing(self):
-        data = self.get_ajax('kukan:test_result_list')
+        data = self.get_ajax('tempmon:game_list')
         count, timing = data['stats']
         self.assertEqual(count, '3 件')
         self.assertTrue(timing.startswith('Q:'))
 
     def test_filter_narrows_the_result(self):
-        data = self.get_ajax('kukan:test_result_list', 名前='COGU')
+        data = self.get_ajax('tempmon:game_list', Title='Beta')
         self.assertEqual(data['total_results'], 1)
-        # std_str applies regardless of type -- only BooleanField columns get
-        # format_identical, so a numeric column still renders as a string.
-        self.assertEqual(data['table_data']['data'][0]['test_number'], '2')
+        self.assertEqual(cell_text(data['table_data']['data'][0]['name']),
+                         'Beta Racer')
 
     def test_filter_matching_nothing_returns_an_empty_page(self):
         """No rows is not the same as page-out-of-range; both must be 200."""
-        data = self.get_ajax('kukan:test_result_list', 問題番号='999')
+        data = self.get_ajax('tempmon:game_list', Title='Nonexistent')
         self.assertEqual(data['total_results'], 0)
         self.assertEqual(data['table_data']['data'], [])
 
     def test_page_out_of_range_returns_the_empty_envelope(self):
         """The EmptyPage branch: a degraded envelope with a *string* stat."""
-        data = self.get_ajax('kukan:test_result_list', page='99')
+        data = self.get_ajax('tempmon:game_list', page='99')
         self.assertEqual(data['total_results'], 0)
         self.assertEqual(data['table_data']['data'], [])
         self.assertEqual(data['stats'], '0 件')
 
     def test_page_size_is_twenty(self):
-        source = TestSource.objects.get()
-        kanken = Kanken.objects.get(kyu='２級')
+        now = timezone.now()
         for i in range(25):
-            TestResult.objects.create(
-                kanken=kanken, source=source, name='OGU',
-                test_number=100 + i, date=dt.date(2024, 6, 1))
-        data = self.get_ajax('kukan:test_result_list')
+            PsGame.objects.create(
+                title_id=f'CUSA1{i:04}', name=f'Filler {i:02}',
+                play_time=dt.timedelta(minutes=5), last_played=now)
+        data = self.get_ajax('tempmon:game_list')
         self.assertEqual(data['total_results'], 28)
         self.assertEqual(len(data['table_data']['data']), 20)
 
-        page2 = self.get_ajax('kukan:test_result_list', page='2')
+        page2 = self.get_ajax('tempmon:game_list', page='2')
         self.assertEqual(len(page2['table_data']['data']), 8)
 
 
@@ -187,41 +186,40 @@ class TestAjaxColumns(AjaxListTestBase):
     """The `columns` block drives the table header and cell rendering."""
 
     def test_column_properties(self):
-        data = self.get_ajax('kukan:test_result_list')
+        data = self.get_ajax('tempmon:game_list')
         columns = {c['field']: c for c in data['table_data']['columns']}
-        self.assertIn('name', columns)
+        self.assertEqual(set(columns), {'name', 'last_played', 'play_time'})
         self.assertEqual(set(columns['name']),
                          {'field', 'label', 'type', 'visible', 'name'})
 
     def test_label_comes_from_verbose_name(self):
-        """This is the Japanese column header; losing it degrades to a field
-        name silently."""
+        """This is the column header; losing it degrades to a field name
+        silently."""
         columns = {c['field']: c
-                   for c in self.get_ajax('kukan:test_result_list')
+                   for c in self.get_ajax('tempmon:game_list')
                    ['table_data']['columns']}
-        self.assertEqual(columns['name']['label'], '名前')
-        self.assertEqual(columns['date']['label'], '日付')
+        self.assertEqual(columns['name']['label'], 'Name')
+        self.assertEqual(columns['last_played']['label'], 'Last played')
+
 
 class TestAjaxRowRendering(AjaxListTestBase):
     """Cell values, including the raw HTML the table injects with v-html."""
 
-    def test_choice_field_is_rendered_as_its_display_value(self):
-        data = self.get_ajax('kukan:test_result_list', 名前='OGU')
-        self.assertEqual(data['table_data']['data'][0]['name'], '大具')
+    def test_datetime_is_formatted_to_the_minute(self):
+        data = self.get_ajax('tempmon:game_list', Title='Beta')
+        self.assertRegex(data['table_data']['data'][0]['last_played'],
+                         r'^\d{4}\.\d{2}\.\d{2} \d{2}:\d{2}$')
 
-    def test_foreign_key_is_stringified(self):
-        data = self.get_ajax('kukan:test_result_list')
-        self.assertEqual(data['table_data']['data'][0]['kanken'], '２級')
+    def test_custom_format_callable_renders_the_duration(self):
+        data = self.get_ajax('tempmon:game_list', Title='Beta')
+        self.assertEqual(data['table_data']['data'][0]['play_time'], '1:30')
 
-    def test_date_is_formatted_without_a_time_component(self):
-        data = self.get_ajax('kukan:test_result_list', 問題番号='1')
-        self.assertEqual(data['table_data']['data'][0]['date'], '2024.01.05')
 
 class TestHtmlShellContext(AjaxListTestBase):
     """The non-ajax page: filter definitions and an empty table placeholder."""
 
     def test_context_keys(self):
-        response = self.client.get(reverse('kukan:test_result_list'))
+        response = self.client.get(reverse('tempmon:game_list'))
         self.assertEqual(response.status_code, 200)
         for key in ['filter_list', 'active_filters', 'table_data',
                     'list_title', 'is_mobile_card', 'FFilter']:
@@ -229,42 +227,42 @@ class TestHtmlShellContext(AjaxListTestBase):
 
     def test_table_data_starts_empty(self):
         """The shell ships no rows; the Vue table fetches them immediately."""
-        response = self.client.get(reverse('kukan:test_result_list'))
+        response = self.client.get(reverse('tempmon:game_list'))
         table_data = json.loads(response.context['table_data'])
         self.assertEqual(table_data['data'], [])
         self.assertEqual(table_data['columns'], '')
 
     def test_filter_list_contains_every_configured_filter(self):
-        response = self.client.get(reverse('kukan:test_result_list'))
+        response = self.client.get(reverse('tempmon:game_list'))
         filter_list = response.context['filter_list']
-        for label in ['名前', '漢検', '問題集', '問題番号', '日付']:
+        for label in ['Title', 'Duration (min)']:
             self.assertIn(f"'label':'{label}'", filter_list)
 
     def test_active_filters_records_positions_of_applied_filters(self):
         """Indices into the filter list, used to auto-open those panels."""
         response = self.client.get(
-            reverse('kukan:test_result_list'), {'名前': 'OGU'})
+            reverse('tempmon:game_list'), {'Title': 'Beta'})
         self.assertEqual(response.context['active_filters'], [0])
 
     def test_unknown_query_parameter_is_ignored(self):
-        response = self.client.get(reverse('kukan:test_result_list'),
+        response = self.client.get(reverse('tempmon:game_list'),
                                    {'not_a_filter': 'x'})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.context['active_filters'], [])
 
     def test_filter_value_is_echoed_back_into_the_filter_list(self):
         response = self.client.get(
-            reverse('kukan:test_result_list'), {'名前': 'OGU'})
-        self.assertIn("'value':'OGU'", response.context['filter_list'])
+            reverse('tempmon:game_list'), {'Title': 'Beta'})
+        self.assertIn("'value':'Beta'", response.context['filter_list'])
 
     def test_list_title(self):
-        response = self.client.get(reverse('kukan:test_result_list'))
-        self.assertEqual(response.context['list_title'], 'LIST_TITLE')
+        response = self.client.get(reverse('tempmon:game_list'))
+        self.assertEqual(response.context['list_title'], 'Game play time')
 
 
 class TestTableDataUnit(TestCase):
-    """`TableData` in isolation, for the branches the two remaining
-    AjaxList-based list views do not reach -- and, increasingly, for
+    """`TableData` in isolation, for the branches the one remaining
+    AjaxList-based list view does not reach -- and, increasingly, for
     coverage that used to only exist through a page that has since moved to
     FilteredListView. TableData itself is not going anywhere: FilteredListView
     reuses it unchanged, so none of this is at risk of going stale early."""
@@ -364,24 +362,27 @@ class TestTableDataUnit(TestCase):
         self.assertIs(table.get_table_row(example)['is_joyo'], False)
 
     def test_numeric_field_is_typed_numeric(self):
-        """Used to only be reachable through kanji_list's ajax envelope;
-        kanji_list has since moved to FilteredListView."""
         table = TableData(Kanji, ['strokes'])
         self.assertEqual(table.get_col_template()[0]['type'], 'numeric')
 
     def test_explicit_label_overrides_verbose_name(self):
-        """KanjiListFilter annotates ex_num, which has no model field to read
-        a verbose_name from -- unlike test_field_not_on_the_model_keeps_its
-        _name_as_label above, this column supplies its own label anyway."""
+        """KanjiListFilter (now on FilteredListView) annotates ex_num, which
+        has no model field to read a verbose_name from -- unlike
+        test_field_not_on_the_model_keeps_its_name_as_label above, this
+        column supplies its own label anyway."""
         table = TableData(Kanji, [{'name': 'ex_num', 'label': '例文数'}])
         self.assertEqual(table.get_col_template()[0]['label'], '例文数')
 
     def test_none_renders_as_empty_string_through_a_real_row(self):
         """std_str maps None to '' so the cell is blank, not the text
-        'None'. Used to only be reachable through kanji_list's ajax
-        envelope, with classification forced to None on a fixture row;
-        exercised directly against TableData here instead."""
+        'None'."""
         kanji = Kanji.objects.get(kanji='閲')
         kanji.classification = None
         table = TableData(Kanji, ['classification'])
         self.assertEqual(table.get_table_row(kanji)['classification'], '')
+
+    def test_foreign_key_is_stringified(self):
+        kanji = Kanji.objects.get(kanji='閲')
+        table = TableData(Kanji, ['kanken'])
+        self.assertEqual(table.get_table_row(kanji)['kanken'],
+                         str(kanji.kanken))

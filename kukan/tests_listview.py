@@ -6,6 +6,8 @@ ordering and page count through the real view, not a golden-diff of HTML.
 `kukan.tests_ajax_list` keeps covering `AjaxList`/`TableData` for the list
 pages not yet migrated.
 """
+import datetime as dt
+
 from django.contrib.auth.models import User
 from django.template import Context, Template
 from django.test import Client, TestCase
@@ -368,6 +370,68 @@ class KanjiListFilterContractTest(TestCase):
             reverse('kukan:kanji_list'), {'例文数': '1'})
         self.assertEqual(
             {k.pk for k in response.context['object_list']}, {'閲'})
+
+
+class TestResultListContractTest(TestCase):
+    """test_result_list: the fifth and last kukan list page moved off
+    AjaxList. No new filter kind (checkbox, min-max, daterange all already
+    exist), but list_title has to be added to the view -- the old template
+    hard-coded "試験結果" as a Vue prop rather than reading it from context,
+    same as yoji_list and test_result_list's siblings before it."""
+
+    fixtures = ['baseline']
+
+    def setUp(self):
+        from kukan.models import Kanken, TestResult, TestSource
+
+        User.objects.create_user('test_user', password='pwd')
+        self.client = Client()
+        self.client.login(username='test_user', password='pwd')
+        source = TestSource.objects.create(series='漢検過去問題集', kyu='2級', year='2024')
+        kanken = Kanken.objects.get(kyu='２級')
+        self.first = TestResult.objects.create(
+            kanken=kanken, source=source, name='OGU', test_number=1,
+            date=dt.date(2024, 1, 5))
+        self.second = TestResult.objects.create(
+            kanken=kanken, source=source, name='COGU', test_number=2,
+            date=dt.date(2024, 2, 10))
+
+    def test_a_normal_request_renders_the_full_page(self):
+        response = self.client.get(reverse('kukan:test_result_list'))
+        self.assertContains(response, 'navbar-burger')
+        self.assertContains(response, '<table')
+        self.assertContains(response, '試験結果')
+
+    def test_no_vue_or_buefy_remains(self):
+        response = self.client.get(reverse('kukan:test_result_list'))
+        content = response.content.decode()
+        self.assertNotIn('vue_app', content)
+        self.assertNotIn('buefy', content.lower())
+        self.assertNotIn('v-filter', content)
+
+    def test_default_sort_is_by_date_descending(self):
+        response = self.client.get(reverse('kukan:test_result_list'))
+        self.assertEqual(
+            [r.pk for r in response.context['object_list']],
+            [self.second.pk, self.first.pk])
+
+    def test_checkbox_filter_narrows_by_pk(self):
+        response = self.client.get(
+            reverse('kukan:test_result_list'), {'名前': 'OGU'})
+        self.assertEqual(
+            {r.pk for r in response.context['object_list']}, {self.first.pk})
+
+    def test_min_max_filter_narrows_by_pk(self):
+        response = self.client.get(
+            reverse('kukan:test_result_list'), {'問題番号': '2'})
+        self.assertEqual(
+            {r.pk for r in response.context['object_list']}, {self.second.pk})
+
+    def test_daterange_filter_narrows_by_pk(self):
+        response = self.client.get(
+            reverse('kukan:test_result_list'), {'日付': '2024-01-05'})
+        self.assertEqual(
+            {r.pk for r in response.context['object_list']}, {self.first.pk})
 
 
 class UtilTagsTest(TestCase):
