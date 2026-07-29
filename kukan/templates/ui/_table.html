@@ -1,6 +1,7 @@
 {% load util_tags icons %}
 <div id="results">
     <p class="mb-2">{{ page_obj.paginator.count }} 件</p>
+    <div class="table-container">
     <table class="table is-striped is-narrow is-fullwidth">
         <thead>
             <tr>
@@ -38,6 +39,7 @@
             {% endfor %}
         </tbody>
     </table>
+    </div>
 
     {% if page_obj.paginator.num_pages > 1 %}
     <nav class="pagination is-centered" role="navigation" aria-label="pagination">
