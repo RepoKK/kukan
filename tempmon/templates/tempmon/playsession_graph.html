@@ -1,87 +1,79 @@
 {% extends 'tempmon/base_details.html' %}
-{% block switch_page %}<a href="{% url 'tempmon:session_details' object.id %}">Details</a>{% endblock%}
+{% load static %}
+{% block switch_page %}<a href="{% url 'tempmon:session_details' object.id %}">Details</a>{% endblock %}
 {% block body3 %}
 <div class="block">
-    <canvas id="myChart"></canvas>
-    <!-- Somehow below prevent the graph to slowly resize after initial display -->
-    <p style="visibility: hidden">_dummy_</p>
+    <div id="chart" style="width: 100%; height: 400px;"></div>
 </div>
 <div class="block">
-    <table class='table is-narrow ' border="0">
-        {% for g in games_legend.items %}
-        <tr><td bgcolor="{{g.1.1}}" style="width: 50px"></td><td>{{g.1.0}}</td><td>{{g.1.2}}</td></tr>
+    <table class="table is-narrow">
+        {% for pk, entry in games_legend.items %}
+        <tr>
+            <td style="width: 50px; background-color: {{ entry.1 }}"></td>
+            <td>{{ entry.0 }}</td>
+            <td>{{ entry.2 }}</td>
+        </tr>
         {% endfor %}
     </table>
 </div>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
+{{ temp_data|json_script:"temp-data" }}
+{{ temp_delta|json_script:"temp-delta" }}
+{{ graph_background|json_script:"graph-background" }}
+<script src="{% static 'vendor/echarts/echarts.min.js' %}"></script>
 <script>
-const ctx = document.getElementById('myChart');
+(function () {
+    const readJson = id => JSON.parse(document.getElementById(id).textContent);
+    const xy = points => points.map(p => [p.x, p.y]);
 
-const plugin = {
-  id: 'bgColorArea',
-  beforeDraw(chart, args, options) {
-    const {ctx, chartArea: {left, top, width, bottom}, scales: {x, y}} = chart;
-    const colorBands = {{graph_background|safe}}
-    const x_start = x.getPixelForValue(0);
-    const y_start = y.getPixelForValue(y.min);
-    ctx.save();
-    for (let i = 0; i < colorBands.length; i++) {
-        const x1 = x.getPixelForValue(colorBands[i][0]);
-        const x2 = x.getPixelForValue(colorBands[i][1]);
-        ctx.fillStyle = colorBands[i][2];
-        ctx.fillRect(x1, top, x2 - x1, y_start - top);
-    }
-    ctx.restore();
-  }
-};
+    const tempData = readJson('temp-data');
+    const tempDelta = readJson('temp-delta');
+    const bands = readJson('graph-background');
+    const chart = echarts.init(document.getElementById('chart'));
 
-const graph_data = {
-    datasets: [{
-        label: 'Temperature (℃)',
-        data: {{temp_data|safe}},
-        fill: false,
-        borderColor: 'rgb(75, 192, 192)',
-        backgroundColor: 'rgb(75, 192, 192)',
-        tension: 0.1
-    }, {
-        type: 'bar',
-        label: 'Temp. delta (℃)',
-        data: {{temp_delta|safe}},
-        fill: false,
-        borderColor: 'rgb(75, 192, 192)',
-        yAxisID: 'y1',
-    }]
-};
+    chart.setOption({
+        tooltip: {trigger: 'axis', axisPointer: {type: 'cross'}},
+        legend: {data: ['Temperature (℃)', 'Temp. delta (℃)']},
+        grid: {left: 50, right: 20, top: 40, bottom: 40},
+        xAxis: {
+            type: 'value',
+            min: 'dataMin',
+            max: 'dataMax',
+            name: 'Minutes',
+            nameLocation: 'middle',
+            nameGap: 25
+        },
+        yAxis: [
+            {type: 'value', scale: true, name: '℃'},
+            {type: 'value', scale: true, show: false}
+        ],
+        series: [{
+            name: 'Temperature (℃)',
+            type: 'line',
+            smooth: 0.1,
+            symbol: 'none',
+            itemStyle: {color: 'rgb(75, 192, 192)'},
+            data: xy(tempData),
+            // Replaces a hand-written chart.js `beforeDraw` plugin that
+            // filled rectangles onto the canvas by pixel. markArea is the
+            // built-in version of the same thing, and it survives a resize.
+            markArea: {
+                silent: true,
+                data: bands.map(([start, end, colour]) => [
+                    {xAxis: start, itemStyle: {color: colour}},
+                    {xAxis: end}
+                ])
+            }
+        }, {
+            name: 'Temp. delta (℃)',
+            type: 'bar',
+            yAxisIndex: 1,
+            itemStyle: {color: 'rgb(75, 192, 192)'},
+            data: xy(tempDelta)
+        }]
+    });
 
-new Chart(ctx, {
-     type: 'line',
-     plugins: [plugin],
-     data: graph_data,
-     options: {
-        responsive: true,
-         scales: {
-             x: {
-                 type: 'linear',
-                 beginAtZero: true,
-                 offset: false,
-                 bounds: 'data',
-             },
-             y: {
-                 type: 'linear',
-                 beginAtZero: false
-             },
-             y1: {
-                 type: 'linear',
-                 beginAtZero: false,
-                 display: false,
-                 position: 'right',
-                 grid: {
-                     drawOnChartArea: false, // only want the grid lines for one axis to show up
-                 },
-             }
-         }
-    }
-});
+    window.addEventListener('resize', () => chart.resize());
+})();
 </script>
-{% endblock%}
+{% endblock %}

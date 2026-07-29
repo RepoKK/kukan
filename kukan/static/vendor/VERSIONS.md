@@ -10,6 +10,7 @@ and reviewing the diff.
 | htmx | 2.0.10 | `https://unpkg.com/htmx.org@2.0.10/dist/htmx.min.js` |
 | Alpine.js | 3.15.12 | `https://unpkg.com/alpinejs@3.15.12/dist/cdn.min.js` |
 | Bulma | 1.0.4 | `https://unpkg.com/bulma@1.0.4/css/bulma.min.css` |
+| Apache ECharts | 5.6.0 | `https://unpkg.com/echarts@5.6.0/dist/echarts.min.js` |
 | Material Design Icons (font) | 7.4.47 | `https://unpkg.com/@mdi/font@7.4.47/css/materialdesignicons.min.css` + `fonts/materialdesignicons-webfont.{woff2,woff,ttf,eot}` |
 
 The MDI CSS was hand-edited after fetching: the stock file references four font formats
@@ -22,3 +23,10 @@ again the same way.
 Bulma is the full `bulma.min.css` (677 KB) rather than a hand-picked subset of its Sass
 modules, because picking a subset needs the Sass build step this project is deliberately
 without. It is one cacheable file per user, not per request.
+
+ECharts is the full `echarts.min.js` (1.0 MB) rather than a custom build with only the
+bar/line charts this site draws, for the same reason as Bulma: a custom build is a build
+step. It replaced two CDN `<script src="https://cdn.jsdelivr.net/...">` tags -- one for
+ECharts on the playtime pages, one for Chart.js on the session graph -- neither of which
+was pinned by SRI, and one of which (`chart.js` with no version at all) resolved to
+whatever the CDN considered latest at page load.

@@ -18,12 +18,13 @@ of the modernization's sharper edges. One is gone:
 The live-network test for PSN stays in `tests.py`, gated on `psn_token`.
 """
 import datetime as dt
-import json
 import pickle
 from unittest.mock import MagicMock
 
 from django.contrib.auth.models import User
+from django.db import connection
 from django.test import Client, TestCase
+from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 
 from tempmon.models import DataPoint, GamePerSessionInfo, PlaySession, PsGame
@@ -211,6 +212,34 @@ class TestPlaySessionGraphView(SessionViewTestBase):
             self.assertLess(start, end)
             self.assertIn(colour, PlaySessionGraphView.bg_colors)
 
+    def test_chart_data_reaches_the_page_as_json_script(self):
+        """Was `{{ temp_data|safe }}` interpolated into a JS literal, which
+        emitted Python repr -- single-quoted keys, valid JS by luck and never
+        valid JSON. `json_script` serialises and escapes it properly."""
+        response = self.client.get(
+            reverse('tempmon:session', kwargs={'pk': self.session.pk}))
+        for element_id in ['temp-data', 'temp-delta', 'graph-background']:
+            self.assertContains(
+                response, f'<script id="{element_id}" type="application/json">')
+        self.assertNotContains(response, "{'x'")
+
+    def test_echarts_is_served_locally_and_chartjs_is_gone(self):
+        response = self.client.get(
+            reverse('tempmon:session', kwargs={'pk': self.session.pk}))
+        self.assertContains(response, '/static/vendor/echarts/echarts.min.js')
+        self.assertNotContains(response, 'cdn.jsdelivr.net')
+        self.assertNotContains(response, 'new Chart(')
+
+    def test_background_bands_are_rendered_as_a_markarea(self):
+        """The hand-written chart.js `bgColorArea` plugin filled canvas
+        rectangles by pixel and had to be redrawn on every resize; markArea is
+        ECharts' own and is expressed in data coordinates."""
+        response = self.client.get(
+            reverse('tempmon:session', kwargs={'pk': self.session.pk}))
+        self.assertContains(response, 'markArea')
+        self.assertNotContains(response, "id: 'bgColorArea'")
+        self.assertNotContains(response, 'getPixelForValue')
+
     def test_switch_link_points_at_the_details_page(self):
         self.assertEqual(self.get_context()['switch_link'],
                          {'path_name': 'tempmon:session_details', 'label': 'Details'})
@@ -397,18 +426,20 @@ class TestPlaytimeMonthlyView(PlaytimeViewTestBase):
         with freeze_time(frozen):
             response = self.client.get(reverse('tempmon:playtime_monthly'))
         self.assertEqual(response.status_code, 200)
-        return json.loads(response.context['chart_data'])
+        return response.context['chart_data']
 
     def test_requires_login(self):
         self.assertEqual(
             Client().get(reverse('tempmon:playtime_monthly')).status_code, 302)
 
     def test_chart_shape(self):
+        """`categories` on both pages, not `months`/`years`: one template
+        renders both, so it cannot branch on the key name."""
         chart = self.get_chart()
-        self.assertEqual(set(chart), {'months', 'games', 'series'})
+        self.assertEqual(set(chart), {'categories', 'games', 'series'})
 
-    def test_months_are_year_month_strings_in_order(self):
-        self.assertEqual(self.get_chart()['months'],
+    def test_categories_are_year_month_strings_in_order(self):
+        self.assertEqual(self.get_chart()['categories'],
                          ['2025-11', '2025-12', '2026-01'])
 
     def test_games_are_sorted_by_name(self):
@@ -422,7 +453,7 @@ class TestPlaytimeMonthlyView(PlaytimeViewTestBase):
     def test_every_series_covers_every_month(self):
         chart = self.get_chart()
         for s in chart['series']:
-            self.assertEqual(len(s['data']), len(chart['months']))
+            self.assertEqual(len(s['data']), len(chart['categories']))
 
     def test_list_title(self):
         response = self.client.get(reverse('tempmon:playtime_monthly'))
@@ -438,18 +469,18 @@ class TestPlaytimeYearlyView(PlaytimeViewTestBase):
     def get_chart(self):
         response = self.client.get(reverse('tempmon:playtime_yearly'))
         self.assertEqual(response.status_code, 200)
-        return json.loads(response.context['chart_data'])
+        return response.context['chart_data']
 
     def test_requires_login(self):
         self.assertEqual(
             Client().get(reverse('tempmon:playtime_yearly')).status_code, 302)
 
-    def test_chart_shape_uses_years_not_months(self):
+    def test_chart_shape(self):
         chart = self.get_chart()
-        self.assertEqual(set(chart), {'years', 'games', 'series'})
+        self.assertEqual(set(chart), {'categories', 'games', 'series'})
 
-    def test_years_are_in_order(self):
-        self.assertEqual(self.get_chart()['years'], ['2025', '2026'])
+    def test_categories_are_years_in_order(self):
+        self.assertEqual(self.get_chart()['categories'], ['2025', '2026'])
 
     def test_series_aggregate_the_whole_year(self):
         series = {s['name']: s['data'] for s in self.get_chart()['series']}
@@ -460,3 +491,80 @@ class TestPlaytimeYearlyView(PlaytimeViewTestBase):
         response = self.client.get(reverse('tempmon:playtime_yearly'))
         self.assertEqual(response.context['list_title'], 'Playtime per Year')
 
+
+class TestPlaytimeChartViewShared(PlaytimeViewTestBase):
+    """What the monthly/yearly collapse must keep true.
+
+    The two pages were ~90% duplicated Python against two byte-identical
+    templates. They are one `PlaytimeChartView` now, with `bucket_format` and
+    `window_days` as the only differences.
+    """
+
+    def test_both_urls_render_the_same_template(self):
+        for name in ['tempmon:playtime_monthly', 'tempmon:playtime_yearly']:
+            with self.subTest(view=name):
+                response = self.client.get(reverse(name))
+                self.assertIn('tempmon/playtime.html',
+                              [t.name for t in response.templates])
+
+    def test_the_monthly_window_excludes_older_sessions(self):
+        """`window_days` is the monthly page's only filter; the yearly page
+        has none, so the same session shows up on one and not the other."""
+        from freezegun import freeze_time
+
+        old = dt.datetime(2020, 5, 1, 20, 0,
+                          tzinfo=dt.timezone(dt.timedelta(hours=9)))
+        session = PlaySession.objects.create(
+            start_time=old, end_time=old + dt.timedelta(hours=1),
+            start_temp=20.0, max_temp=25.0, data_points=pickle.dumps({}),
+            duration=dt.timedelta(hours=1))
+        GamePerSessionInfo.objects.create(session=session, game=self.game_a,
+                                          duration=dt.timedelta(hours=1))
+
+        with freeze_time('2026-01-20 12:00:00'):
+            monthly = self.client.get(
+                reverse('tempmon:playtime_monthly')).context['chart_data']
+            yearly = self.client.get(
+                reverse('tempmon:playtime_yearly')).context['chart_data']
+
+        self.assertNotIn('2020-05', monthly['categories'])
+        self.assertIn('2020', yearly['categories'])
+
+    def test_chart_data_is_a_dict_the_template_serialises(self):
+        """`json_script` does the escaping now. It used to be json.dumps in
+        the view and `|escapejs` inside a JS string literal in the template."""
+        response = self.client.get(reverse('tempmon:playtime_yearly'))
+        self.assertIsInstance(response.context['chart_data'], dict)
+        self.assertContains(response, 'id="chart-data"')
+
+    def test_echarts_is_served_locally_not_from_a_cdn(self):
+        response = self.client.get(reverse('tempmon:playtime_yearly'))
+        self.assertContains(response, '/static/vendor/echarts/echarts.min.js')
+        self.assertNotContains(response, 'cdn.jsdelivr.net')
+
+    def test_query_count_does_not_grow_with_the_number_of_games(self):
+        """The original walked `PsGame`, then `gamepersessioninfo_set` per
+        game, then `gs.session` per row -- an N+1 on a page whose whole job is
+        to aggregate. One query now, whatever the catalogue looks like."""
+        def queries_for(game_count):
+            GamePerSessionInfo.objects.all().delete()
+            PsGame.objects.exclude(
+                pk__in=[self.game_a.pk, self.game_b.pk]).delete()
+            jst = dt.timezone(dt.timedelta(hours=9))
+            for i in range(game_count):
+                game = PsGame.objects.create(title_id=f'EXTRA{i}',
+                                             name=f'Extra {i}')
+                start = dt.datetime(2025, 11, 10, 20, 0, tzinfo=jst)
+                session = PlaySession.objects.create(
+                    start_time=start, end_time=start + dt.timedelta(hours=1),
+                    start_temp=20.0, max_temp=25.0,
+                    data_points=pickle.dumps({}),
+                    duration=dt.timedelta(hours=1))
+                GamePerSessionInfo.objects.create(
+                    session=session, game=game,
+                    duration=dt.timedelta(hours=1))
+            with CaptureQueriesContext(connection) as ctx:
+                self.client.get(reverse('tempmon:playtime_yearly'))
+            return len(ctx)
+
+        self.assertEqual(queries_for(2), queries_for(8))

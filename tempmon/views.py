@@ -1,6 +1,7 @@
 import itertools
 import json
 import logging
+from collections import defaultdict
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
@@ -13,12 +14,18 @@ from django.http import JsonResponse
 from django.urls import reverse_lazy
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
-from django.views.generic import DetailView, UpdateView
+from django.views.generic import DetailView, TemplateView, UpdateView
 
 from kukan.filters import FFilter, FGenericDateRange, FGenericMinMax, FGenericString
 from kukan.listview import FilteredListView
 from kukan.views import TableData
-from tempmon.models import DataPoint, PlaySession, PsGame, PsnApiKey
+from tempmon.models import (
+    DataPoint,
+    GamePerSessionInfo,
+    PlaySession,
+    PsGame,
+    PsnApiKey,
+)
 from tempmon.psn import NO_GAME, PsnClient, get_psn, reset_psn
 
 logger = logging.getLogger(__name__)
@@ -280,183 +287,78 @@ def format_duration(duration):
     return f'{hours}:{minutes:02}'
 
 
-class PlaytimeMonthlyView(TempMonViewMixin, LoginRequiredMixin, DetailView):
-    template_name = 'tempmon/playtime_monthly.html'
+class PlaytimeChartView(TempMonViewMixin, LoginRequiredMixin, TemplateView):
+    """Hours per game, bucketed by month or by year.
+
+    One view and one template for both pages: they differed only in the
+    `strftime` bucket, whether a time window was applied, and the name of the
+    JSON key holding the labels. `bucket_format` and `window_days` carry the
+    first two; the key is `categories` on both, so the template does not have
+    to know which page it is rendering.
+    """
+
+    template_name = 'tempmon/playtime.html'
+    bucket_format = None
+    window_days = None
+    list_title = ''
+
+    def get_bucketed_hours(self):
+        """{bucket: {game name: hours}} over the configured window.
+
+        One query with the joins spelled out, where this used to walk
+        `PsGame` and then `game.gamepersessioninfo_set` per game -- an N+1
+        over every game ever played. `game__play_time__isnull=False` is kept
+        from the original: `GamePerSessionInfo.save()` recomputes `play_time`
+        as a Sum, so a game whose every session has a null duration ends up
+        null there and was excluded.
+        """
+        plays = GamePerSessionInfo.objects.filter(
+            game__play_time__isnull=False).select_related('session', 'game')
+        if self.window_days is not None:
+            plays = plays.filter(
+                session__start_time__gte=(timezone.now()
+                                          - timedelta(days=self.window_days)))
+
+        buckets = defaultdict(lambda: defaultdict(timedelta))
+        for play in plays.only('duration', 'session__start_time', 'game__name'):
+            bucket = play.session.start_time.strftime(self.bucket_format)
+            buckets[bucket][play.game.name] += play.duration or timedelta(0)
+        return buckets
+
+    def get_chart_data(self):
+        buckets = self.get_bucketed_hours()
+        categories = sorted(buckets)
+        games = sorted({name for b in buckets.values() for name in b})
+        return {
+            'categories': categories,
+            'games': games,
+            'series': [
+                {'name': game,
+                 'data': [round(buckets[c].get(game, timedelta(0))
+                                .total_seconds() / 3600, 2)
+                          for c in categories]}
+                for game in games
+            ],
+        }
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['chart_data'] = self.get_chart_data()
+        context['list_title'] = self.list_title
+        return context
+
+
+class PlaytimeMonthlyView(PlaytimeChartView):
+    # ~24 months. The original comment called it "approximately 24 months",
+    # and nothing downstream depends on the boundary landing on the 1st.
+    window_days = 24 * 30
+    bucket_format = '%Y-%m'
     list_title = 'Playtime per Month'
 
-    def get_object(self, queryset=None):
-        # This view doesn't need a specific object, but DetailView requires one
-        # Return a dummy object
-        return {}
 
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-
-        # Calculate the date 24 months ago from the current date
-        # timezone.now() is UTC-aware; datetime.now() was naive, and comparing
-        # a naive value against an aware DateTimeField makes Django assume UTC
-        # and emit a RuntimeWarning. Harmless on a 720-day window, but Django
-        # tightens this over time and it is wrong regardless.
-        current_date = timezone.now()
-        two_years_ago = current_date - timedelta(days=24*30)  # Approximately 24 months
-
-        # Get all games with play_time
-        games = PsGame.objects.filter(play_time__isnull=False)
-
-        # Aggregate play time by month and game
-        monthly_data = {}
-        game_names = {}  # Store game names for later use
-
-        for game in games:
-            game_names[game.pk] = game.name
-            # Get all GamePerSessionInfo for this game
-            game_sessions = game.gamepersessioninfo_set.filter(
-                session__start_time__gte=two_years_ago)
-            for gs in game_sessions:
-                # Get the month and year of the session
-                month_year = gs.session.start_time.strftime('%Y-%m')
-
-                # Initialize the month if it doesn't exist
-                if month_year not in monthly_data:
-                    monthly_data[month_year] = {}
-
-                # Initialize the game in this month if it doesn't exist
-                if game.pk not in monthly_data[month_year]:
-                    monthly_data[month_year][game.pk] = timedelta(0)
-
-                # Add the duration to the game's monthly total
-                if gs.duration:
-                    monthly_data[month_year][game.pk] += gs.duration
-
-        # Convert to hours for the chart
-        chart_data = {
-            'months': [],
-            'games': [],
-            'series': []
-        }
-
-        # Get unique list of games across all months
-        all_game_pks = set()
-        for month_data in monthly_data.values():
-            all_game_pks.update(month_data.keys())
-
-        # Sort games by name for consistent ordering
-        sorted_game_pks = sorted(all_game_pks, key=lambda pk: game_names.get(pk, ''))
-
-        # Prepare game names for the chart
-        for game_pk in sorted_game_pks:
-            chart_data['games'].append(game_names.get(game_pk, 'Unknown'))
-
-        # Prepare series data for each game
-        for game_idx, game_pk in enumerate(sorted_game_pks):
-            series_data = []
-
-            # For each month, get the hours for this game
-            for month in sorted(monthly_data.keys()):
-                if game_idx == 0:  # Only add month once
-                    chart_data['months'].append(month)
-
-                # Get hours for this game in this month
-                hours = 0
-                if game_pk in monthly_data[month]:
-                    hours = monthly_data[month][game_pk].total_seconds() / 3600
-
-                series_data.append(round(hours, 2))
-
-            # Add series for this game
-            chart_data['series'].append({
-                'name': game_names.get(game_pk, 'Unknown'),
-                'data': series_data
-            })
-
-        context['chart_data'] = json.dumps(chart_data)
-        context['list_title'] = self.list_title
-        return context
-
-
-class PlaytimeYearlyView(TempMonViewMixin, LoginRequiredMixin, DetailView):
-    template_name = 'tempmon/playtime_yearly.html'
+class PlaytimeYearlyView(PlaytimeChartView):
+    bucket_format = '%Y'
     list_title = 'Playtime per Year'
-
-    def get_object(self, queryset=None):
-        # This view doesn't need a specific object, but DetailView requires one
-        # Return a dummy object
-        return {}
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-
-        # Get all games with play_time
-        games = PsGame.objects.filter(play_time__isnull=False)
-
-        # Aggregate play time by year and game
-        yearly_data = {}
-        game_names = {}  # Store game names for later use
-
-        for game in games:
-            game_names[game.pk] = game.name
-            # Get all GamePerSessionInfo for this game
-            game_sessions = game.gamepersessioninfo_set.all()
-            for gs in game_sessions:
-                # Get the year of the session
-                year = gs.session.start_time.strftime('%Y')
-
-                # Initialize the year if it doesn't exist
-                if year not in yearly_data:
-                    yearly_data[year] = {}
-
-                # Initialize the game in this year if it doesn't exist
-                if game.pk not in yearly_data[year]:
-                    yearly_data[year][game.pk] = timedelta(0)
-
-                # Add the duration to the game's yearly total
-                if gs.duration:
-                    yearly_data[year][game.pk] += gs.duration
-
-        # Convert to hours for the chart
-        chart_data = {
-            'years': [],
-            'games': [],
-            'series': []
-        }
-
-        # Get unique list of games across all years
-        all_game_pks = set()
-        for year_data in yearly_data.values():
-            all_game_pks.update(year_data.keys())
-
-        # Sort games by name for consistent ordering
-        sorted_game_pks = sorted(all_game_pks, key=lambda pk: game_names.get(pk, ''))
-
-        # Prepare game names for the chart
-        for game_pk in sorted_game_pks:
-            chart_data['games'].append(game_names.get(game_pk, 'Unknown'))
-
-        # Prepare series data for each game
-        for game_idx, game_pk in enumerate(sorted_game_pks):
-            series_data = []
-
-            # For each year, get the hours for this game
-            for year in sorted(yearly_data.keys()):
-                if game_idx == 0:  # Only add year once
-                    chart_data['years'].append(year)
-
-                # Get hours for this game in this year
-                hours = 0
-                if game_pk in yearly_data[year]:
-                    hours = yearly_data[year][game_pk].total_seconds() / 3600
-
-                series_data.append(round(hours, 2))
-
-            # Add series for this game
-            chart_data['series'].append({
-                'name': game_names.get(game_pk, 'Unknown'),
-                'data': series_data
-            })
-
-        context['chart_data'] = json.dumps(chart_data)
-        context['list_title'] = self.list_title
-        return context
 
 
 class GamesListView(TempMonViewMixin, FilteredListView):

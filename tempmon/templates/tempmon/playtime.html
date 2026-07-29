@@ -1,0 +1,75 @@
+{% extends 'tempmon/base_tabs.html' %}
+{% load static %}
+
+{% block page_title %}{{ list_title }}{% endblock %}
+
+{% block body3 %}
+<div class="container">
+    <nav class="level is-mobile">
+        <div class="level-left">
+            <p class="level-item title is-4">{{ list_title }}</p>
+        </div>
+    </nav>
+    <div class="block">
+        <div id="chart" style="width: 100%; height: 600px;"></div>
+    </div>
+</div>
+
+{{ chart_data|json_script:"chart-data" }}
+<script src="{% static 'vendor/echarts/echarts.min.js' %}"></script>
+<script>
+(function () {
+    const chartData = JSON.parse(document.getElementById('chart-data').textContent);
+    const chart = echarts.init(document.getElementById('chart'));
+
+    chart.setOption({
+        tooltip: {
+            trigger: 'axis',
+            axisPointer: {type: 'shadow'},
+            formatter: function (params) {
+                let total = 0;
+                const lines = params
+                    .filter(p => p.value > 0)
+                    .sort((a, b) => b.value - a.value)
+                    .map(p => {
+                        total += p.value;
+                        return p.marker + ' ' + p.seriesName + ': ' + p.value + ' hours';
+                    });
+                return params[0].name + '<br/>' + lines.join('<br/>') +
+                    '<br/><br/><b>Total: ' + total.toFixed(2) + ' hours</b>';
+            }
+        },
+        grid: {bottom: 80},
+        legend: {
+            data: chartData.games,
+            bottom: 0,
+            type: 'scroll',
+            pageButtonPosition: 'end',
+            orient: 'horizontal',
+            width: '80%',
+            height: '80',
+            selector: false,
+            itemGap: 10,
+            itemWidth: 25,
+            formatter: name => name.length > 15 ? name.slice(0, 15) + '...' : name,
+            textStyle: {overflow: 'break'}
+        },
+        xAxis: {
+            type: 'category',
+            data: chartData.categories,
+            axisLabel: {rotate: 45}
+        },
+        yAxis: {type: 'value', name: 'Hours'},
+        series: chartData.series.map(s => ({
+            name: s.name,
+            type: 'bar',
+            stack: 'total',
+            emphasis: {focus: 'series'},
+            data: s.data
+        }))
+    });
+
+    window.addEventListener('resize', () => chart.resize());
+})();
+</script>
+{% endblock %}
