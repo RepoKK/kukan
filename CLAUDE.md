@@ -142,6 +142,31 @@ so it collapses bursts without blurring ordinary readings) and `FAILURE_COOLDOWN
 outage does not make every POST pay a network timeout). The token expires every few months;
 `/tempmon/psn_npsso_update/` shows the days remaining.
 
+## Frontend (Stage 10+)
+
+The Vue 2/Buefy frontend is being replaced page by page with server-rendered HTML plus
+HTMX + Alpine.js, both stacks coexisting until the last page is migrated (see PLAN.md).
+
+- **`kukan/templates/base.html`** is the new unified base — no Vue, links the vendored
+  htmx/Alpine/Bulma/MDI files below, includes `ui/toasts.html` and a `{% block navbar %}`.
+  The old Vue root (`kukan/templates/kukan/base.html`) is untouched and still used by every
+  page not yet migrated; the two do not interfere because a page extends one or the other,
+  never both.
+- **`kukan/static/vendor/`** holds htmx, Alpine.js, Bulma 1.x and the MDI webfont as
+  fetched, minified files — no build step, no `package.json`. See
+  `kukan/static/vendor/VERSIONS.md` for exact versions and the fetch command to bump one.
+- **`{% load icons %}{% icon 'check' %}`** reproduces Buefy's `<b-icon icon="check">`
+  markup, for the mechanical swap of the 27 existing uses.
+- **`kukan/middleware.py: HtmxLoginRedirectMiddleware`** turns a `LoginRequiredMiddleware`
+  redirect into an `HX-Redirect` header for htmx requests — otherwise htmx swaps the login
+  page's HTML into whatever element made the request instead of navigating the browser
+  there. Must sit after `django_htmx.middleware.HtmxMiddleware` and after
+  `LoginRequiredMiddleware` in `MIDDLEWARE`.
+- **`MESSAGE_TAGS`** in `settings/base.py` maps Django's message levels onto Bulma's
+  notification colour modifiers (`error` → `is-danger`; Bulma has no `.error`).
+- **`kukan/templates/registration/login.html`** is the first page on the new base — it had
+  no Vue to begin with, which is why the plan starts there.
+
 ## Things that will bite you
 - **`add_temp_point` is a hardware contract.** The sensor firmware is not in this repo and has no
   retry buffer. Never change its URL, method, the `API_KEY` body key, the `{'result':'OK'}`

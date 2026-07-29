@@ -17,6 +17,7 @@ dependencies = [
     # (CentOS Stream 9) has glibc 2.34, so 24.11 is the highest usable version.
     # Do not bump without checking `ldd --version` on the box.
     "anki==24.11",
+    "django-htmx>=1.28",
     "dropbox",
     # Not used by the application yet: production still runs Apache+mod_wsgi.
     # Present so the staging container can rehearse the stage 7 cutover.

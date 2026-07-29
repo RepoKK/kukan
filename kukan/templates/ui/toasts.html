@@ -1,0 +1,12 @@
+{% if messages %}
+<div class="toast-region" style="position:fixed; top:1rem; right:1rem; z-index:1000; display:flex; flex-direction:column; gap:0.5rem; max-width:24rem;">
+    {% for message in messages %}
+    <div class="notification {{ message.tags }}"
+         x-data="{ show: true }" x-show="show" x-init="setTimeout(() => show = false, 6000)"
+         x-transition.opacity.duration.300ms>
+        <button class="delete" type="button" @click="show = false"></button>
+        {{ message }}
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
