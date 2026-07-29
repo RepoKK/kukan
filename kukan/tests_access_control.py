@@ -33,7 +33,7 @@ PUBLIC_URL_NAMES = {
     'bustime:get_time_to_next_hana',
     # The sensor endpoint authenticates with a shared key in the body, not a
     # session. Covered in detail by tempmon.tests_api_contract.
-    'add_temp_point',
+    'tempmon:add_temp_point',
 }
 
 # Every list view built on AjaxList, by URL name.
@@ -43,8 +43,8 @@ AJAX_LIST_URLS = [
     'kukan:example_list',
     'kukan:kotowaza_list',
     'kukan:test_result_list',
-    'session_list',
-    'game_list',
+    'tempmon:session_list',
+    'tempmon:game_list',
 ]
 
 
@@ -205,7 +205,7 @@ class TestEveryNamedViewIsClassified(TestCase):
         that was actually exposed.
         """
         covered = {name for name, _ in self.get_checkable_urls()}
-        for name in ['psn_npsso_update', 'kukan:kanji_detail',
+        for name in ['tempmon:psn_npsso_update', 'kukan:kanji_detail',
                      'kukan:example_detail']:
             self.assertIn(name, covered)
 

@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 # Endpoints that a bare GET cannot exercise meaningfully. Each one is listed
 # with the reason it is skipped rather than silently dropped.
 DEFAULT_SKIP = {
-    'add_temp_point': 'sensor endpoint, POSTs a JSON body',
+    'tempmon:add_temp_point': 'sensor endpoint, POSTs a JSON body',
     'kukan:get_goo': 'ajax endpoint, needs a word and calls goo.ne.jp',
     'kukan:get_similar_word': 'ajax endpoint, needs a word parameter',
     'kukan:get_yomi': 'ajax endpoint, needs a kanji parameter',

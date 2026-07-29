@@ -58,7 +58,7 @@ class TestAddTempPointContract(TestCase):
     def test_url_is_stable(self):
         """The firmware has this path compiled in; reverse() must not move it."""
         from django.urls import reverse
-        self.assertEqual(reverse('add_temp_point'), self.url)
+        self.assertEqual(reverse('tempmon:add_temp_point'), self.url)
 
     @patch('tempmon.views.get_psn')
     def test_accepts_point_and_returns_ok(self, get_psn):

@@ -113,7 +113,7 @@ class TempMonViewMixin:
 class PsnApiKeyUpdateView(TempMonViewMixin, UpdateView):
     model = PsnApiKey
     form_class = PsnApiKeyForm
-    success_url = reverse_lazy('session_list')
+    success_url = reverse_lazy('tempmon:session_list')
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -213,7 +213,7 @@ class PlaySessionGraphView(LoginRequiredMixin, TempMonViewMixin, DetailView):
             if game_pk != NO_GAME
         ]
 
-        context['switch_link'] = {'path_name': 'session_details',
+        context['switch_link'] = {'path_name': 'tempmon:session_details',
                                   'label': 'Details'}
         return context
 
@@ -259,7 +259,7 @@ class PlaySessionDetailsView(LoginRequiredMixin, TempMonViewMixin, DetailView):
             ] for t in list_time]
         }
 
-        context['switch_link'] = {'path_name': 'session',
+        context['switch_link'] = {'path_name': 'tempmon:session',
                                   'label': 'Graph'}
         return context
 

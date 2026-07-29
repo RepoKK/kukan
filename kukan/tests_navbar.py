@@ -66,7 +66,7 @@ class NavbarPartialTest(TestCase):
         self.assertIn(reverse('kukan:stats'), html)
         self.assertIn(reverse('kukan:export'), html)
         self.assertIn(reverse('bustime:bustime_main'), html)
-        self.assertIn(reverse('session_list'), html)
+        self.assertIn(reverse('tempmon:session_list'), html)
 
     def test_logout_is_a_post_form_not_a_link(self):
         """LogoutView has been POST-only since Django 5.0; a GET is a 405.

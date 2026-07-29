@@ -30,10 +30,10 @@ class IterUrlNamesTest(TestCase):
     def test_namespaced_names_are_qualified(self):
         self.assertIn('kukan:kanji_list', self.names)
         self.assertIn('bustime:bustime_main', self.names)
+        self.assertIn('tempmon:add_temp_point', self.names)
 
     def test_unnamespaced_names_are_bare(self):
         self.assertIn('login', self.names)
-        self.assertIn('add_temp_point', self.names)
 
     def test_nested_admin_urls_are_reached(self):
         """Proves the resolver recursion descends into included URLconfs."""

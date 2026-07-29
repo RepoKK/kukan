@@ -1,5 +1,5 @@
 {% extends 'tempmon/base_details.html' %}
-{% block switch_page %}<a href="{% url 'session_details' object.id %}">Details</a>{% endblock%}
+{% block switch_page %}<a href="{% url 'tempmon:session_details' object.id %}">Details</a>{% endblock%}
 {% block body3 %}
 <div class="block">
     <canvas id="myChart"></canvas>

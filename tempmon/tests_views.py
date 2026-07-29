@@ -160,13 +160,13 @@ class TestPlaySessionGraphView(SessionViewTestBase):
 
     def get_context(self):
         response = self.client.get(
-            reverse('session', kwargs={'pk': self.session.pk}))
+            reverse('tempmon:session', kwargs={'pk': self.session.pk}))
         self.assertEqual(response.status_code, 200)
         return response.context
 
     def test_requires_login(self):
         response = Client().get(
-            reverse('session', kwargs={'pk': self.session.pk}))
+            reverse('tempmon:session', kwargs={'pk': self.session.pk}))
         self.assertEqual(response.status_code, 302)
 
     def test_duration_is_end_minus_start(self):
@@ -213,7 +213,7 @@ class TestPlaySessionGraphView(SessionViewTestBase):
 
     def test_switch_link_points_at_the_details_page(self):
         self.assertEqual(self.get_context()['switch_link'],
-                         {'path_name': 'session_details', 'label': 'Details'})
+                         {'path_name': 'tempmon:session_details', 'label': 'Details'})
 
     def test_psn_ok_reflects_the_client(self):
         """TempMonViewMixin drives a red header when PSN login failed.
@@ -267,13 +267,13 @@ class TestPlaySessionDetailsView(SessionViewTestBase):
 
     def get_context(self):
         response = self.client.get(
-            reverse('session_details', kwargs={'pk': self.session.pk}))
+            reverse('tempmon:session_details', kwargs={'pk': self.session.pk}))
         self.assertEqual(response.status_code, 200)
         return response.context
 
     def test_requires_login(self):
         response = Client().get(
-            reverse('session_details', kwargs={'pk': self.session.pk}))
+            reverse('tempmon:session_details', kwargs={'pk': self.session.pk}))
         self.assertEqual(response.status_code, 302)
 
     def test_headers(self):
@@ -319,7 +319,7 @@ class TestPlaySessionDetailsView(SessionViewTestBase):
 
     def test_switch_link_points_back_at_the_graph(self):
         self.assertEqual(self.get_context()['switch_link'],
-                         {'path_name': 'session', 'label': 'Graph'})
+                         {'path_name': 'tempmon:session', 'label': 'Graph'})
 
 
 class TestDataPointsPickle(TestCase):
@@ -395,13 +395,13 @@ class TestPlaytimeMonthlyView(PlaytimeViewTestBase):
     def get_chart(self, frozen='2026-01-20 12:00:00'):
         from freezegun import freeze_time
         with freeze_time(frozen):
-            response = self.client.get(reverse('playtime_monthly'))
+            response = self.client.get(reverse('tempmon:playtime_monthly'))
         self.assertEqual(response.status_code, 200)
         return json.loads(response.context['chart_data'])
 
     def test_requires_login(self):
         self.assertEqual(
-            Client().get(reverse('playtime_monthly')).status_code, 302)
+            Client().get(reverse('tempmon:playtime_monthly')).status_code, 302)
 
     def test_chart_shape(self):
         chart = self.get_chart()
@@ -425,7 +425,7 @@ class TestPlaytimeMonthlyView(PlaytimeViewTestBase):
             self.assertEqual(len(s['data']), len(chart['months']))
 
     def test_list_title(self):
-        response = self.client.get(reverse('playtime_monthly'))
+        response = self.client.get(reverse('tempmon:playtime_monthly'))
         self.assertEqual(response.context['list_title'], 'Playtime per Month')
 
     def test_games_without_play_time_are_ignored(self):
@@ -436,13 +436,13 @@ class TestPlaytimeMonthlyView(PlaytimeViewTestBase):
 
 class TestPlaytimeYearlyView(PlaytimeViewTestBase):
     def get_chart(self):
-        response = self.client.get(reverse('playtime_yearly'))
+        response = self.client.get(reverse('tempmon:playtime_yearly'))
         self.assertEqual(response.status_code, 200)
         return json.loads(response.context['chart_data'])
 
     def test_requires_login(self):
         self.assertEqual(
-            Client().get(reverse('playtime_yearly')).status_code, 302)
+            Client().get(reverse('tempmon:playtime_yearly')).status_code, 302)
 
     def test_chart_shape_uses_years_not_months(self):
         chart = self.get_chart()
@@ -457,6 +457,6 @@ class TestPlaytimeYearlyView(PlaytimeViewTestBase):
         self.assertEqual(series['Game B'], [2.0, 1.5])
 
     def test_list_title(self):
-        response = self.client.get(reverse('playtime_yearly'))
+        response = self.client.get(reverse('tempmon:playtime_yearly'))
         self.assertEqual(response.context['list_title'], 'Playtime per Year')
 
