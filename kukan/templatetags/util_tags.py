@@ -10,6 +10,10 @@ FILTER_TEMPLATES = {
     'v-filter-string': 'ui/filters/string.html',
     'v-filter-checkbox': 'ui/filters/checkbox.html',
     'v-filter-yomi-simple': 'ui/filters/yomi_simple.html',
+    'v-filter-min-max': 'ui/filters/min_max.html',
+    'v-filter-yomi': 'ui/filters/yomi.html',
+    'v-filter-bushu': 'ui/filters/bushu.html',
+    'v-filter-daterange': 'ui/filters/daterange.html',
 }
 
 
@@ -51,6 +55,57 @@ def split_once(value, sep):
         return ['', '']
     parts = value.split(sep, 1)
     return parts if len(parts) == 2 else [parts[0], '']
+
+
+@register.filter
+def parse_minmax(value):
+    """Decode FGenericMinMax's encoding ("5", "≠ 5", "5~10", "~10",
+    "5~", "≠ 5~10") into its parts, for the widget's initial state."""
+    exclude = value.startswith('≠ ')
+    if exclude:
+        value = value[2:]
+    if '~' in value:
+        lo, hi = value.split('~', 1)
+        return {'exclude': exclude, 'mode': 'range', 'exact': '',
+                'min': lo, 'max': hi}
+    return {'exclude': exclude, 'mode': 'exact', 'exact': value,
+            'min': '', 'max': ''}
+
+
+@register.filter
+def parse_yomi(value):
+    """Decode FYomi's 4-part encoding ("せいせい_位致_読両_常全"). Defaults
+    match the old Vue widget's own defaults for an empty/malformed value."""
+    defaults = {'text': '', 'position': '位致', 'onkun': '読両', 'joyo': '常全'}
+    if not value:
+        return defaults
+    parts = value.split('_')
+    if len(parts) != 4:
+        return defaults
+    text, position, onkun, joyo = parts
+    return {'text': text, 'position': position, 'onkun': onkun, 'joyo': joyo}
+
+
+@register.filter
+def parse_daterange(value):
+    """Decode FGenericDateRange's encoding ("2024-03-09", "≠ 2024-03-09",
+    "2024-03-01~2024-03-31", "~2024-03-31", "2024-03-01~") into its parts.
+
+    The widget only offers date-level granularity (a native
+    <input type="date">, per the plan's explicit simplification) even though
+    FGenericDateRange also accepts a "YYYY-MM-DD HH:MM" half -- an existing
+    value with a time component simply will not populate a date input, which
+    is the one corner this format-level simplification does not round-trip.
+    """
+    exclude = value.startswith('≠ ')
+    if exclude:
+        value = value[2:]
+    if '~' in value:
+        lo, hi = value.split('~', 1)
+        return {'exclude': exclude, 'mode': 'range', 'date': '',
+                'start': lo, 'end': hi}
+    return {'exclude': exclude, 'mode': 'single', 'date': value,
+            'start': '', 'end': ''}
 
 
 @register.simple_tag(takes_context=True)

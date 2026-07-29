@@ -1,0 +1,43 @@
+{% load util_tags %}
+{% with parsed=value|parse_daterange %}
+<div class="field"
+     x-data="{
+        mode: '{{ parsed.mode }}',
+        date: '{{ parsed.date|escapejs }}',
+        start: '{{ parsed.start|escapejs }}',
+        end: '{{ parsed.end|escapejs }}',
+        exclude: {{ parsed.exclude|yesno:'true,false' }},
+        get body() {
+            if (this.mode === 'range') {
+                return (this.start === '' && this.end === '') ? '' : (this.start + '~' + this.end);
+            }
+            return this.date;
+        },
+        get encoded() {
+            return this.body === '' ? '' : (this.exclude ? '≠ ' + this.body : this.body);
+        }
+     }">
+    <label class="label">{{ filter.label }}</label>
+    <input type="hidden" name="{{ filter.label }}" :value="encoded">
+    <div class="tabs is-toggle is-small">
+        <ul>
+            <li :class="{'is-active': mode === 'single'}"><a @click="mode = 'single'">日付</a></li>
+            <li :class="{'is-active': mode === 'range'}"><a @click="mode = 'range'">範囲</a></li>
+        </ul>
+    </div>
+    <div class="control" x-show="mode === 'single'">
+        <input class="input" type="date" x-model="date">
+    </div>
+    <div class="field is-grouped" x-show="mode === 'range'">
+        <div class="control">
+            <input class="input" type="date" x-model="start">
+        </div>
+        <div class="control">
+            <input class="input" type="date" x-model="end">
+        </div>
+    </div>
+    <label class="checkbox">
+        <input type="checkbox" x-model="exclude"> 除く
+    </label>
+</div>
+{% endwith %}

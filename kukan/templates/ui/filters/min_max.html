@@ -1,0 +1,45 @@
+{% load util_tags %}
+{% with parsed=value|parse_minmax %}
+<div class="field"
+     x-data="{
+        mode: '{{ parsed.mode }}',
+        exact: '{{ parsed.exact|escapejs }}',
+        min: '{{ parsed.min|escapejs }}',
+        max: '{{ parsed.max|escapejs }}',
+        exclude: {{ parsed.exclude|yesno:'true,false' }},
+        get body() {
+            if (this.mode === 'range') {
+                return (this.min === '' && this.max === '') ? '' : (this.min + '~' + this.max);
+            }
+            return this.exact;
+        },
+        get encoded() {
+            return this.body === '' ? '' : (this.exclude ? '≠ ' + this.body : this.body);
+        }
+     }">
+    <label class="label">{{ filter.label }}</label>
+    <input type="hidden" name="{{ filter.label }}" :value="encoded">
+    <div class="tabs is-toggle is-small">
+        <ul>
+            <li :class="{'is-active': mode === 'exact'}"><a @click="mode = 'exact'">値</a></li>
+            <li :class="{'is-active': mode === 'range'}"><a @click="mode = 'range'">範囲</a></li>
+        </ul>
+    </div>
+    <div class="field" x-show="mode === 'exact'">
+        <div class="control">
+            <input class="input" type="number" x-model="exact" placeholder="{{ filter.label }}">
+        </div>
+    </div>
+    <div class="field is-grouped" x-show="mode === 'range'">
+        <div class="control">
+            <input class="input" type="number" x-model="min" placeholder=">=">
+        </div>
+        <div class="control">
+            <input class="input" type="number" x-model="max" placeholder="<=">
+        </div>
+    </div>
+    <label class="checkbox">
+        <input type="checkbox" x-model="exclude"> 除く
+    </label>
+</div>
+{% endwith %}

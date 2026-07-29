@@ -257,13 +257,17 @@ class FBushu(FFilter):
     def __init__(self):
         super().__init__('部首', 'v-filter-bushu')
 
-    def get_extra_json(self):
+    def get_choices(self):
+        """The plain-Python form of get_extra_json's payload, for the
+        server-rendered template (kukan/templates/ui/filters/bushu.html)."""
         dct = collections.defaultdict(list)
         for x in KoukiBushu.objects.values_list('bushu', 'kakusu'):
             dct[x[1]].append(x[0])
-        ret = {'listBushu': [{'strokeNumber': k, 'bushu': dct[k]} for k in dct],
-               'kakusu': KoukiBushu.objects.aggregate(min=Min('kakusu'), max=Max('kakusu'))}
-        return json.dumps(ret)
+        return {'listBushu': [{'strokeNumber': k, 'bushu': dct[k]} for k in dct],
+                'kakusu': KoukiBushu.objects.aggregate(min=Min('kakusu'), max=Max('kakusu'))}
+
+    def get_extra_json(self):
+        return json.dumps(self.get_choices())
 
     def add_to_query(self, flt, qry):
         qry = qry.filter(kouki_bushu__bushu__in=flt)

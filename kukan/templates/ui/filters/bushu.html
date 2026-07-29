@@ -1,0 +1,51 @@
+{% load icons %}
+{% with choices=filter.get_choices %}
+{{ choices.listBushu|json_script:"bushu-choices" }}
+<div class="field"
+     x-data="{
+        text: '{{ value|escapejs }}',
+        kakusu: {{ choices.kakusu.min }},
+        min: {{ choices.kakusu.min }},
+        max: {{ choices.kakusu.max }},
+        listBushu: JSON.parse(document.getElementById('bushu-choices').textContent),
+        get currentBushu() {
+            const group = this.listBushu.find(g => g.strokeNumber === this.kakusu);
+            return group ? group.bushu : [];
+        },
+        step(delta) {
+            this.kakusu = Math.min(Math.max(this.kakusu + delta, this.min), this.max);
+        }
+     }">
+    <label class="label">{{ filter.label }}</label>
+    <input type="hidden" name="{{ filter.label }}" :value="text">
+    <div class="field has-addons">
+        <div class="control is-expanded">
+            <input class="input" type="text" x-model="text" placeholder="{{ filter.label }}">
+        </div>
+        <div class="control">
+            <button type="button" class="button" @click="text = text.slice(0, -1)">
+                {% icon 'backspace' size='is-small' %}
+            </button>
+        </div>
+    </div>
+    <div class="field has-addons has-addons-centered">
+        <div class="control"><button type="button" class="button" @click="step(-5)">
+            {% icon 'chevron-double-left' size='is-small' %}</button></div>
+        <div class="control"><button type="button" class="button" @click="step(-1)">
+            {% icon 'minus' size='is-small' %}</button></div>
+        <div class="control">
+            <input class="input has-text-centered" style="width: 4rem;" type="number"
+                   x-model.number="kakusu" :min="min" :max="max">
+        </div>
+        <div class="control"><button type="button" class="button" @click="step(1)">
+            {% icon 'plus' size='is-small' %}</button></div>
+        <div class="control"><button type="button" class="button" @click="step(5)">
+            {% icon 'chevron-double-right' size='is-small' %}</button></div>
+    </div>
+    <div class="buttons">
+        <template x-for="b in currentBushu" :key="b">
+            <span class="button is-light" @click="text += b" x-text="b"></span>
+        </template>
+    </div>
+</div>
+{% endwith %}

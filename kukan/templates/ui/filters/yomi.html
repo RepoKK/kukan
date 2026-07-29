@@ -1,0 +1,34 @@
+{% load util_tags %}
+{% with parsed=value|parse_yomi %}
+<div class="field"
+     x-data="{
+        text: '{{ parsed.text|escapejs }}',
+        position: '{{ parsed.position|escapejs }}',
+        onkun: '{{ parsed.onkun|escapejs }}',
+        joyo: '{{ parsed.joyo|escapejs }}'
+     }">
+    <label class="label">{{ filter.label }}</label>
+    <input type="hidden" name="{{ filter.label }}"
+           :value="text ? [text, position, onkun, joyo].join('_') : ''">
+    <div class="control">
+        <input class="input" type="text" x-model="text" placeholder="{{ filter.label }}">
+    </div>
+    <div class="control">
+        <label class="radio"><input type="radio" value="位致" x-model="position"> と一致する</label>
+        <label class="radio"><input type="radio" value="位始" x-model="position"> から始まる</label>
+        <label class="radio"><input type="radio" value="位含" x-model="position"> を含む</label>
+    </div>
+    <p><strong>音訓読み</strong></p>
+    <div class="control">
+        <label class="radio"><input type="radio" value="読両" x-model="onkun"> 両方</label>
+        <label class="radio"><input type="radio" value="読音" x-model="onkun"> 音読み</label>
+        <label class="radio"><input type="radio" value="読訓" x-model="onkun"> 訓読み</label>
+    </div>
+    <p><strong>常用漢字表</strong></p>
+    <div class="control">
+        <label class="radio"><input type="radio" value="常全" x-model="joyo"> 全読み</label>
+        <label class="radio"><input type="radio" value="常用" x-model="joyo"> 常用読み</label>
+        <label class="radio"><input type="radio" value="常外" x-model="joyo"> 常用読み以外</label>
+    </div>
+</div>
+{% endwith %}
