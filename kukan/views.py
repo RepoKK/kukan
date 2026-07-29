@@ -355,10 +355,11 @@ class KanjiListFilter(AjaxList):
         return qry
 
 
-class YojiList(AjaxList):
+class YojiList(FilteredListView):
     model = Yoji
     template_name = 'kukan/yoji_list.html'
     default_sort = 'kanken'
+    list_title = '四字熟語'
     filters = [
         FGenericString('漢字', 'yoji'),
         FGenericString('分類', 'bunrui__bunrui'),
@@ -370,6 +371,10 @@ class YojiList(AjaxList):
         {'name': 'yoji', 'link': TableData.FieldProps.link_pk('yoji')},
         'reading', 'kanken', 'in_anki'
     ])
+    # The 日課 column needs the whole Yoji instance (for its pk/text) and the
+    # page's own csrf_token, neither of which TableData's format callable can
+    # reach -- see FilteredListView.cell_overrides.
+    cell_overrides = {'in_anki': 'ui/anki_toggle_cell.html'}
 
 
 class ExampleList(AjaxList):

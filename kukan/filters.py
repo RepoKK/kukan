@@ -85,7 +85,11 @@ class FGenericCheckbox(FFilter):
         qry = qry.filter(q)
         return qry
 
-    def get_extra_json(self):
+    def get_choices(self):
+        """The plain-Python form of get_extra_json's payload, for the
+        server-rendered template (kukan/templates/ui/filters/checkbox.html).
+        get_extra_json stays, JSON-serialising this same data, for the list
+        pages still on the Vue filter bar."""
         sys_list = [x[self.field] for x in self.model.objects.order_by(self.order).distinct().values(self.field)]
         try:
             sys_list.pop(sys_list.index(None))
@@ -93,8 +97,10 @@ class FGenericCheckbox(FFilter):
         except ValueError:
             pass
         ret = [{'native': idx, 'label': x, 'col': idx % self.nb_col} for idx, x in enumerate(sys_list)]
-        ret = {'comptype': "b-checkbox", 'elements': ret}
-        return json.dumps(ret)
+        return {'comptype': 'b-checkbox', 'elements': ret}
+
+    def get_extra_json(self):
+        return json.dumps(self.get_choices())
 
 
 class FGenericMinMax(FFilter):
@@ -185,11 +191,13 @@ class FGenericYesNo(FFilter):
         qry = flt_fct(**kwargs)
         return qry
 
-    def get_extra_json(self):
-        ret = {'comptype': "b-radio",
-               'elements': [{'native': 0, 'label': self.label_yes, 'col': 0},
+    def get_choices(self):
+        return {'comptype': 'b-radio',
+                'elements': [{'native': 0, 'label': self.label_yes, 'col': 0},
                             {'native': 1, 'label': self.label_no, 'col': 0}]}
-        return json.dumps(ret)
+
+    def get_extra_json(self):
+        return json.dumps(self.get_choices())
 
 
 class FYomiSimple(FFilter):

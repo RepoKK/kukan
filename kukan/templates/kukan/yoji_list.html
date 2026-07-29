@@ -1,26 +1,23 @@
-{% extends 'kukan/base_ext.html' %}
+{% extends 'base_ext.html' %}
+{% load util_tags %}
+
+{% block title %}{{ list_title }}{% endblock %}
 
 {% block content %}
-    <v-filtered-table top_title="四字熟語" :mobile-cards="true">
-        <template slot="日課" slot-scope="{column, props}">
-            <fr-addrem-anki :in_anki_init="props.row[column.field]"
-                            :yoji="props.row['yoji'].match(/<a [^>]+>([^<]+)<\/a>/)[1]"
-                            :edit_allowed="editEnabled">
-            </fr-addrem-anki>
-        </template>
-    </v-filtered-table>
-    <b-switch v-model="editEnabled">一覧編集可能</b-switch>
-{% endblock %}
+<h1 class="title">{{ list_title }}</h1>
 
-{% block vue_data %}
-    data() {
-        return {
-            editEnabled: false,
-        }
-    },
-{% endblock vue_data%}
+<form hx-get="{{ request.path }}" hx-target="#results" hx-push-url="true" hx-swap="outerHTML"
+      hx-trigger="input changed delay:400ms, change, submit">
+    {% for filter, value in filters %}
+    {% render_filter filter value %}
+    {% endfor %}
+    <button class="button is-primary" type="submit">適用</button>
+</form>
 
-{% block vue_component %}
-{% include 'v-filter/v-include.html' %}
-{% include 'vue/vue_addrem_anki.html' %}
+<div x-data="{ editEnabled: false }">
+    <label class="checkbox">
+        <input type="checkbox" x-model="editEnabled"> 一覧編集可能
+    </label>
+    {% include 'ui/_table.html' %}
+</div>
 {% endblock %}

@@ -1,6 +1,5 @@
-"""Contract tests for `FilteredListView`, exercised through `KotowazaList` --
-the simplest of the seven list pages (one string filter, no annotations) and
-the first one moved off `AjaxList`.
+"""Contract tests for `FilteredListView`, exercised through `KotowazaList` and
+`YojiList` -- the first two of the seven list pages moved off `AjaxList`.
 
 This is the frontend rewrite's actual regression net for list views: PKs,
 ordering and page count through the real view, not a golden-diff of HTML.
@@ -12,7 +11,7 @@ from django.template import Context, Template
 from django.test import Client, TestCase
 from django.urls import reverse
 
-from kukan.models import Kotowaza
+from kukan.models import Kotowaza, Yoji
 
 
 class KotowazaListContractTest(TestCase):
@@ -113,6 +112,70 @@ class KotowazaListContractTest(TestCase):
         response = self.client.get(
             reverse('kukan:kotowaza_list'), {'諺': '絶対に存在しない諺'})
         self.assertContains(response, '結果ありません')
+
+
+class YojiListContractTest(TestCase):
+    """YojiList: the second page moved off AjaxList, and the first with more
+    than one filter kind (string, yomi-simple, checkbox, yes/no) plus a
+    per-row cell override (the 日課/anki-toggle widget)."""
+
+    fixtures = ['baseline', '閲', '覧']
+
+    def setUp(self):
+        User.objects.create_user('test_user', password='pwd')
+        self.client = Client()
+        self.client.login(username='test_user', password='pwd')
+        self.eturan = Yoji.objects.create(
+            yoji='閲覧', reading='えつらん', meaning='しらべ見ること')
+        self.shinkan = Yoji.objects.create(
+            yoji='覧閲', reading='らんえつ', meaning='ためしに作った語')
+
+    def test_a_normal_request_renders_the_full_page(self):
+        response = self.client.get(reverse('kukan:yoji_list'))
+        self.assertContains(response, 'navbar-burger')
+        self.assertContains(response, '<table')
+
+    def test_no_vue_or_buefy_remains(self):
+        response = self.client.get(reverse('kukan:yoji_list'))
+        content = response.content.decode()
+        self.assertNotIn('vue_app', content)
+        self.assertNotIn('buefy', content.lower())
+        self.assertNotIn('v-filter', content)
+        self.assertNotIn('<fr-addrem-anki', content)
+
+    def test_string_filter_narrows_by_pk(self):
+        response = self.client.get(
+            reverse('kukan:yoji_list'), {'漢字': '閲覧'})
+        self.assertEqual(
+            {y.pk for y in response.context['object_list']}, {self.eturan.pk})
+
+    def test_yomi_simple_filter_narrows_by_pk(self):
+        response = self.client.get(
+            reverse('kukan:yoji_list'), {'読み': 'えつらん_位致'})
+        self.assertEqual(
+            {y.pk for y in response.context['object_list']}, {self.eturan.pk})
+
+    def test_yes_no_filter_narrows_by_pk(self):
+        self.eturan.in_anki = True
+        self.eturan.save()
+        response = self.client.get(
+            reverse('kukan:yoji_list'), {'日課': '日課に出る'})
+        self.assertEqual(
+            {y.pk for y in response.context['object_list']}, {self.eturan.pk})
+
+    def test_the_anki_toggle_cell_override_renders_per_row(self):
+        """The 日課 column shows the Alpine widget, not a plain checkmark --
+        the cell_overrides escape hatch is what makes that possible."""
+        response = self.client.get(reverse('kukan:yoji_list'))
+        content = response.content.decode()
+        self.assertIn(reverse('kukan:yoji_anki'), content)
+        self.assertIn("body.set('yoji', '閲覧')", content)
+        self.assertIn("body.set('yoji', '覧閲')", content)
+
+    def test_the_edit_toggle_switch_is_present(self):
+        response = self.client.get(reverse('kukan:yoji_list'))
+        self.assertContains(response, '一覧編集可能')
+        self.assertContains(response, 'editEnabled')
 
 
 class UtilTagsTest(TestCase):

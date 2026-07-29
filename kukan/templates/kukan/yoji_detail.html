@@ -27,42 +27,10 @@
             <ul>
                 <li>
                     <strong>日課：</strong>
-                    <span x-data="{
-                            inAnki: {{ yoji.in_anki|yesno:'true,false' }},
-                            busy: false,
-                            toggle() {
-                                const op = this.inAnki ? 'remove' : 'add';
-                                const message = this.inAnki
-                                    ? '本当に日課の四字熟語の問題から外しますか。'
-                                    : '日課に追加しますか。';
-                                if (!confirm(message)) return;
-                                this.busy = true;
-                                const body = new FormData();
-                                body.set('yoji', '{{ yoji.yoji|escapejs }}');
-                                body.set('op', op);
-                                fetch('{% url 'kukan:yoji_anki' %}', {
-                                    method: 'POST',
-                                    headers: {'X-CSRFToken': '{{ csrf_token }}'},
-                                    body: body,
-                                }).then(r => r.json()).then(data => {
-                                    this.busy = false;
-                                    if (data.status === 'success') {
-                                        this.inAnki = data.in_anki === 'true';
-                                    } else {
-                                        alert('日課に追加・削除の失敗');
-                                    }
-                                }).catch(() => {
-                                    this.busy = false;
-                                    alert('日課に追加・削除の失敗');
-                                });
-                            }
-                        }">
-                        <span x-show="inAnki">{% icon 'check' %}</span>
-                        <a class="button is-small is-outlined"
-                           :class="[inAnki ? 'is-danger' : 'is-success', busy ? 'is-loading' : '']"
-                           @click="toggle">
-                            <span x-text="inAnki ? '解除' : '追加'"></span>
-                        </a>
+                    {# editEnabled: true -- the detail page always shows the
+                       button; only yoji_list's table has a switch for it. #}
+                    <span x-data="{ editEnabled: true }">
+                        {% include 'ui/anki_toggle.html' with yoji_text=yoji.yoji in_anki=yoji.in_anki %}
                     </span>
                 </li>
                 <li><strong>漢検：</strong>{{yoji.kanken}}</li>

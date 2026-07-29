@@ -1,0 +1,46 @@
+{% load util_tags %}
+{% with choices=filter.get_choices selected_list=value|split_comma_space %}
+<div class="field"
+     x-data="{
+        selected: [{% for item in selected_list %}'{{ item|escapejs }}'{% if not forloop.last %}, {% endif %}{% endfor %}],
+        radio: '{{ choices.comptype|escapejs }}' === 'b-radio',
+        toggle(label) {
+            if (this.radio) { this.selected = [label]; return; }
+            const i = this.selected.indexOf(label);
+            if (i > -1) { this.selected.splice(i, 1); } else { this.selected.push(label); }
+        }
+     }">
+    <label class="label">{{ filter.label }}</label>
+    <input type="hidden" name="{{ filter.label }}" :value="selected.join(', ')">
+    <div class="columns is-mobile">
+        <div class="column">
+            {% for elem in choices.elements %}{% if elem.col == 0 %}
+            <label class="{% if choices.comptype == 'b-radio' %}radio{% else %}checkbox{% endif %}">
+                <input type="{% if choices.comptype == 'b-radio' %}radio{% else %}checkbox{% endif %}"
+                       :checked="selected.includes('{{ elem.label|escapejs }}')"
+                       @change="toggle('{{ elem.label|escapejs }}')">
+                {{ elem.label }}
+            </label><br>
+            {% endif %}{% endfor %}
+        </div>
+        <div class="column">
+            {% for elem in choices.elements %}{% if elem.col == 1 %}
+            <label class="{% if choices.comptype == 'b-radio' %}radio{% else %}checkbox{% endif %}">
+                <input type="{% if choices.comptype == 'b-radio' %}radio{% else %}checkbox{% endif %}"
+                       :checked="selected.includes('{{ elem.label|escapejs }}')"
+                       @change="toggle('{{ elem.label|escapejs }}')">
+                {{ elem.label }}
+            </label><br>
+            {% endif %}{% endfor %}
+        </div>
+    </div>
+    {% if choices.comptype == 'b-checkbox' %}
+    <label class="checkbox">
+        <input type="checkbox"
+               :checked="selected.length == {{ choices.elements|length }}"
+               @change="selected = $event.target.checked ? [{% for elem in choices.elements %}'{{ elem.label|escapejs }}'{% if not forloop.last %}, {% endif %}{% endfor %}] : []">
+        全選択
+    </label>
+    {% endif %}
+</div>
+{% endwith %}

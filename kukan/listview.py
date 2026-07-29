@@ -24,6 +24,13 @@ class FilteredListView(LoginRequiredMixin, ListView):
     default_sort = None
     list_title = ''
     partial_template_name = 'ui/_table.html'
+    # {field_name: template_name}. An escape hatch for a column that needs
+    # more than TableData's format callable can give it -- e.g. yoji_list's
+    # 日課 column, which renders a per-row Alpine widget that needs the whole
+    # object (and the page's own csrf_token), not just one formatted value.
+    # Included via {% include %}, so it shares the page's real render
+    # context; a value built through TableData.format() would not.
+    cell_overrides = {}
 
     def get_sortable_fields(self):
         """Field names the table actually displays -- the only ones worth
@@ -61,7 +68,11 @@ class FilteredListView(LoginRequiredMixin, ListView):
         context = super().get_context_data(**kwargs)
         columns = self.table_data.get_col_template()
         context['columns'] = columns
-        context['rows'] = self.table_data.get_table_data(context['object_list'])
+        object_list = context['object_list']
+        context['rows'] = list(zip(
+            self.table_data.get_table_data(object_list), object_list,
+            strict=True))
+        context['cell_overrides'] = self.cell_overrides
         context['sort_by'] = self.sort_by
         context['active_sort_field'] = self.sort_by.removeprefix('-')
         context['sort_descending'] = self.sort_by.startswith('-')
