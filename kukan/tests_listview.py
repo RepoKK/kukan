@@ -273,6 +273,103 @@ class ExampleListContractTest(TestCase):
                     response, f'name="意味" value="{escape(value)}"')
 
 
+class KanjiListFilterContractTest(TestCase):
+    """kanji_list: the last and hardest of the five kukan list pages -- every
+    filter kind at once, plus a custom get_queryset() overriding
+    FilteredListView's own (an annotation, ex_num, that a filter runs
+    against, so it must exist before the filter loop runs)."""
+
+    fixtures = ['baseline', '閲', '覧']
+
+    def setUp(self):
+        User.objects.create_user('test_user', password='pwd')
+        self.client = Client()
+        self.client.login(username='test_user', password='pwd')
+
+    def test_a_normal_request_renders_the_full_page(self):
+        response = self.client.get(reverse('kukan:kanji_list'))
+        self.assertContains(response, 'navbar-burger')
+        self.assertContains(response, '<table')
+
+    def test_no_vue_or_buefy_remains(self):
+        response = self.client.get(reverse('kukan:kanji_list'))
+        content = response.content.decode()
+        self.assertNotIn('vue_app', content)
+        self.assertNotIn('buefy', content.lower())
+        self.assertNotIn('v-filter', content)
+
+    def test_default_sort_is_by_kanken(self):
+        response = self.client.get(reverse('kukan:kanji_list'))
+        self.assertEqual(response.context['sort_by'], 'kanken')
+
+    def test_string_filter_narrows_by_pk(self):
+        response = self.client.get(
+            reverse('kukan:kanji_list'), {'漢字': '閲'})
+        self.assertEqual(
+            {k.pk for k in response.context['object_list']}, {'閲'})
+
+    def test_min_max_filter_narrows_by_pk(self):
+        response = self.client.get(
+            reverse('kukan:kanji_list'), {'画数': '15'})
+        self.assertEqual(
+            {k.pk for k in response.context['object_list']}, {'閲'})
+
+    def test_bushu_filter_narrows_by_pk(self):
+        response = self.client.get(
+            reverse('kukan:kanji_list'), {'部首': '見'})
+        self.assertEqual(
+            {k.pk for k in response.context['object_list']}, {'覧'})
+
+    def test_checkbox_filter_narrows_by_pk(self):
+        from kukan.models import Kanji
+
+        classification = Kanji.objects.get(kanji='閲').classification
+        response = self.client.get(
+            reverse('kukan:kanji_list'),
+            {'種別': classification.classification})
+        self.assertEqual(
+            {k.pk for k in response.context['object_list']}, {'閲', '覧'})
+
+    def test_ex_num_annotation_survives_the_custom_get_queryset(self):
+        """The one thing this override exists for: get_queryset() is fully
+        replaced, not extended, so it is on this test to prove the
+        annotation FGenericMinMax('例文数', ...) filters against is still
+        there -- and is computed the same way (non-blank sentences only)."""
+        from kukan.models import Example, ExMap, Kanji
+
+        kanji = Kanji.objects.get(kanji='閲')
+        example = Example.objects.create(
+            word='閲する', yomi='けみする', sentence='書類を閲する',
+            definition='', is_joyo=False)
+        ExMap.objects.create(example=example, kanji=kanji, is_ateji=False,
+                             in_joyo_list=False, map_order=0)
+        blank_example = Example.objects.create(
+            word='閲す', yomi='けみす', sentence='',
+            definition='', is_joyo=False)
+        ExMap.objects.create(example=blank_example, kanji=kanji, is_ateji=False,
+                             in_joyo_list=False, map_order=1)
+
+        response = self.client.get(
+            reverse('kukan:kanji_list'), {'漢字': '閲'})
+        row = next(k for k in response.context['object_list'] if k.pk == '閲')
+        self.assertEqual(row.ex_num, 1)
+
+    def test_ex_num_filter_narrows_by_pk(self):
+        from kukan.models import Example, ExMap, Kanji
+
+        kanji = Kanji.objects.get(kanji='閲')
+        example = Example.objects.create(
+            word='閲する', yomi='けみする', sentence='書類を閲する',
+            definition='', is_joyo=False)
+        ExMap.objects.create(example=example, kanji=kanji, is_ateji=False,
+                             in_joyo_list=False, map_order=0)
+
+        response = self.client.get(
+            reverse('kukan:kanji_list'), {'例文数': '1'})
+        self.assertEqual(
+            {k.pk for k in response.context['object_list']}, {'閲'})
+
+
 class UtilTagsTest(TestCase):
     """The two template helpers FilteredListView's rendering depends on."""
 

@@ -64,9 +64,16 @@ class AjaxListTestBase(TestCase):
 
 
 class TestAjaxEnvelope(AjaxListTestBase):
-    """The top-level shape of the ajax response, for every remaining view."""
+    """The top-level shape of the ajax response, for every remaining view.
 
-    list_views = ['kukan:kanji_list', 'kukan:test_result_list']
+    kukan:kanji_list moved to FilteredListView too (kanji_list was the last
+    and hardest of the five kukan list pages -- every filter kind, plus a
+    custom get_queryset() for its ex_num annotation -- see
+    kukan.tests_listview.KanjiListFilterContractTest). kukan:test_result_list
+    is now the sole real view left on AjaxList.
+    """
+
+    list_views = ['kukan:test_result_list']
 
     def test_envelope_keys(self):
         for name in self.list_views:
@@ -195,20 +202,6 @@ class TestAjaxColumns(AjaxListTestBase):
         self.assertEqual(columns['name']['label'], '名前')
         self.assertEqual(columns['date']['label'], '日付')
 
-    def test_numeric_field_is_typed_numeric(self):
-        columns = {c['field']: c
-                   for c in self.get_ajax('kukan:kanji_list')
-                   ['table_data']['columns']}
-        self.assertEqual(columns['strokes']['type'], 'numeric')
-
-    def test_explicit_label_overrides_verbose_name(self):
-        """KanjiListFilter annotates ex_num, which has no model field."""
-        columns = {c['field']: c
-                   for c in self.get_ajax('kukan:kanji_list')
-                   ['table_data']['columns']}
-        self.assertEqual(columns['ex_num']['label'], '例文数')
-
-
 class TestAjaxRowRendering(AjaxListTestBase):
     """Cell values, including the raw HTML the table injects with v-html."""
 
@@ -223,13 +216,6 @@ class TestAjaxRowRendering(AjaxListTestBase):
     def test_date_is_formatted_without_a_time_component(self):
         data = self.get_ajax('kukan:test_result_list', 問題番号='1')
         self.assertEqual(data['table_data']['data'][0]['date'], '2024.01.05')
-
-    def test_none_renders_as_empty_string(self):
-        """std_str maps None to '' so the cell is blank, not the text 'None'."""
-        Kanji.objects.filter(kanji='閲').update(classification=None)
-        data = self.get_ajax('kukan:kanji_list', 漢字='閲')
-        self.assertEqual(data['table_data']['data'][0]['classification'], '')
-
 
 class TestHtmlShellContext(AjaxListTestBase):
     """The non-ajax page: filter definitions and an empty table placeholder."""
@@ -272,8 +258,8 @@ class TestHtmlShellContext(AjaxListTestBase):
         self.assertIn("'value':'OGU'", response.context['filter_list'])
 
     def test_list_title(self):
-        response = self.client.get(reverse('kukan:kanji_list'))
-        self.assertEqual(response.context['list_title'], '漢字')
+        response = self.client.get(reverse('kukan:test_result_list'))
+        self.assertEqual(response.context['list_title'], 'LIST_TITLE')
 
 
 class TestTableDataUnit(TestCase):
@@ -376,3 +362,26 @@ class TestTableDataUnit(TestCase):
             definition='', ex_kind=Example.KAKI, is_joyo=False)
         table = TableData(Example, ['is_joyo'])
         self.assertIs(table.get_table_row(example)['is_joyo'], False)
+
+    def test_numeric_field_is_typed_numeric(self):
+        """Used to only be reachable through kanji_list's ajax envelope;
+        kanji_list has since moved to FilteredListView."""
+        table = TableData(Kanji, ['strokes'])
+        self.assertEqual(table.get_col_template()[0]['type'], 'numeric')
+
+    def test_explicit_label_overrides_verbose_name(self):
+        """KanjiListFilter annotates ex_num, which has no model field to read
+        a verbose_name from -- unlike test_field_not_on_the_model_keeps_its
+        _name_as_label above, this column supplies its own label anyway."""
+        table = TableData(Kanji, [{'name': 'ex_num', 'label': '例文数'}])
+        self.assertEqual(table.get_col_template()[0]['label'], '例文数')
+
+    def test_none_renders_as_empty_string_through_a_real_row(self):
+        """std_str maps None to '' so the cell is blank, not the text
+        'None'. Used to only be reachable through kanji_list's ajax
+        envelope, with classification forced to None on a fixture row;
+        exercised directly against TableData here instead."""
+        kanji = Kanji.objects.get(kanji='閲')
+        kanji.classification = None
+        table = TableData(Kanji, ['classification'])
+        self.assertEqual(table.get_table_row(kanji)['classification'], '')

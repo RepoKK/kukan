@@ -321,38 +321,39 @@ class AjaxList(LoginRequiredMixin, generic.TemplateView):
         return context
 
 
-class KanjiListFilter(AjaxList):
+class KanjiListFilter(FilteredListView):
     model = Kanji
-    template_name = 'kukan/default_list.html'
+    template_name = 'kukan/kanji_list.html'
     default_sort = 'kanken'
     list_title = '漢字'
-    is_mobile_card = False
     filters = [
         FGenericString('漢字', 'kanji', 'kanji__in', list),
         FYomi(),
         FBushu(),
         FGenericMinMax('画数', 'strokes'),
-        FGenericCheckbox('種別', 'classification__classification', model,
+        FGenericCheckbox('種別', 'classification__classification', Kanji,
                          order='-classification__classification', none_label='常用・人名以外'),
-        FGenericCheckbox('JIS水準', 'jis__level', model, none_label='JIS水準不明'),
-        FGenericCheckbox('漢検', 'kanken__kyu', model, is_two_column=True, order='-kanken__difficulty'),
+        FGenericCheckbox('JIS水準', 'jis__level', Kanji, none_label='JIS水準不明'),
+        FGenericCheckbox('漢検', 'kanken__kyu', Kanji, is_two_column=True, order='-kanken__difficulty'),
         FGenericMinMax('例文数', 'ex_num'),
     ]
-    table_data = TableData(model, [
+    table_data = TableData(Kanji, [
         {'name': 'kanji', 'link': TableData.FieldProps.link_pk('kanji')},
         {'name': 'kouki_bushu', 'format': lambda x: str(x)[0]},
         'kanken', 'strokes', 'classification',
         {'name': 'ex_num', 'label': '例文数'},
     ])
 
-    def get_filtered_list(self, request):
+    def get_queryset(self):
+        # ex_num must be annotated before the filters run: FGenericMinMax
+        # filters directly on it. FilteredListView.get_queryset does not
+        # know about this annotation, so it is fully overridden rather than
+        # extended.
         val_ex = Count('exmap', filter=~Q(exmap__example__sentence=''))
         qry = Kanji.objects.annotate(ex_num=val_ex)
-
         for flt in self.filters:
-            qry = flt.filter(request, qry)
-
-        return qry
+            qry = flt.filter(self.request, qry)
+        return qry.order_by(self.sort_by)
 
 
 class YojiList(FilteredListView):
