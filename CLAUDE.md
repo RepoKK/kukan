@@ -115,7 +115,7 @@ way to test the `anki==24.11` ceiling, which exists because of that box's glibc 
 `smoke_urls` is the cheap breadth-first net: it proves each view imports, its template compiles
 and its queries run. Use it after any dependency or template change.
 
-A development database goes at `db.sqlite3` in this directory (gitignored via `*db*`). Get one
+A development database goes at `db.sqlite3` in this directory (gitignored via `*sqlite*`). Get one
 from the nightly Dropbox backup rather than building it from fixtures — several views only show
 their interesting behaviour with real data. That copy carries real password hashes, a live PSN
 token and live sessions, so strip them before using it anywhere but your own machine:
