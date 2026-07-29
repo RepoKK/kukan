@@ -165,7 +165,29 @@ HTMX + Alpine.js, both stacks coexisting until the last page is migrated (see PL
 - **`MESSAGE_TAGS`** in `settings/base.py` maps Django's message levels onto Bulma's
   notification colour modifiers (`error` → `is-danger`; Bulma has no `.error`).
 - **`kukan/templates/registration/login.html`** is the first page on the new base — it had
-  no Vue to begin with, which is why the plan starts there.
+  no Vue to begin with, which is why the plan starts there. `ui/navbar.html` (Alpine-driven
+  burger/dropdowns) followed, then `index.html`, `export.html`, `stats.html`, and the three
+  simple detail pages (`kanji_detail.html` is deliberately still Vue — its dynamic
+  per-category tabs make it one of the hard ones later).
+- **`kukan/listview.py: FilteredListView`** replaces `AjaxList` for list pages: one response,
+  either the full page or (when `request.htmx`) just `ui/_table.html`'s results fragment,
+  instead of an HTML shell plus a separate `?ajax=1` JSON endpoint. `TableData` and
+  `FFilter.add_to_query()` are reused unchanged. `kukan/templates/ui/filters/` has one
+  template per `FFilter.kind` (string, checkbox/yes-no, yomi-simple, min-max, yomi, bushu,
+  daterange), dispatched by the `{% render_filter %}` tag — adding a filter type to a page
+  means adding it to `FILTER_TEMPLATES` once, not editing that page's template.
+  **All five kukan list pages** (`kotowaza_list`, `yoji_list`, `example_list`, `kanji_list`,
+  `test_result_list`) are on `FilteredListView` now.
+- **tempmon's two list views (`game_list`, `session_list`) are still on `AjaxList`,
+  deliberately.** Their shared shell (`tempmon/templates/tempmon/base.html`) still has to
+  serve `psnapikey_form.html` (whose form renders through a Buefy widget override —
+  `BForm.Meta.override`, separate cleanup) and the not-yet-migrated chart pages
+  (`playtime_monthly/yearly.html`, `playsession_graph.html`). Converting the shell now would
+  break those; a second, parallel tempmon shell just for two list pages is real additional
+  scope, not a mechanical continuation of the kukan work. `AjaxList`,
+  `FFilter.to_json()`/`get_extra_json()` and `kukan/templates/v-filter/` all stay in place
+  until tempmon's turn. `kukan/tests_ajax_list.py` now tests that machinery exclusively
+  through `tempmon:game_list` — the only real caller left.
 
 ## Things that will bite you
 - **`add_temp_point` is a hardware contract.** The sensor firmware is not in this repo and has no
