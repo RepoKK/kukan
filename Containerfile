@@ -32,28 +32,29 @@
 # inside the container, which is what makes this practical on a box that has no
 # development environment. See deploy/PROD-BOX-STAGING.md.
 #
-# STILL UNVERIFIED — and now for a known reason. Stage 7 installed podman 5.8.3
-# in the dev container and attempted the build. It gets as far as the `dnf`
-# step below, which found and fixed one real bug (the curl-minimal conflict,
-# see --allowerasing) and then hit a wall that is not this file's fault:
+# BUILD HISTORY, because it is short and each entry cost something to learn.
 #
-#   Every container this dev container can launch is confined to a user
-#   namespace that maps uid/gid 0 and nothing else — there is no usable
-#   /etc/subuid delegation and the outer sandbox has no CAP_SYS_ADMIN. `chown`
-#   to any non-root id returns EINVAL. httpd, mod_ssl, libutempter and
-#   util-linux all ship files owned by apache:apache or setgid tty, so the RPM
-#   transaction cannot complete. storage.conf's `ignore_chown_errors` does not
-#   help: it covers the storage library applying layer diffs, not a live
-#   chown(2) from rpm inside a RUN step.
+# It cannot be built in the development container at all: every container that
+# sandbox can launch is confined to a user namespace mapping uid/gid 0 and
+# nothing else, so `chown` to any other id returns EINVAL, and httpd, mod_ssl,
+# libutempter and util-linux all ship non-root-owned files. The RPM transaction
+# therefore cannot complete. (`ignore_chown_errors` does not help — it covers
+# the storage library applying layer diffs, not a live chown(2) from rpm inside
+# a RUN step.) That is a property of the sandbox, not of CentOS or of this
+# file; ordinary rootless podman is fine.
 #
-# That is a property of the development sandbox, not of CentOS or of this
-# Containerfile. On an ordinary machine with rootless podman — or as root on
-# the production box — the build should proceed past this point. Everything
-# from `uv sync` onwards, including whether the anki 24.11 wheel installs
-# against glibc 2.34, is therefore still untested.
+#   attempt 1, dev container: dnf refused the transaction — curl-minimal in the
+#       base image conflicts with curl. Fixed, see --allowerasing.
+#   attempt 2, dev container: the uid-0 namespace wall above. Went no further.
+#   attempt 3, production box: dnf completed. anki 24.11 downloaded and
+#       installed, which is the answer to the question this container was
+#       mainly built to ask — the glibc 2.34 ceiling in pyproject.toml holds.
+#       Died in `uv sync` on a bytecode compile timeout; see the compileall
+#       step below, which is the fix.
 #
-# Expect to fix things on the first successful build, most likely the httpd
-# module paths, which move between CentOS point releases.
+# So everything up to and including `uv sync` is now known to work on the real
+# target. Everything after it — httpd module paths especially, which move
+# between CentOS point releases — is still unproven.
 
 FROM quay.io/centos/centos:stream9
 
@@ -76,9 +77,11 @@ RUN dnf -y install --setopt=install_weak_deps=False --allowerasing \
 # uv, matching the version the project is developed against.
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 
+# No UV_COMPILE_BYTECODE here — see the compileall step below, which does the
+# same job serially. uv compiles site-packages across all cores at once, and
+# janome cannot afford that.
 ENV UV_PYTHON=python3.12 \
     UV_PROJECT_ENVIRONMENT=/opt/kukan/.venv \
-    UV_COMPILE_BYTECODE=1 \
     UV_LINK_MODE=copy \
     PYTHONUNBUFFERED=1
 
@@ -90,6 +93,23 @@ RUN uv sync --locked --no-dev --no-install-project
 
 COPY . .
 RUN uv sync --locked --no-dev
+
+# Bytecode, compiled ONE FILE AT A TIME. `-j 1` is the entire point of this
+# step existing as its own line rather than as UV_COMPILE_BYTECODE=1.
+#
+# janome ships its dictionary as Python source: 113 MB of it, including a
+# single 5 MB literal in sysdic/connections1.py. Measured, compiling that one
+# file peaks at 865 MB resident. uv compiles site-packages across every core
+# simultaneously, so on an 8-core box that is several gigabytes at once — which
+# is how the first real build of this image died, with uv's 60s-per-file
+# compile timeout firing on a machine that had gone to swap.
+#
+# Doing it here rather than leaving it to lazy import-time compilation is
+# deliberate: the alternative is that the first Tokenizer() in a fresh
+# container pays 3.4s and a ~950 MB transient spike, in-process, inside the
+# gunicorn worker. Warm, that same construction is 0.3s and +50 MB.
+RUN /opt/kukan/.venv/bin/python -m compileall -q -j 1 \
+        /opt/kukan/.venv/lib/python3.12/site-packages
 
 # The database lives on a bind mount at /data, and no database is baked into
 # the image at all. .containerignore excludes the working copy from the build

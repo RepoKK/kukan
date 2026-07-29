@@ -60,6 +60,13 @@ KillMode=mixed
 KillSignal=SIGTERM
 TimeoutStopSec=30
 
+# systemd's default is 90s. A start that has to compile janome's dictionary —
+# 113 MB of Python source, ~950 MB transient — can exceed that on this box, and
+# systemd killing a worker mid-compile produces a crash loop whose journal
+# entry says nothing about the cause. The deploy recipe runs `compileall` so
+# this should never be reached; it is here for the case where it was skipped.
+TimeoutStartSec=300
+
 Restart=on-failure
 RestartSec=5
 

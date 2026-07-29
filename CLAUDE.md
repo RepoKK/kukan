@@ -80,11 +80,19 @@ and `deploy/STAGE7-CUTOVER.md` is the runbook.
 
 ```bash
 git pull && uv sync --locked
+.venv/bin/python -m compileall -q -j 1 .venv/lib/python3.12/site-packages
 .venv/bin/python manage.py migrate
 .venv/bin/python manage.py collectstatic --no-input
 sudo systemctl reload kukan          # not `restart httpd` any more
 journalctl -u kukan -f
 ```
+
+**`compileall -j 1`, never `UV_COMPILE_BYTECODE=1`.** janome ships its
+dictionary as Python source; compiling `sysdic/connections1.py` alone peaks at
+865 MB resident. Compiling site-packages in parallel puts several of those in
+flight at once and takes the box to swap. Skipping it entirely is the other
+failure: a cold `Tokenizer()` costs 3.4s and ~950 MB inside the gunicorn worker
+at startup, against 0.3s and +50 MB warm.
 
 **`ProxyPass /` must stay below every `Alias`**, each of which needs its own
 `ProxyPass <path> !`. mod_proxy takes the first matching rule, so an alias underneath the

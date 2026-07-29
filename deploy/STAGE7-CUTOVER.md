@@ -186,10 +186,26 @@ the way back.
 
 ```bash
 git pull && uv sync --locked
+# Only when uv sync installed something. See below — skipping it moves ~950 MB
+# and several seconds into the first request instead.
+.venv/bin/python -m compileall -q -j 1 .venv/lib/python3.12/site-packages
 .venv/bin/python manage.py migrate
 .venv/bin/python manage.py collectstatic --no-input
 sudo systemctl reload kukan          # not restart httpd
 ```
+
+**Why the `compileall`, and why `-j 1`.** janome ships its dictionary as
+Python source — 113 MB of it, with a single 5 MB literal in
+`sysdic/connections1.py`. Compiling that one file peaks at 865 MB resident.
+Left to lazy import-time compilation it happens inside the gunicorn worker
+during startup: measured, a cold `Tokenizer()` is 3.4s and a ~950 MB transient
+spike, against 0.3s and +50 MB warm. Doing it in the deploy makes that a step
+you are watching rather than a slow first request or an OOM.
+
+`-j 1` because the constraint is memory, not time. `UV_COMPILE_BYTECODE=1` uses
+every core, and that is exactly how the first real build of the staging
+container died — uv's 60s-per-file timeout firing on a box that had gone to
+swap compiling several copies of that file at once.
 
 **Watch for.** `database is locked` in the journal means WAL, `busy_timeout` or
 `transaction_mode=IMMEDIATE` (all three in `kukansite/settings/base.py`) are not

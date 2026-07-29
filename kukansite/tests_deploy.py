@@ -318,6 +318,23 @@ class StagingParityTest(SimpleTestCase):
                 with self.subTest(line=line):
                     self.assertNotIn('sqlite', line.lower())
 
+    def test_bytecode_is_compiled_one_file_at_a_time(self):
+        """UV_COMPILE_BYTECODE=1 uses every core, and janome cannot afford it.
+
+        Its dictionary is Python source: 113 MB, including a 5 MB literal in
+        sysdic/connections1.py that peaks at 865 MB resident to compile. Several
+        of those at once took the production box to swap, and uv's 60s-per-file
+        timeout fired. This is the fix, and it is a one-word regression.
+        """
+        with open(os.path.join(REPO_ROOT, 'Containerfile'), encoding='utf-8') as f:
+            containerfile = f.read()
+        # Instructions only. The comments above the compileall step name the
+        # variable in order to explain why it is not set.
+        instructions = '\n'.join(line for line in containerfile.splitlines()
+                                 if not line.lstrip().startswith('#'))
+        self.assertNotIn('UV_COMPILE_BYTECODE', instructions)
+        self.assertIn('compileall -q -j 1', instructions)
+
     def test_the_image_can_scrub_its_own_database(self):
         """The prod box has no development environment — no Python 3.12, no uv,
         no compiler — and installing one just to run a management command would

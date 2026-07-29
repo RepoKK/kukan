@@ -33,6 +33,17 @@ Still unverified, in the order the build will hit them:
 
 Expect the first build to fail on something. That is what it is for.
 
+**The first run answered (1) and (2) and found a third thing.** `dnf`
+completed, and anki 24.11 downloaded and installed — the glibc 2.34 ceiling in
+`pyproject.toml` is right. The build then died in `uv sync` with
+`Bytecode timed out (60s) compiling .../janome/sysdic/connections1.py`. That
+file is a 5 MB Python literal and compiling it peaks at 865 MB resident;
+`UV_COMPILE_BYTECODE=1` was compiling site-packages across every core at once,
+so the box went to swap. The Containerfile now does it serially in its own
+step, and the production deploy recipe gained the same command — see
+`deploy/STAGE7-CUTOVER.md`, because the alternative there is a gunicorn worker
+paying ~950 MB at startup.
+
 ## What it will not touch
 
 Worth being explicit, because it is running on the machine that serves the
@@ -91,7 +102,10 @@ Ten to twenty minutes, most of it `dnf` and `uv sync`. If it fails, `~/build.log
 has the whole transcript — keep it, the failing step and its output are the
 useful part.
 
-Then answer the anki question directly, before anything else:
+Then finish the anki question, before anything else. The build proved the wheel
+*installs*; this proves it *imports*, which is a different thing — a glibc
+mismatch surfaces when the wheel's compiled extension is loaded, not when pip
+unpacks it:
 
 ```bash
 podman run --rm kukan-staging /opt/kukan/.venv/bin/python \

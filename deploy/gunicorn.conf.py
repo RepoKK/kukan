@@ -24,6 +24,10 @@ bind = os.environ.get('GUNICORN_BIND', '127.0.0.1:8000')
 #     for a site whose traffic is one household.
 #  2. Janome. `kukan.jautils` constructs a `Tokenizer` at import time. Measured
 #     on Python 3.12: +50 MB RSS and 0.3s, paid per worker with no sharing.
+#     Without warm bytecode that same construction is 3.4s and a ~950 MB
+#     transient spike, because janome's dictionary is 113 MB of Python source —
+#     which is why the deploy recipe runs `compileall` and why a second worker
+#     would double the worst case rather than the typical one.
 #     That is what the (now deleted) utilskanji/janome_daemon.py existed to
 #     avoid back when Apache ran many mod_wsgi instances — see
 #     deploy/STAGE7-CUTOVER.md. At one worker it is not worth a second process.
