@@ -1,395 +1,335 @@
-{% extends 'kukan/base_ext.html' %}
-{% load ja_tags %}
+{% extends 'base_ext.html' %}
+{% load ja_tags icons %}
 
-{% block title %}
-例文の訂正
-{% endblock %}
-
-{% block banner %}
-    <section class="hero is-link is-hidden-mobile">
-      <div class="hero-body">
-        <div class="container">
-          <h2 class="title">
-            例文の訂正
-          </h2>
-        </div>
-      </div>
-    </section>
-
-<div class="container">
-  <div class="notification is-primary is-hidden-tablet">
-    <strong>例文の訂正</strong>
-  </div>
-</div>
-{% endblock %}
+{% block title %}例文の訂正{% endblock %}
 
 {% block content %}
+{% comment %}
+The Vue component, as Alpine. Near-1:1, because what the five ajax endpoints
+return is *values* -- a definition to drop into a textarea, a list of reading
+options, furigana to insert at the caret -- not markup. htmx swaps HTML; that
+is the wrong shape for every one of these, so this page stays a client-side
+component and keeps the JSON endpoints unchanged.
 
-    <b-modal :active.sync="showCandidateDefinition" :width="500">
-        <div class="box">
+`x-data` is seeded from `form|form_values` through `json_script`, which is
+what `add_vuejs_field_properties` used to splice in as raw JS.
+{% endcomment %}
+<section class="hero is-link is-hidden-mobile mb-4">
+    <div class="hero-body">
+        <h2 class="title">例文の訂正</h2>
+    </div>
+</section>
+<div class="notification is-primary is-hidden-tablet">
+    <strong>例文の訂正</strong>
+</div>
+
+{{ form|form_values|json_script:"form-values" }}
+<div x-data="exampleUpdate()">
+    <div class="modal" :class="{ 'is-active': showCandidates }" x-cloak>
+        <div class="modal-background" @click="showCandidates = false"></div>
+        <div class="modal-content">
+            <div class="box">
+                <div class="content"><strong>候補選択</strong></div>
+                <template x-for="item in candidates" :key="item.link">
+                    <div class="block">
+                        <button type="button" class="button is-info is-fullwidth"
+                                @click="getDefinition(item.link)" x-text="item.word"></button>
+                    </div>
+                </template>
+            </div>
+        </div>
+        <button class="modal-close is-large" type="button" aria-label="close"
+                @click="showCandidates = false"></button>
+    </div>
+
+    <form action="." method="post">
+        {% csrf_token %}
+        <nav class="level is-mobile">
+            <div class="level-left">
+                <div class="level-item">
+                    <input type="submit" class="button is-link" value="保存">
+                </div>
+            </div>
+            <div class="level-right">
+                <div class="buttons">
+                    <button type="button" class="button is-info"
+                            @click="getDefinition('')" :disabled="word === ''">意味</button>
+                    <button type="button" class="button is-info"
+                            @click="guessReadings()" :disabled="yomi === ''">読み</button>
+                    <button type="button" class="button is-info is-rounded"
+                            :class="{ 'is-inverted': !showOptional }"
+                            @click="showOptionalToggle = !showOptional" :disabled="hasOptionalInput">
+                        <span class="icon">
+                            <i class="mdi" :class="showOptional ? 'mdi-message-bulleted' : 'mdi-message-bulleted-off'"></i>
+                        </span>
+                    </button>
+                </div>
+            </div>
+        </nav>
+
+        {% for error in form.non_field_errors %}
+        <div class="notification is-danger">{{ error }}</div>
+        {% endfor %}
+
+        <div class="columns">
+            <div class="column">{% render_single_field form.word True %}</div>
+            <div class="column">{% render_single_field form.yomi True %}</div>
+        </div>
+
+        <div x-show="showOptional" x-cloak>
             <div class="columns">
-                <div class="column is-narrow">
-                    <div class="content"><strong>候補選択</strong></div>
-                </div>
+                <div class="column">{% render_single_field form.word_native True %}</div>
+                <div class="column">{% render_single_field form.yomi_native True %}</div>
+            </div>
+            {% render_single_field form.word_variation True %}
+        </div>
+
+        {% comment %}
+        One select per kanji in the word, built from /ajax/get_yomi/. A kanji
+        already fixed by the joyo list shows its reading read-only instead --
+        the endpoint refuses to let those change.
+        {% endcomment %}
+        <div class="columns is-multiline is-centered">
+            <template x-for="(kj, idx) in readingData" :key="idx">
                 <div class="column">
-                    <div class="columns" v-for="item in candidates">
-                        <div class="column">
-                            <nav class="level">
-                                <div class="level-item">
-                                    <button class="button is-info"
-                                            @click="getDefinition(item.link)">
-                                        [[item.word]]
-                                    </button>
+                    <div class="columns is-mobile">
+                        <div class="column is-narrow">
+                            <p class="is-size-1" x-text="kj.kanji"></p>
+                        </div>
+                        <div class="column" style="min-width: 180px;">
+                            <div class="field">
+                                <label class="label help" x-text="`${kj.kyu}, 例:${kj.example_num}`"></label>
+                                <div class="control is-expanded">
+                                    <template x-if="kj.joyo">
+                                        <input readonly class="input is-static" type="text" :value="kj.selected">
+                                    </template>
+                                    <template x-if="!kj.joyo">
+                                        <div class="select is-fullwidth">
+                                            <select required x-model="readingSelected[idx]">
+                                                <option :value="null">未設定</option>
+                                                <template x-for="rd in kj.readings" :key="rd.key">
+                                                    <option :value="rd.key" x-text="rd.read"></option>
+                                                </template>
+                                            </select>
+                                        </div>
+                                    </template>
                                 </div>
-                            </nav>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </b-modal>
-
-<form action="." method="post">
-{% csrf_token %}
-    <nav class="level is-mobile">
-        <div class="level-left">
-            <div class="level-item">
-                <input type="submit" class="button is-link" value="保存" />
-            </div>
-        </div>
-        <div class="level-right">
-            <div class="buttons">
-                    <button type="button" class="button is-info"
-                            @click="getDefinition('')" :disabled="word==''">意味</button>
-                    <button type="button" class="button is-info"
-                            @click="onGuessReadings" :disabled="yomi==''">読み</button>
-                    <button type="button" class="button is-info is-rounded" :class="{'is-inverted':!showOptDisp}"
-                       @click="btnShowOptDisp = !showOptDisp" :disabled="hasOptInput">
-                        <b-icon :icon="!showOptDisp?'message-bulleted-off':'message-bulleted'"></b-icon>
-                        </button>
-            </div>
-        </div>
-    </nav>
-
-{% if form.errors %}
-    {% for error in form.non_field_errors %}
-        <div class="alert alert-danger">
-            <strong>{{ error|escape }}</strong>
-        </div>
-    {% endfor %}
-{% endif %}
-    <div class="columns">
-        <div class="column">
-                {% render_single_field form.word True %}
-        </div>
-        <div class="column">
-            {% render_single_field form.yomi True %}
-        </div>
-    </div>
-
-    <div v-show="showOptDisp">
-        <div class="columns" v-show="showOptDisp">
-            <div class="column">
-                    {% render_single_field form.word_native True %}
-            </div>
-            <div class="column">
-                {% render_single_field form.yomi_native True %}
-            </div>
-        </div>
-        {% render_single_field form.word_variation True %}
-    </div>
-
-    <div class="columns is-multiline is-centered">
-        <div v-for="(kj, idx) in reading_data" class="column">
-            <div class="columns is-mobile">
-                <div class="column is-narrow">
-                    <p class="is-size-1">[[ kj.kanji ]]</p>
-                </div>
-                <div class="column" style="min-width: 180px;">
-                    <div class="field">
-                        <label class="label help">[[kj.kyu]], 例:[[kj.example_num]]</label>
-                        <div class="control is-expanded">
-
-                            <div v-if="kj.joyo" class="">
-                                <input readonly="readonly" class="input is-static" type="text"
-                                    v-model="kj.selected">
-                            </div>
-                            <div v-else class="select is-fullwidth">
-                                <b-select required placeholder="未設定" expanded v-model="reading_selected[idx]" name="reading_selected">
-                                    <option
-                                        v-for="rd in kj.readings"
-                                        :value="rd.key"
-                                        :key="rd.key">
-                                        [[ rd.read ]]
-                                    </option>
-                                </b-select>
                             </div>
                         </div>
                     </div>
                 </div>
-            </div>
+            </template>
         </div>
-    </div>
 
-    <!--<input readonly="readonly" class="input is-static" type="text" v-model="reading_selected">-->
-    <input readonly="readonly" name="reading_selected" class="input is-static" type="hidden" v-model="reading_selected">
-    <template v-if="ex_kind==='KOTOWAZA'">
-        {% render_single_field form.kotowaza %}
-    </template><template v-else-if="ex_kind==='JUKUICHI'">
-    </template><template v-else>
-        {% render_single_field form.sentence %}
+        <input type="hidden" name="reading_selected" :value="readingSelected.join(',')">
+
+        <template x-if="ex_kind === 'KOTOWAZA'">
+            <div>{% render_single_field form.kotowaza %}</div>
+        </template>
+        <template x-if="ex_kind !== 'KOTOWAZA' && ex_kind !== 'JUKUICHI'">
+            <div>
+                {% render_single_field form.sentence %}
+                <div class="buttons is-centered">
+                    <button type="button" class="button is-small is-info" @click="insertFurigana()">
+                        {% icon 'code-brackets' %}　振り仮名
+                    </button>
+                </div>
+            </div>
+        </template>
+
+        {% render_single_field form.definition %}
+        <template x-if="ex_kind === 'JUKUICHI'">
+            <div>{% render_single_field form.definition2 %}</div>
+        </template>
+
         <div class="buttons is-centered">
-            <span class="button is-small is-info" @click="insertFurigana"><b-icon icon="code-brackets"></b-icon>　振り仮名</span>
+            <button type="button" class="button is-small is-info" @click="insertBreak()">
+                {% icon 'format-page-break' %}　分離線
+            </button>
+            <button type="button" class="button is-small is-info" @click="insertElem()">
+                {% icon 'code-brackets' %}　項目
+            </button>
+            <button type="button" class="button is-small is-info" @click="insertExampleMeaning()">
+                {% icon 'information-variant' %}　例文の意味
+            </button>
         </div>
-    </template>
 
-    {% render_single_field form.definition %}
-    <template v-if="ex_kind==='JUKUICHI'">
-        {% render_single_field form.definition2 %}
-    </template>
+        {% render_single_field form.ex_kind %}
+    </form>
 
-    <div class="buttons is-centered">
-        <span class="button is-small is-info" @click="insertBreak"><b-icon icon="format-page-break"></b-icon>　分離線</span>
-        <span class="button is-small is-info" @click="insertElem"><b-icon icon="code-brackets"></b-icon>　項目</span>
-        <span class="button is-small is-info" @click="insertExampleMeaning"><b-icon icon="information-variant"></b-icon>　例文の意味</span>
+    {% if form.instance.pk %}
+    {% comment %}
+    Deletion is its own form rather than a JS-assembled one. The Vue page
+    built a <form> with document.createElement and submitted it, which meant
+    hand-copying the CSRF token into it; a real form in the markup gets the
+    token from {% templatetag openblock %} csrf_token {% templatetag closeblock %} like everything else. The confirm
+    dialog is a Bulma modal, since Buefy's $dialog.confirm went with Buefy.
+    {% endcomment %}
+    <div x-data="{ confirming: false }">
+        <button type="button" class="button is-danger" @click="confirming = true"
+                {% if example.is_joyo %}disabled{% endif %}>例文削除</button>
+
+        <div class="modal" :class="{ 'is-active': confirming }" x-cloak>
+            <div class="modal-background" @click="confirming = false"></div>
+            <div class="modal-card">
+                <header class="modal-card-head has-background-danger">
+                    <p class="modal-card-title">例文削除</p>
+                </header>
+                <section class="modal-card-body">例文を本当に削除しますか。</section>
+                <footer class="modal-card-foot">
+                    <form method="post" action="{% url 'kukan:example_delete' form.instance.pk %}">
+                        {% csrf_token %}
+                        <button type="submit" class="button is-danger">削除</button>
+                    </form>
+                    <button type="button" class="button" @click="confirming = false">取消</button>
+                </footer>
+            </div>
+        </div>
     </div>
-    {% render_single_field form.ex_kind %}
-    <button type="button" class="button is-danger" @click="deleteConfirm('')" :disabled="is_joyo">例文削除</button>
-</form>
-{% endblock %}
+    {% endif %}
+</div>
 
-{% block extra_script %}
 <script>
-    const example_id = '{{example.id|default_if_none:'None'}}'
-</script>
-{% endblock %}
+function exampleUpdate() {
+    const exampleId = '{{ form.instance.pk|default_if_none:"" }}';
 
-{% block vue_data %}
-    data() {
-        return {
-            showNavBar: false,
-            showCandidateDefinition:false,
-            {% add_vuejs_field_properties form %}
-            info_similar_word: [],
-            is_joyo: {{ example.is_joyo|yesno:"true,false" }},
-            reading_data: [],
-            candidates: '',
-            btnShowOptDisp: false,
-        }
-    },
-    computed: {
-        hasOptInput: function() {
-            return this.word_native != "" || this.yomi_native != "" || this.word_variation != ""
-        },
-        showOptDisp: function() {
-            return this.btnShowOptDisp || this.hasOptInput
-        }
-    },
-    methods: {
-        loadReadings() {
-            const params = [
-                `ex_id=${example_id}`,
-                `word=${this.word}`,
-                `word_native=${this.word_native}`,
-                `reading_selected=${this.reading_selected}`,
-            ].join('&')
-            axios.get(`/ajax/get_yomi/?${params}`)
-                .then(({ data }) => {
-                    this.reading_data = data.reading_data
-                    this.reading_selected = data.reading_selected
-                })
-                .catch((error) => {
-                    console.log('loadReadings failed:' + error);
-                })
-        },
-        findSimilarWords() {
-            if (!this.is_joyo && this.word.length > 0) {
-                const params = [
-                    `ex_id=${example_id}`,
-                    `word=${this.word}`,
-                ].join('&')
-                axios.get(`/ajax/get_similar_word?${params}`)
-                    .then(({ data }) => {
-                        this.info_similar_word = data.info_similar_word
-                        this.word_notifications = data.word_notifications
-                    })
-                    .catch((error) => {
-                        this.$toast.open({
-                            message: `類義語検索失敗`,
-                            type: 'is-danger'
-                        })
-                    })
-            } else {
-                this.info_similar_word = ''
-            }
-        },
-        onChangeWord() {
-            this.loadReadings()
-            this.findSimilarWords()
-        },
-        onGuessReadings() {
-            const params = [
-                `ex_id=${example_id}`,
-                `word=${this.word}`,
-                `word_native=${this.word_native}`,
-                `yomi=${this.yomi}`
-            ].join('&')
-            axios.get(`/ajax/set_yomi/?${params}`)
-                .then(({ data }) => {
-                    if (Array.isArray(data.candidate) && data.candidate.length) {
-                        this.reading_selected = data.candidate
-                    } else {
-                        this.$toast.open({
-                            message: `読み方の自動設定失敗`,
-                            type: 'is-warning'
-                        })
+    async function getJson(url, params) {
+        const response = await fetch(`${url}?${new URLSearchParams(params)}`);
+        if (!response.ok) throw new Error(response.status);
+        return response.json();
+    }
+
+    return Object.assign(
+        JSON.parse(document.getElementById('form-values').textContent),
+        {
+            showCandidates: false,
+            candidates: [],
+            readingData: [],
+            readingSelected: [],
+            infoSimilarWord: [],
+            showOptionalToggle: false,
+
+            get hasOptionalInput() {
+                return this.word_native !== '' || this.yomi_native !== ''
+                    || this.word_variation !== '';
+            },
+            get showOptional() {
+                return this.showOptionalToggle || this.hasOptionalInput;
+            },
+
+            init() {
+                this.loadReadings();
+            },
+
+            async loadReadings() {
+                try {
+                    const data = await getJson('/ajax/get_yomi/', {
+                        ex_id: exampleId,
+                        word: this.word,
+                        word_native: this.word_native,
+                        reading_selected: this.readingSelected.join(','),
+                    });
+                    this.readingData = data.reading_data;
+                    this.readingSelected = data.reading_selected;
+                } catch (e) {
+                    console.log('loadReadings failed: ' + e);
+                }
+            },
+
+            async findSimilarWords() {
+                if (this.word.length === 0) {
+                    this.infoSimilarWord = [];
+                    return;
+                }
+                try {
+                    const data = await getJson('/ajax/get_similar_word', {
+                        ex_id: exampleId, word: this.word,
+                    });
+                    this.infoSimilarWord = data.info_similar_word;
+                    this.word_notifications = data.word_notifications;
+                } catch (e) {
+                    window.toast('類義語検索失敗', 'is-danger');
+                }
+            },
+
+            onChangeWord() {
+                this.loadReadings();
+                this.findSimilarWords();
+            },
+
+            async guessReadings() {
+                try {
+                    const data = await getJson('/ajax/set_yomi/', {
+                        ex_id: exampleId,
+                        word: this.word,
+                        word_native: this.word_native,
+                        yomi: this.yomi,
+                    });
+                    if (!Array.isArray(data.candidate) || !data.candidate.length) {
+                        window.toast('読み方の自動設定失敗', 'is-warning');
+                        return;
                     }
-                })
-                .catch((error) => {
-                        this.$toast.open({
-                            message: `読み方の自動設定失敗`,
-                            type: 'is-danger'
-                        })
-                })
-        },
-        getDefinition(link='') {
-            this.showCandidateDefinition=false
-            const params = [
-                `word=${this.word}`,
-                `word_native=${this.word_native}`,
-                `link=${link}`
-            ].join('&')
-            axios.get(`/ajax/get_goo/?${params}`)
-                .then(({ data }) => {
+                    this.readingSelected = data.candidate;
+                } catch (e) {
+                    window.toast('読み方の自動設定失敗', 'is-danger');
+                }
+            },
+
+            async getDefinition(link = '') {
+                this.showCandidates = false;
+                try {
+                    const data = await getJson('/ajax/get_goo/', {
+                        word: this.word, word_native: this.word_native, link: link,
+                    });
                     if (data.definition) {
-                        this.definition = data.definition
-                        this.candidates = data.definition
-                        if (this.yomi=='') {
-                            this.yomi = data.reading
+                        this.definition = data.definition;
+                        if (this.yomi === '') {
+                            this.yomi = data.reading;
                         }
                     } else if (data.candidates) {
-                        this.candidates = data.candidates
-                        this.showCandidateDefinition=true
+                        this.candidates = data.candidates;
+                        this.showCandidates = true;
                     } else {
-                        this.$toast.open({
-                            message: `定義獲得失敗`,
-                            type: 'is-warning'
-                        })
+                        window.toast('定義獲得失敗', 'is-warning');
                     }
-                })
-                .catch((error) => {
-                        this.$toast.open({
-                            message: `定義獲得失敗`,
-                            type: 'is-danger'
-                        })
-                })
-        },
-        deleteConfirm: function () {
-            this.$dialog.confirm({
-                title: '例文削除',
-                message: '例文を本当に削除しますか。',
-                cancelText: '取消',
-                confirmText: '削除',
-                type: 'is-danger',
-                hasIcon: true,
-                onConfirm: () => this.post(`/example/delete/` + {{form.instance.pk}} + '/', {csrfmiddlewaretoken: '{{ csrf_token }}'})
-            })
-        },
-        deleteExample: function() {
-            var form = document.createElement("form");
-            form.setAttribute("method", 'post');
-            form.setAttribute("csrfmiddlewaretoken", '{{ csrf_token }}');
-            form.setAttribute("action", `/example/delete/` + {{form.instance.pk}} + '/');
-            document.body.appendChild(form);
-            form.submit();
-        },
-        post: function(path, params, method) {
-            method = method || "post"; // Set method to post by default if not specified.
-
-            // The rest of this code assumes you are not using a library.
-            // It can be made less wordy if you use one.
-            var form = document.createElement("form");
-            form.setAttribute("method", method);
-            form.setAttribute("action", path);
-
-            for(var key in params) {
-                if(params.hasOwnProperty(key)) {
-                    var hiddenField = document.createElement("input");
-                    hiddenField.setAttribute("type", "hidden");
-                    hiddenField.setAttribute("name", key);
-                    hiddenField.setAttribute("value", params[key]);
-
-                    form.appendChild(hiddenField);
+                } catch (e) {
+                    window.toast('定義獲得失敗', 'is-danger');
                 }
-            }
+            },
 
-            document.body.appendChild(form);
-            form.submit();
-        },
-        insertBreak: function() {
-            this.insertText('id_definition', '\n----\n\n')
-        },
-        insertElem: function() {
-            this.insertText('id_definition', '**【】**')
-        },
-        insertExampleMeaning: function() {
-            this.insertText('id_definition', '\n----\n\n**' + this.sentence + '**\n\n')
-        },
-        insertFurigana: function() {
-            var elem_id = 'id_sentence'
-            var e = document.getElementById(elem_id);
-            var l = e.selectionEnd - e.selectionStart;
+            async insertFurigana() {
+                const field = document.getElementById('id_sentence');
+                const selected = field.value.substring(
+                    field.selectionStart, field.selectionEnd);
+                try {
+                    const data = await getJson('/ajax/get_furigana/', {word: selected});
+                    if (!data.furigana) throw new Error('no furigana');
+                    this.insertText('sentence', data.furigana);
+                } catch (e) {
+                    window.toast('振り仮名推測失敗', 'is-warning');
+                }
+            },
 
-            const params = [
-                `word=${e.value.substr(e.selectionStart, l)}`,
-            ].join('&')
-            axios.get(`/ajax/get_furigana/?${params}`)
-                .then(({ data }) => {
-                    if (data.furigana) {
-                        this.insertText(elem_id, data.furigana)
-                    } else {
-                        this.$toast.open({
-                            message: `振り仮名推測失敗`,
-                            type: 'is-warning'
-                        })
-                    }
-                })
-                .catch((error) => {
-                        this.$toast.open({
-                            message: `振り仮名推測失敗`,
-                            type: 'is-danger'
-                        })
-                })
-        },
-        insertText: function(elem_id, value) {
-            var textArea = document.getElementById(elem_id);
-            var startPos = textArea.selectionStart,
-                // get cursor's position:
-                endPos = textArea.selectionEnd,
-                cursorPos = startPos,
-                tmpStr = textArea.value;
+            insertBreak() { this.insertText('definition', '\n----\n\n'); },
+            insertElem() { this.insertText('definition', '**【】**'); },
+            insertExampleMeaning() {
+                this.insertText('definition', `\n----\n\n**${this.sentence}**\n\n`);
+            },
 
-            if (value === null) {
-                return;
-            }
-
-            // insert:
-            res = tmpStr.substring(0, startPos) + value + tmpStr.substring(endPos, tmpStr.length);
-            if (elem_id=='id_sentence') {
-                this.sentence = res
-            } else {
-                this.definition = res
-            }
-
-            // move cursor:
-            setTimeout(() => {
-                cursorPos += value.length;
-                textArea.selectionStart = textArea.selectionEnd = cursorPos;
-            }, 10);
-        },
-    },
-    mounted() {
-       this.loadReadings()
-    }
-{% endblock vue_data %}
-
+            insertText(name, value) {
+                const field = document.getElementById(`id_${name}`);
+                const start = field.selectionStart;
+                const end = field.selectionEnd;
+                this[name] = field.value.substring(0, start) + value
+                    + field.value.substring(end);
+                // After Alpine has written the new value back into the field,
+                // or the caret lands wherever the re-render left it.
+                this.$nextTick(() => {
+                    field.focus();
+                    field.selectionStart = field.selectionEnd = start + value.length;
+                });
+            },
+        });
+}
+</script>
+{% endblock %}

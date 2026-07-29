@@ -1,99 +1,60 @@
-{% extends 'kukan/base_ext.html' %}
+{% extends 'base_ext.html' %}
 {% load ja_tags %}
 
-{% block title %}
-例文の訂正
-{% endblock %}
-
-{% block banner %}
-    <section class="hero is-link is-hidden-mobile">
-      <div class="hero-body">
-        <div class="container">
-          <h2 class="title">
-            諺の訂正
-          </h2>
-        </div>
-      </div>
-    </section>
-
-<div class="container">
-  <div class="notification is-primary is-hidden-tablet">
-    <strong>諺の訂正</strong>
-  </div>
-</div>
-{% endblock %}
+{% block title %}諺の訂正{% endblock %}
 
 {% block content %}
+<section class="hero is-link is-hidden-mobile mb-4">
+    <div class="hero-body">
+        <h2 class="title">諺の訂正</h2>
+    </div>
+</section>
+<div class="notification is-primary is-hidden-tablet">
+    <strong>諺の訂正</strong>
+</div>
 
-<form action="." method="post">
-{% csrf_token %}
-    <nav class="level is-mobile">
-        <div class="level-left">
-            <div class="level-item">
-                <input type="submit" class="button is-link" value="保存" />
+{{ form|form_values|json_script:"form-values" }}
+<div x-data="Object.assign(
+        JSON.parse(document.getElementById('form-values').textContent),
+        {
+            async getFurigana() {
+                const params = new URLSearchParams({word: this.kotowaza, yomi: this.yomi});
+                try {
+                    const response = await fetch(`/ajax/get_furigana/?${params}`);
+                    if (!response.ok) throw new Error(response.status);
+                    const data = await response.json();
+                    if (!data.furigana) throw new Error('no furigana');
+                    this.furigana = data.furigana;
+                    this.furigana_notifications = data.furigana_notifications;
+                } catch (e) {
+                    window.toast('振り仮名推測失敗', 'is-warning');
+                }
+            }
+        })">
+    <form action="." method="post">
+        {% csrf_token %}
+        <nav class="level is-mobile">
+            <div class="level-left">
+                <div class="level-item">
+                    <input type="submit" class="button is-link" value="保存">
+                </div>
             </div>
-        </div>
-        <div class="level-right">
-            <div class="buttons">
-                <a class="button is-info" @click="getFurigana('')" :disabled="kotowaza==''">振り仮名</a>
+            <div class="level-right">
+                <div class="buttons">
+                    <button type="button" class="button is-info"
+                            @click="getFurigana()" :disabled="kotowaza === ''">振り仮名</button>
+                </div>
             </div>
-        </div>
-    </nav>
+        </nav>
 
-{% if form.errors %}
-    {% for error in form.non_field_errors %}
-        <div class="alert alert-danger">
-            <strong>{{ error|escape }}</strong>
-        </div>
-    {% endfor %}
-{% endif %}
+        {% for error in form.non_field_errors %}
+        <div class="notification is-danger">{{ error }}</div>
+        {% endfor %}
 
-{% render_single_field form.kotowaza %}
-{% render_single_field form.yomi %}
-{% render_single_field form.furigana %}
-{% render_single_field form.definition %}
-
-</form>
+        {% render_single_field form.kotowaza %}
+        {% render_single_field form.yomi %}
+        {% render_single_field form.furigana %}
+        {% render_single_field form.definition %}
+    </form>
+</div>
 {% endblock %}
-
-{% block extra_script %}
-<script>
-    const example_id = '{{example.id|default_if_none:'None'}}'
-</script>
-{% endblock %}
-
-{% block vue_data %}
-    data() {
-        return {
-            showNavBar: false,
-            {% add_vuejs_field_properties form %}
-        }
-    },
-    methods: {
-        getFurigana(link='') {
-            const params = [
-                `word=${this.kotowaza}`,
-                `yomi=${this.yomi}`,
-            ].join('&')
-            axios.get(`/ajax/get_furigana/?${params}`)
-                .then(({ data }) => {
-                    if (data.furigana) {
-                        this.furigana = data.furigana
-                        this.furigana_notifications = data.furigana_notifications
-                    } else {
-                        this.$toast.open({
-                            message: `振り仮名推測失敗`,
-                            type: 'is-warning'
-                        })
-                    }
-                })
-                .catch((error) => {
-                        this.$toast.open({
-                            message: `振り仮名推測失敗`,
-                            type: 'is-danger'
-                        })
-                })
-        },
-    },
-{% endblock vue_data %}
-

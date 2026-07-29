@@ -1,5 +1,15 @@
 from django.db import transaction
-from django.forms import CharField, ChoiceField, Form, ModelForm, Select, TextInput, ValidationError
+from django.forms import (
+    CharField,
+    CheckboxInput,
+    ChoiceField,
+    Form,
+    ModelForm,
+    Select,
+    Textarea,
+    TextInput,
+    ValidationError,
+)
 from django.utils.translation import gettext_lazy as _
 
 import kukan.jautils as jau
@@ -77,44 +87,59 @@ class ReadingSelect(CharField):
                         )
 
 
-class BForm(ModelForm):
+class BulmaModelForm(ModelForm):
+    """Bulma classes, placeholder defaults and Alpine binding.
 
-    class Meta:
+    Replaces `BForm`, which swapped in Buefy widget templates
+    (`widgets/binput.html`, `widgets/bselect.html`) and stamped `v-model` on
+    every field. What survives the Vue removal:
 
-        # Override of standard templates with custom ones using Buefy
-        override = {TextInput: 'widgets/binput.html',
-                    Select: 'widgets/bselect.html'}
+    * the placeholder convention -- a field's own label, prefixed with
+      （任意） when the field is optional;
+    * per-widget CSS class, which Buefy's components used to supply;
+    * a binding attribute, now `x-model`, because the update pages read the
+      live field values to build their ajax parameters.
 
-        @staticmethod
-        def override_widget_template(f, **kwargs):
-            formfield = f.formfield(**kwargs)
-            if type(formfield.widget) in BForm.Meta.override:
-                formfield.widget.template_name = BForm.Meta.override[type(formfield.widget)]
-            return formfield
+    Not carried over: `label_length_groups`, which padded labels with
+    ideographic spaces so adjacent fields lined up. That is a layout problem
+    and `ui/_field.html` solves it with a grid.
+    """
 
-        formfield_callback = override_widget_template
+    #: `Select` is absent on purpose: Bulma styles the *wrapper*, not the
+    #: `<select>`, so `ui/_field.html` supplies `<div class="select">`.
+    widget_classes = {
+        Textarea: 'textarea',
+    }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         for name, fld in self.fields.items():
+            if isinstance(fld.widget, CheckboxInput):
+                continue
+            fld.widget.attrs['x-model'] = name
+            if isinstance(fld.widget, Select):
+                # No placeholder and no class: a <select> shows its first
+                # option, and Bulma styles the wrapper.
+                continue
             optional = '（任意）' if fld.required is False else ''
             fld.widget.attrs['placeholder'] = optional + fld.widget.attrs.get('placeholder', fld.label)
-            fld.widget.attrs['v-model'] = name
-
-        for group in getattr(self.Meta, 'label_length_groups', []):
-            label_length = max([len(self.fields[x].label) if x in self.fields else 0 for x in group])
-            for x in group:
-                self.fields[x].label = self.fields[x].label.ljust(label_length, '　')
+            css = self.widget_classes.get(type(fld.widget), 'input')
+            fld.widget.attrs['class'] = (
+                f"{fld.widget.attrs.get('class', '')} {css}".strip())
 
 
-class KotowazaForm(BForm):
+class KotowazaForm(BulmaModelForm):
 
-    class Meta(BForm.Meta):
+    class Meta:
         model = Kotowaza
         fields = ['kotowaza', 'yomi', 'furigana', 'definition']
         widgets = {
             'yomi': TextInput(attrs={'placeholder': '読み方（カタカナ）'}),
-            'definition': TextInput(attrs={'type': 'textarea', 'rows': '8'}),
+            # A real Textarea. It was `TextInput(type='textarea')`, which is
+            # how Buefy asked `<b-input>` for a textarea; rendered by plain
+            # Django that is `<input type="textarea">`, which no browser
+            # treats as anything but a text box.
+            'definition': Textarea(attrs={'rows': '8'}),
         }
         field_classes = {
             'yomi': HiraganaPlus,
@@ -132,10 +157,10 @@ class KotowazaForm(BForm):
                                            params={'error': error}))
 
 
-class ExampleForm(BForm):
+class ExampleForm(BulmaModelForm):
     reading_selected = CharField(label='reading_selected', max_length=100)
 
-    class Meta(BForm.Meta):
+    class Meta:
         model = Example
         fields = ['word', 'word_native', 'word_variation', 'yomi', 'yomi_native', 'sentence', 'definition',
                   'definition2', 'ex_kind', 'kotowaza']
@@ -145,18 +170,16 @@ class ExampleForm(BForm):
             'yomi': TextInput(attrs={'placeholder': '読み方（カタカナ）'}),
             'yomi_native': TextInput(attrs={'placeholder': '例文中の読み方（カタカナ）'}),
             'sentence': TextInput(attrs={'placeholder': '単語を含む例文を入力ください。'}),
-            'definition': TextInput(attrs={'type': 'textarea', 'rows': '12',
+            'definition': Textarea(attrs={'rows': '12',
+                                          'placeholder': '単語の意味・説明の文章を入力ください。'}),
+            'definition2': Textarea(attrs={'rows': '8',
                                            'placeholder': '単語の意味・説明の文章を入力ください。'}),
-            'definition2': TextInput(attrs={'type': 'textarea', 'rows': '8',
-                                              'placeholder': '単語の意味・説明の文章を入力ください。'}),
-            'kotowaza': Select(attrs={'expanded': 'true'}),
+            'kotowaza': Select(),
         }
         field_classes = {
             'yomi': KatakanaPlus,
             'yomi_native': KatakanaPlus,
         }
-        label_length_groups = [['word', 'yomi'],
-                               ['word_native', 'yomi_native', 'word_variation']]
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

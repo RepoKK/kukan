@@ -142,63 +142,73 @@ so it collapses bursts without blurring ordinary readings) and `FAILURE_COOLDOWN
 outage does not make every POST pay a network timeout). The token expires every few months;
 `/tempmon/psn_npsso_update/` shows the days remaining.
 
-## Frontend (Stage 10+)
+## Frontend
 
-The Vue 2/Buefy frontend is being replaced page by page with server-rendered HTML plus
-HTMX + Alpine.js, both stacks coexisting until the last page is migrated (see PLAN.md).
+Server-rendered HTML plus HTMX + Alpine.js and Bulma 1.x. **Vue 2, Buefy, axios and
+`node_modules/` are gone** — Stage 10 replaced them page by page (see PLAN.md); there is no
+JavaScript build step and no `package.json` anywhere in the repo.
 
-- **`kukan/templates/base.html`** is the new unified base — no Vue, links the vendored
-  htmx/Alpine/Bulma/MDI files below, includes `ui/toasts.html` and a `{% block navbar %}`.
-  The old Vue root (`kukan/templates/kukan/base.html`) is untouched and still used by every
-  page not yet migrated; the two do not interfere because a page extends one or the other,
-  never both.
-- **`kukan/static/vendor/`** holds htmx, Alpine.js, Bulma 1.x and the MDI webfont as
-  fetched, minified files — no build step, no `package.json`. See
-  `kukan/static/vendor/VERSIONS.md` for exact versions and the fetch command to bump one.
-- **`{% load icons %}{% icon 'check' %}`** reproduces Buefy's `<b-icon icon="check">`
-  markup, for the mechanical swap of the 27 existing uses.
+- **`kukan/templates/base.html`** is the one base template: links the vendored files below,
+  includes `ui/toasts.html`, and offers `{% block navbar %}`, `{% block extra_head %}` and
+  `{% block body %}`. `base_ext.html` adds the fixed navbar and a container;
+  `tempmon/base.html` adds the PSN-status hero and its own favicons.
+- **`kukan/static/vendor/`** holds htmx, Alpine.js, Bulma, ECharts and the MDI webfont as
+  fetched, minified files. `kukan/static/vendor/VERSIONS.md` has exact versions and the
+  `curl` to bump one. `kukan/tests_templates.py` fails the build if a template ever links a
+  CDN again.
+- **`kukan/listview.py: FilteredListView`** serves all seven list pages: one response, either
+  the full page or (when `request.htmx`) just `ui/_table.html`'s results fragment.
+  `TableData` and `FFilter.add_to_query()` are reused unchanged. `kukan/templates/ui/filters/`
+  has one template per `FFilter.kind` (`string`, `checkbox`, `yomi-simple`, `min-max`, `yomi`,
+  `bushu`, `daterange`), dispatched by `{% render_filter %}` — adding a filter type to a page
+  means adding a row to `FILTER_TEMPLATES` in `kukan/templatetags/util_tags.py`, not editing
+  that page's template.
+- **Two table partials, on purpose.** `ui/_table.html` is the list-view one and owns
+  `#results`, the hx-get sort links and `page_obj`. `ui/_static_table.html` is for pages
+  holding several small tables at once (kanji_detail's tabs) and has none of that.
+- **`kukan/forms.py: BulmaModelForm`** gives every field a Bulma class, a placeholder (its
+  own label, prefixed `（任意）` when optional) and `x-model`. Rendered through
+  `{% render_single_field %}` → `ui/_field.html`. A `<select>` gets neither class nor
+  placeholder: Bulma styles the wrapping `div.select`, which `ui/_field_control.html` adds.
+- **`window.toast(message, type)`** is the client-side toast API; it shares
+  `ui/toasts.html`'s region with Django's `messages`. `MESSAGE_TAGS` in `settings/base.py`
+  maps message levels onto Bulma's colours (`error` → `is-danger`; Bulma has no `.error`).
 - **`kukan/middleware.py: HtmxLoginRedirectMiddleware`** turns a `LoginRequiredMiddleware`
   redirect into an `HX-Redirect` header for htmx requests — otherwise htmx swaps the login
   page's HTML into whatever element made the request instead of navigating the browser
   there. Must sit after `django_htmx.middleware.HtmxMiddleware` and after
   `LoginRequiredMiddleware` in `MIDDLEWARE`.
-- **`MESSAGE_TAGS`** in `settings/base.py` maps Django's message levels onto Bulma's
-  notification colour modifiers (`error` → `is-danger`; Bulma has no `.error`).
-- **`kukan/templates/registration/login.html`** is the first page on the new base — it had
-  no Vue to begin with, which is why the plan starts there. `ui/navbar.html` (Alpine-driven
-  burger/dropdowns) followed, then `index.html`, `export.html`, `stats.html`, and the three
-  simple detail pages (`kanji_detail.html` is deliberately still Vue — its dynamic
-  per-category tabs make it one of the hard ones later).
-- **`kukan/listview.py: FilteredListView`** replaces `AjaxList` for list pages: one response,
-  either the full page or (when `request.htmx`) just `ui/_table.html`'s results fragment,
-  instead of an HTML shell plus a separate `?ajax=1` JSON endpoint. `TableData` and
-  `FFilter.add_to_query()` are reused unchanged. `kukan/templates/ui/filters/` has one
-  template per `FFilter.kind` (string, checkbox/yes-no, yomi-simple, min-max, yomi, bushu,
-  daterange), dispatched by the `{% render_filter %}` tag — adding a filter type to a page
-  means adding it to `FILTER_TEMPLATES` once, not editing that page's template.
-  **All seven list pages** — five kukan (`kotowaza_list`, `yoji_list`, `example_list`,
-  `kanji_list`, `test_result_list`) and both tempmon (`game_list`, `session_list`) — are on
-  `FilteredListView`. `AjaxList`, `FFilter.to_json()`, `FFilter.get_extra_json()`,
-  `get_filter_context_strings()` and `kukan/templates/v-filter/` (12 files) are **deleted**.
-- **`FFilter.kind` is a template-dispatch key, not a Vue component name.** It used to be
-  both (`'v-filter-string'`); with the Vue filter bar gone the prefix went too, so the
-  values are now plain (`'string'`, `'min-max'`, `'yomi-simple'`, …) and map to
-  `FILTER_TEMPLATES` in `kukan/templatetags/util_tags.py`.
-- **`tempmon/templates/tempmon/base.html` extends the unified `base.html`.** It keeps the
-  PSN-status hero (`is-primary`/`is-danger` on `psn_ok`) as `{% block navbar %}`; the hero
-  heading is `{% block hero_title %}` because `{% block title %}` is the `<title>` tag on
-  the project base. `PsnApiKeyForm` is a plain `ModelForm` now — it never actually used
-  `BForm`'s Buefy widgets, because the override table keys on the exact widget type and
-  `PasswordInput` is not `TextInput`.
+- **`example_update.html` is a client-side component, deliberately.** Its five ajax endpoints
+  return *values* — a definition for a textarea, reading options for a select, furigana to
+  insert at the caret — not markup, and htmx swaps markup. It is Alpine + `fetch`, near-1:1
+  with the Vue it replaced, and `/ajax/…` stays JSON. `kotowaza_update.html` is the small
+  version of the same thing.
+- **`{% load icons %}{% icon 'check' %}`** renders a Bulma `.icon` span around an MDI glyph.
+
+### Template gotchas that have bitten more than once
+
+- **`{# ... #}` is single-line only.** Django matches the comment token without `DOTALL`, so
+  a `{#` whose `#}` is on a later line is not a comment: every line renders as page text.
+  Silent — the page still loads. Use `{% comment %}`. `kukan/tests_templates.py` fails the
+  build on it, after three separate occurrences.
+- **`{{ value|default:True }}` substitutes on any falsy value**, including an explicit
+  `False`, so it cannot express a boolean default. Default in Python at the call site.
+- **Explanatory comments about the old stack belong in `{% comment %}`, not `//`.** A JS
+  comment ships, and `test_no_vue_or_buefy_remains` checks rendered bytes.
+- **Model methods that emit HTML return `SafeString`** (`format_html`, or `join_html` in
+  `kukan/models.py` for joining already-safe fragments). `'、'.join()` over SafeStrings
+  returns a plain `str`, which the template then escapes — the anchors render as visible
+  tags.
 
 ## Things that will bite you
 - **`add_temp_point` is a hardware contract.** The sensor firmware is not in this repo and has no
   retry buffer. Never change its URL, method, the `API_KEY` body key, the `{'result':'OK'}`
   response, `@csrf_exempt`, or the fact that it *always* returns 200 — even on error.
 - **`PlaySession.data_points` is a pickled dict in a `BinaryField`.** Do not "clean it up".
-- **Model `__str__`-style methods emit raw HTML** without `mark_safe` (`kukan/models.py`). This is
-  invisible today because templates render through Vue's `v-html`; it becomes visible escaping the
-  moment a page is server-rendered.
+- **Model methods that emit HTML must keep using `format_html`.** `Kanji.basic_info2`,
+  `Reading.get_list_ex2`, `Example.goo_link` and friends build anchors that
+  `kanji_detail.html` and `AnkiReadTable.html` render. They used string concatenation and
+  returned plain `str`, which was invisible while Vue's `v-html` was the only consumer.
 - **`kukan/fixtures/`** holds a 26 MB and a 12 MB JSON fixture. Do not regenerate them — several
   tests assert against their exact contents.
 

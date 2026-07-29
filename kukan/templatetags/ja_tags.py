@@ -1,4 +1,3 @@
-import json
 import re
 
 from django import template
@@ -59,15 +58,26 @@ def furigana_bracket(sentence):
     return res
 
 
-@register.inclusion_tag('inclusion/single_field.html')
+@register.inclusion_tag('ui/_field.html')
 def render_single_field(field, is_horizontal=False):
     return {'field': field, 'is_horizontal': is_horizontal}
 
 
-@register.simple_tag()
-def add_vuejs_field_properties(form):
-    list_vuejs_prop = []
-    for name, _field in form.fields.items():
-        list_vuejs_prop.append("{}: {},".format(name, json.dumps(form[name].value() or '')))
-        list_vuejs_prop.append(f"{name}_notifications: {{ items: [], type: 'is-info' }},")
-    return mark_safe('\n'.join(list_vuejs_prop))
+@register.filter
+def form_values(form):
+    """The form's current values, keyed by field name, for `x-data`.
+
+    Replaces `add_vuejs_field_properties`, which emitted the same thing as
+    raw JS object-literal lines spliced into a `data()` body. This goes
+    through `json_script` instead, so the values are escaped by Django
+    rather than by hoping no field contains a quote.
+
+    Every field also gets a `<name>_notifications` list. Those were Buefy
+    `<b-notification>` panels driven by the ajax endpoints -- the furigana
+    guesser and the similar-word lookup both return per-field messages.
+    """
+    values = {}
+    for name in form.fields:
+        values[name] = form[name].value() or ''
+        values[f'{name}_notifications'] = {'items': [], 'type': 'is-info'}
+    return values

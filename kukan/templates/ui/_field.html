@@ -1,0 +1,36 @@
+{% comment %}
+One form field, Bulma-styled. Replaces `inclusion/single_field.html`, which
+wrapped the widget in Buefy's `<b-field>` and appended a
+`<b-notification>` bound to `<name>_notifications`.
+
+`is_horizontal` puts the label beside the control rather than above it --
+what the old template's static-input-as-label trick did, and what
+`label_length_groups` was padding labels to line up. Bulma has
+`field-label`/`field-body` for exactly this, so neither hack is needed.
+{% endcomment %}
+<div class="field{% if is_horizontal %} is-horizontal{% endif %}">
+    {% if is_horizontal %}
+    <div class="field-label is-normal">
+        <label class="label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+    </div>
+    <div class="field-body">
+        <div class="field">
+            {% include 'ui/_field_control.html' %}
+        </div>
+    </div>
+    {% else %}
+    <label class="label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+    {% include 'ui/_field_control.html' %}
+    {% endif %}
+</div>
+
+{% comment %}
+Per-field messages from the ajax endpoints (furigana errors, similar-word
+warnings). Empty until one of them answers.
+{% endcomment %}
+<div class="notification is-small" x-show="{{ field.name }}_notifications.items.length > 0" x-cloak
+     :class="{{ field.name }}_notifications.type">
+    <template x-for="item in {{ field.name }}_notifications.items" :key="item">
+        <div x-text="item"></div>
+    </template>
+</div>

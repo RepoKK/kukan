@@ -31,7 +31,6 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'django.forms',
     'django_htmx',
     'kukan',
     'utils_django',
@@ -69,8 +68,6 @@ MIDDLEWARE = [
 ]
 
 ROOT_URLCONF = 'kukansite.urls'
-
-FORM_RENDERER = 'django.forms.renderers.TemplatesSetting'
 
 TEMPLATES = [
     {

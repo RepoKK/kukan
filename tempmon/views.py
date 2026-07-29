@@ -32,12 +32,13 @@ logger = logging.getLogger(__name__)
 
 
 class PsnApiKeyForm(forms.ModelForm):
-    """A plain ModelForm — `BForm` bought this page nothing.
+    """A plain ModelForm, not `kukan.forms.BulmaModelForm`.
 
-    `BForm` exists to swap in Buefy widget templates and to stamp `v-model`
-    on every field, and this form got neither: the override table keys on the
-    exact widget type, and `PasswordInput` is not `TextInput`. The `v-model`
-    attribute was rendered onto an input no Vue instance ever mounted over.
+    One password field, styled by the template. It does not need the
+    placeholder and binding conventions the two kukan update pages share,
+    and it never used the Vue-era base this replaced either: that one keyed
+    its widget overrides on the exact widget type, and `PasswordInput` is
+    not `TextInput`.
     """
 
     class Meta:

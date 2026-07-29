@@ -38,9 +38,24 @@ class ToastsPartialTest(SimpleTestCase):
     def render(self, message_list):
         return render_to_string('ui/toasts.html', {'messages': message_list})
 
-    def test_no_messages_renders_nothing(self):
+    def test_no_messages_renders_an_empty_region_not_nothing(self):
+        """The region used to be wrapped in `{% templatetag openblock %} if messages {% templatetag closeblock %}`.
+
+        It is unconditional now, because `window.toast()` -- the replacement
+        for the Vue toast API the update pages called -- needs somewhere to
+        render into on a page that was served with no messages at all.
+        """
         html = self.render([])
-        self.assertNotIn('toast-region', html)
+        self.assertIn('toast-region', html)
+        self.assertNotIn('<div class="notification ', html)
+
+    def test_a_client_side_toast_api_is_exposed(self):
+        """`window.toast(message, type)` and the Django messages loop share
+        one region, so a page cannot end up with two stacks in the same
+        corner disagreeing about spacing."""
+        html = self.render([])
+        self.assertIn('window.toast', html)
+        self.assertIn("Alpine.store('toasts')", html)
 
     def test_a_success_message_gets_the_bulma_success_class(self):
         html = self.render([Message(messages.SUCCESS, 'Saved.')])
