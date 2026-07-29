@@ -386,7 +386,40 @@ otherwise: an Alpine component that throws just leaves the page inert.
 `/example/list/`, `/test_result/list/`, `/tempmon/session_list/`,
 `/tempmon/game_list/`:
 
-- Type in a filter. Results should update on their own after a short pause.
+*Appearance first, because the whole page is wrong if this is:*
+
+- **The background is white.** If it is black, `data-theme="light"` is not
+  reaching `<html>` — Bulma 1.x has an automatic dark mode that Bulma 0.9.4
+  did not, so this only shows up on a machine set to dark.
+- The result count and `Q:` timing sit at the top right, opposite the title.
+  After any filter or sort, `S:` and `T:` appear beside them.
+- On `/kanji/list/` (310 pages) the pager reads `1 2 … 310` with `‹ ›`, not
+  310 separate links.
+
+*The filter bar — rebuilt in Phase 11 after the first version stacked every
+widget inline and re-queried on every keystroke:*
+
+- The page opens with **no filters showing**, just `ﾌｨﾙﾀｰ追加 ⊕`.
+- Open it: a checkbox per available filter, and 適用. Tick two, press 適用 —
+  two chips appear and the dropdown closes.
+- Click a chip. Its widget opens in a dropdown with its own 適用. Type a
+  value. **Nothing should happen until you press 適用** — no request in the
+  Network tab while typing.
+- Press 適用. The rows update, the chip turns coloured and reads
+  `title: value`, and the URL gains that filter.
+- Press Enter inside a filter widget — same as 適用.
+- Press the `✕` on a chip. It disappears, its value is dropped from the URL,
+  and the rows widen again. **Check the URL no longer carries that filter**;
+  a removed filter that keeps filtering is the specific bug the disabled
+  fieldset prevents.
+- Add a filter, do not fill it in, then apply a different one. The empty chip
+  must still be there afterwards — that is what `_show` in the URL is for.
+- Copy a URL with filters applied into a new tab. The same chips come up
+  filled in.
+- Sort a column, then apply a filter. **The sort must survive.**
+
+*Then the table itself:*
+
 - Click a column header. It should sort, then reverse on a second click.
 - Go to page 2, **then press the browser Back button.** It should return to
   page 1. This did not work before the rewrite and is the main thing to
@@ -591,6 +624,13 @@ Do not start the real upgrade until every line here is ticked.
 - [ ] The scrub reported 0 sessions and a `__dummy__` token
 - [ ] All fourteen entrypoint lines printed, ending in `All staging checks passed`
 - [ ] `smoke_urls` reported no failures
+- [ ] Every page has a **white** background
+- [ ] Stats line shows 件 / Q, and S / T after a swap
+- [ ] `/kanji/list/` pager elides (`1 2 … 310`), not 310 links
+- [ ] Filters start hidden; ﾌｨﾙﾀｰ追加 adds chips; 適用 applies; ✕ removes
+- [ ] Typing in a filter fires no request until 適用
+- [ ] A removed filter leaves the URL, and stops filtering
+- [ ] Sorting survives applying a filter
 - [ ] Every list page filters, sorts and pages; **Back works**
 - [ ] `kanji_detail` tabs switch and paginate; no `None` row; no literal `&lt;a`
 - [ ] `example_update`: definition, readings, caret insertion, delete modal, save

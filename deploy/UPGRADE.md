@@ -191,9 +191,10 @@ git rev-parse origin/master
 
 ### 4.5 Close what this obsoletes
 
-This release deletes the `kukan/static/js/` directory, and `node_modules/`
-with it. The open Dependabot pull requests against `/kukan/static/js` no
-longer apply —
+This release deletes `kukan/static/js/node_modules/` (505 files, 12 MB) along
+with the `package.json` and lockfile beside it. The directory itself remains,
+holding one small first-party script. The open Dependabot pull requests
+against `/kukan/static/js` no longer apply —
 close them, and expect most of the repository's Dependabot alerts to clear on
 the next scan.
 
@@ -477,10 +478,17 @@ as the rehearsal, and it is worth walking again on real data.
 Keep the browser console open. An Alpine component that throws leaves the page
 inert with no server-side sign of it.
 
+- **Every page: the background is white.** If it is black, `data-theme="light"`
+  is not reaching `<html>`; Bulma 1.x has an automatic dark mode that Bulma
+  0.9.4 did not, so it only shows on a machine set to dark.
 - **List pages** (`/kanji/list/`, `/yoji/list/`, `/kotowaza/list/`,
-  `/example/list/`, `/test_result/list/`, both tempmon lists): filter, sort,
-  page. **Press Back after paging** — it should return to the previous page.
-  Apply a filter then page forward; the filter must survive.
+  `/example/list/`, `/test_result/list/`, both tempmon lists): the page opens
+  with no filters showing, just `ﾌｨﾙﾀｰ追加 ⊕`. Adding one puts up a chip;
+  clicking the chip opens its widget; **nothing applies until 適用**; `✕`
+  removes the filter and drops it from the URL. Sorting must survive applying
+  a filter. On `/kanji/list/` the pager reads `1 2 … 310`, not 310 links. The
+  count and `Q:` sit top right, with `S:`/`T:` appearing after a swap.
+  **Press Back after paging** — it should return to the previous page.
 - **`/kanji/<kanji>/`**: tabs switch, tabs with more than five rows paginate,
   the 属性 chevron opens the table, variant glyphs switch. No row labelled
   `None`; no literal `&lt;a href=` text.

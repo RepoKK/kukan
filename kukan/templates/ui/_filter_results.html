@@ -1,0 +1,19 @@
+{% comment %}
+Filter bar and results together, under one id.
+
+Two swap targets exist on a list page, and the difference matters:
+
+* `#filter-results` (this) — what the filter form replaces. Applying or
+  removing a filter re-renders the chips as well as the rows, so the bar's
+  state always comes from the query string rather than from Alpine.
+* `#results` (ui/_table.html) — what a sort header or a page link replaces.
+  Those change neither the filters nor which chips are up, and re-rendering
+  the bar would close any dropdown the user had open.
+
+`FilteredListView.get_template_names` picks between them on the `HX-Target`
+header htmx sends.
+{% endcomment %}
+<div id="filter-results">
+    {% include 'ui/_filter_bar.html' %}
+    {% include 'ui/_table.html' %}
+</div>

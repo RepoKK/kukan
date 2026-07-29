@@ -156,8 +156,13 @@ JavaScript build step and no `package.json` anywhere in the repo.
   fetched, minified files. `kukan/static/vendor/VERSIONS.md` has exact versions and the
   `curl` to bump one. `kukan/tests_templates.py` fails the build if a template ever links a
   CDN again.
-- **`kukan/listview.py: FilteredListView`** serves all seven list pages: one response, either
-  the full page or (when `request.htmx`) just `ui/_table.html`'s results fragment.
+- **`data-theme="light"` on `<html>` is load-bearing.** Bulma 1.x ships an automatic
+  `prefers-color-scheme: dark`; Bulma 0.9.4 did not. Removing the attribute turns the whole
+  site black for anyone whose OS is set to dark, with no stylesheet here having changed.
+- **`kukan/listview.py: FilteredListView`** serves all seven list pages. A normal request
+  gets the full page; an htmx one gets a fragment chosen on the `HX-Target` header —
+  `ui/_filter_results.html` (filter bar *and* rows) when the filter form applies, or
+  `ui/_table.html` (rows only) for a sort header or page link.
   `TableData` and `FFilter.add_to_query()` are reused unchanged. `kukan/templates/ui/filters/`
   has one template per `FFilter.kind` (`string`, `checkbox`, `yomi-simple`, `min-max`, `yomi`,
   `bushu`, `daterange`), dispatched by `{% render_filter %}` — adding a filter type to a page
@@ -166,6 +171,17 @@ JavaScript build step and no `package.json` anywhere in the repo.
 - **Two table partials, on purpose.** `ui/_table.html` is the list-view one and owns
   `#results`, the hx-get sort links and `page_obj`. `ui/_static_table.html` is for pages
   holding several small tables at once (kanji_detail's tabs) and has none of that.
+- **`ui/_filter_bar.html` is chips, not a stacked form.** A filter is hidden until
+  `ﾌｨﾙﾀｰ追加` adds it; each active one is a chip whose dropdown holds its widget and its own
+  適用; **nothing applies until 適用 or Enter**. Applying re-renders the bar as well as the
+  rows, so which chips are up and what they hold always comes from the query string —
+  filters carrying a value, plus `_show` for ones added but not yet filled in. That is
+  deliberate: keeping it in Alpine and swapping only the table means two copies of the
+  filter state that have to agree. `_show` is display state and must never reach
+  `FFilter.add_to_query`.
+- **Pagination elides.** `page_window` comes from `Paginator.get_elided_page_range`, wrapped
+  in `list()` because it is a generator and the template would consume it. kanji_list is 310
+  pages, and the first version of `_table.html` emitted 310 links.
 - **`kukan/forms.py: BulmaModelForm`** gives every field a Bulma class, a placeholder (its
   own label, prefixed `（任意）` when optional) and `x-model`. Rendered through
   `{% render_single_field %}` → `ui/_field.html`. A `<select>` gets neither class nor

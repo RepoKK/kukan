@@ -36,7 +36,7 @@ class BothDocumentsExistTest(SimpleTestCase):
             self.assertNotIn('PROD-BOX-STAGING', text, doc.name)
 
     #: Paths the documents name precisely because this release removes them.
-    DELETED_ON_PURPOSE = {'kukan/static/js/'}
+    DELETED_ON_PURPOSE = {'kukan/static/js/node_modules/'}
 
     def test_every_repository_path_they_name_exists(self):
         root = pathlib.Path(settings.BASE_DIR)

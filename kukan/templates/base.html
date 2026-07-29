@@ -1,6 +1,17 @@
 {% load static %}
 <!doctype html>
-<html lang="ja" class="{% block html_class %}{% endblock %}">
+{% comment %}
+data-theme="light" is not cosmetic preference, it is parity. Bulma 1.x ships
+`@media (prefers-color-scheme: dark)` and Bulma 0.9.4 did not, so upgrading it
+turned the whole site black for anyone whose OS is set to dark — without any
+stylesheet here changing. This pins the palette the site has always had.
+
+Removing the attribute re-enables Bulma's automatic dark mode. That is a real
+option, but it is a design decision to take deliberately: the custom colours
+in ui/navbar.html and the chart palettes in the tempmon templates are all
+chosen against a white background.
+{% endcomment %}
+<html lang="ja" data-theme="light" class="{% block html_class %}{% endblock %}">
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -27,6 +38,13 @@
         <link rel="stylesheet" href="{% static 'vendor/mdi/css/materialdesignicons.min.css' %}">
         <script src="{% static 'vendor/htmx/htmx.min.js' %}"></script>
         <script defer src="{% static 'vendor/alpinejs/alpine.min.js' %}"></script>
+        {% comment %}
+        Loaded everywhere rather than from the list templates: it attaches
+        delegated htmx listeners, and #results is replaced on every swap, so a
+        <script> inside the swapped fragment would re-register them each time.
+        It no-ops on a page with no stats line.
+        {% endcomment %}
+        <script defer src="{% static 'js/stats.js' %}"></script>
         {% comment %} Alpine is deferred, so anything it is about to hide is visible
            until it runs. Same job the old base's [v-cloak] rule did. {% endcomment %}
         <style>[x-cloak] { display: none !important; }</style>
