@@ -231,6 +231,22 @@ class SettingsPackageTest(SimpleTestCase):
                                                     'manage.py')))
         self.assertTrue(os.path.isdir(os.path.join(base.BASE_DIR, 'kukan')))
 
+    def test_the_log_directory_exists_after_importing_settings(self):
+        """`logs/` is gitignored, so a fresh checkout and the staging container
+        both start without it. The handler has delay=True, so the miss does not
+        show at startup — it shows as a `--- Logging error ---` traceback per
+        record, the first time anything logs, with requests still being served.
+
+        Asserted against the handler's own filename rather than LOG_DIR, so
+        that moving the log file without moving the makedirs fails here.
+        """
+        from django.conf import settings
+        handler = settings.LOGGING['handlers']['default_file']
+        self.assertTrue(
+            os.path.isdir(os.path.dirname(handler['filename'])),
+            f"{handler['filename']}'s directory does not exist; every log "
+            f"record will raise FileNotFoundError")
+
     def test_settings_package_itself_defines_nothing(self):
         import kukansite.settings as pkg
         self.assertFalse(hasattr(pkg, 'INSTALLED_APPS'))

@@ -94,6 +94,15 @@ class SmokeUrlsCommandTest(TestCase):
         with self.assertRaisesMessage(CommandError, 'No superuser found'):
             self.run_command()
 
+    def test_the_no_superuser_error_names_the_alternatives(self):
+        """"Pass --username" is unhelpful to somebody who does not know what
+        the accounts are called — which is the case on a scrubbed copy of
+        production, where this error actually turns up."""
+        User.objects.filter(is_superuser=True).delete()
+        User.objects.create_user('someone_else', password='x')
+        with self.assertRaisesMessage(CommandError, 'someone_else'):
+            self.run_command()
+
     def test_defaults_to_the_first_superuser(self):
         with patch('django.test.Client.force_login') as force_login:
             self.run_command()

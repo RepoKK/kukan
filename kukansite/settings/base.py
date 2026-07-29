@@ -188,6 +188,19 @@ LOGIN_REDIRECT_URL = '/'
 
 SERVER_EMAIL = 'kukanjiten'
 
+# `logs/` is gitignored, so a fresh checkout does not have it — and neither did
+# the staging container, whose build context excludes it. The handler below
+# uses delay=True, so the miss does not surface at startup: it surfaces the
+# first time anything logs, as a `--- Logging error ---` traceback per record,
+# with the request itself still served. A 404 page that prints a stack trace to
+# stderr and nothing to the log file is a bad way to find out.
+#
+# Created here rather than in the Containerfile because the exposure is not
+# container-specific: deploying by cloning the repository somewhere new
+# produces exactly the same missing directory on the production box.
+LOG_DIR = os.path.join(BASE_DIR, 'logs')
+os.makedirs(LOG_DIR, exist_ok=True)
+
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
@@ -195,7 +208,7 @@ LOGGING = {
         'default_file': {
             'level': 'DEBUG',
             'class': 'logging.handlers.TimedRotatingFileHandler',
-            'filename': os.path.join(BASE_DIR, 'logs', 'info.log'),
+            'filename': os.path.join(LOG_DIR, 'info.log'),
             'delay': True,
             'encoding': 'utf-8',
             'when': 'W0',

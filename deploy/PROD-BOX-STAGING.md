@@ -156,6 +156,15 @@ sqlite3 ~/kukan-data/db.sqlite3 \
 # expect: 0, then __dummy__
 ```
 
+It also prints the account names it reset, marking superusers with `*`. Note
+them down — they are whatever production happens to have, which is not
+necessarily your shell username. To get the list again later:
+
+```bash
+sqlite3 ~/kukan-data/db.sqlite3 \
+  'select username, is_superuser from auth_user'
+```
+
 The entrypoint checks both again on every start and refuses to serve if either
 is wrong, so a mistake here stops the container rather than exposing anything.
 `scrub_local_db` additionally refuses to run against any path under
@@ -228,7 +237,7 @@ irrelevant. If you would rather hit some other port directly, pass
 `--env DJANGO_CSRF_TRUSTED_ORIGINS=... --env DJANGO_ALLOWED_HOSTS=...` to
 `podman run`; those two variables, and only those two, take an override.
 
-Log in as any real username with the password `dev`.
+Log in with one of the account names the scrub printed, password `dev`.
 
 ## 6. What to check
 
@@ -236,8 +245,9 @@ The automated checks cover the proxy. These cover the application, and they are
 roughly in order of how likely they are to find something.
 
 ```bash
-# Breadth first: every no-arg URL, as a superuser. Proves each view imports,
-# its template compiles and its queries run against real data.
+# Breadth first: every no-arg URL. Proves each view imports, its template
+# compiles and its queries run against real data. Defaults to the first
+# superuser; add `--username NAME` if the scrub reported none.
 podman exec kukan-staging bash -c \
   'cd /opt/kukan && set -a && . deploy/staging.env && set +a &&
    DJANGO_SETTINGS_MODULE=kukansite.settings.prod .venv/bin/python manage.py smoke_urls'
@@ -245,7 +255,8 @@ podman exec kukan-staging bash -c \
 
 Then by hand, through the tunnel:
 
-- `/bustime/` without logging in — public, 200, and it scrapes tobus.jp live.
+- `/bustime/main` without logging in — public, 200, and it scrapes tobus.jp
+  live. Note the path: `/bustime/` itself is not routed and 404s correctly.
 - Log in. A kanji list with a filter applied, and an example detail page. These
   are the pages where Django 6.0 template or ORM changes would show, and they
   are the ones fixtures do not exercise at real size.
@@ -259,6 +270,13 @@ Then by hand, through the tunnel:
 
 Watch `podman logs -f kukan-staging` throughout. `database is locked` would be
 the one finding that argues against four threads.
+
+Two things in that log are noise, not findings:
+
+- `"-" 408 - "-" "-"` — httpd timing out a keep-alive connection the browser
+  opened and did not use. Normal, and more frequent through an SSH tunnel.
+- Timestamps in two zones. gunicorn's access log follows the container's TZ
+  (UTC), httpd's follows the host's. Only staging logs both.
 
 ## 7. Cost to the live site, and teardown
 

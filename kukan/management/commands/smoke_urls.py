@@ -103,8 +103,15 @@ class Command(BaseCommand):
                 raise CommandError(f'No such user: {username}') from err
         user = user_model.objects.filter(is_superuser=True).first()
         if user is None:
+            # Name the alternatives. A scrubbed copy of production need not
+            # contain a superuser, and "pass --username" is unhelpful advice
+            # to somebody who does not know what the accounts are called.
+            names = list(user_model.objects.values_list(
+                user_model.USERNAME_FIELD, flat=True)[:20])
+            available = ', '.join(names) if names else 'none — the database has no users'
             raise CommandError(
-                'No superuser found; pass --username to choose an account.')
+                f'No superuser found; pass --username to choose an account. '
+                f'Available: {available}')
         return user
 
     def report(self, checked, failures, skipped, verbosity):
