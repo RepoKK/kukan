@@ -101,7 +101,16 @@ for _ in $(seq 1 30); do
     sleep 1
 done
 
-echo '==> Starting httpd on 8443'
+# `httpd -DFOREGROUND` dying reports only "httpd exited during startup", which
+# says nothing about why. Run the config check first, so a bad vhost prints the
+# file and line. Same command the cutover runbook makes you run on the box.
+echo '==> Checking the httpd configuration'
+if ! httpd -t; then
+    echo 'ERROR: the httpd configuration is not valid; see above.' >&2
+    exit 1
+fi
+
+echo '==> Starting httpd on 8080 and 8443'
 httpd -DFOREGROUND &
 HTTPD_PID=$!
 trap 'kill "$GUNICORN_PID" "$HTTPD_PID" 2>/dev/null || true' EXIT
@@ -141,6 +150,18 @@ mkdir -p /opt/kukan/.well-known/acme-challenge
 echo staging > /opt/kukan/.well-known/acme-challenge/.staging-marker
 code=$($CURL "https://127.0.0.1:8443/.well-known/acme-challenge/.staging-marker")
 [ "$code" = 200 ] || fail "/.well-known/ returned $code; certbot renewal would fail"
+
+echo '==> Checking the ACME challenge is reachable over plain HTTP'
+# The check above proved it over TLS, which is the case that never happens.
+# certbot fetches this over port 80 without a certificate, because the whole
+# point is that it does not have one yet. Serving it on 443 only would still
+# lose the renewal.
+code=$($CURL "http://127.0.0.1:8080/.well-known/acme-challenge/.staging-marker")
+[ "$code" = 200 ] || fail "plain-HTTP /.well-known/ returned $code; certbot renewal would fail"
+
+echo '==> Checking plain HTTP redirects to https, except the challenge'
+code=$($CURL "http://127.0.0.1:8080/")
+[ "$code" = 301 ] || fail "http:// returned $code; expected a 301 to https"
 
 echo '==> Checking the application responds through the proxy'
 # 302 to /login, not 200: prod settings deny by default via

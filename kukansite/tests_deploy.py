@@ -129,6 +129,50 @@ class ProxyOrderingTest(SimpleTestCase):
                         f'so the catch-all proxy swallows it.')
 
 
+class AcmeChallengeTest(SimpleTestCase):
+    """The http-01 challenge is served over plain HTTP, by definition.
+
+    certbot fetches it in order to *obtain* a certificate, so it cannot be
+    asked to present one first. Two ways to break that, both of which lose the
+    certificate silently at 01:23 rather than at deploy time: serve the webroot
+    only on the TLS vhost, or redirect it to https along with everything else.
+    ProxyOrderingTest covers the third way (the catch-all proxy).
+    """
+
+    def setUp(self):
+        self.configs = {name: strip_comments(read_deploy_file(name))
+                        for name in VHOSTS}
+
+    def test_a_plain_http_vhost_exists(self):
+        for name, text in self.configs.items():
+            with self.subTest(config=name):
+                self.assertIsNotNone(
+                    directive_line(text, r'^\s*<VirtualHost\s+\*:(80|8080)>'),
+                    f'{name} has no plain-HTTP vhost, so there is nowhere for '
+                    f'the ACME challenge to be served from')
+
+    def test_the_redirect_to_https_excludes_the_challenge(self):
+        """`^(?!/\\.well-known/)(.*)$` — without the lookahead, Let's Encrypt
+        follows a 301 to a certificate that does not exist yet."""
+        for name, text in self.configs.items():
+            with self.subTest(config=name):
+                redirect = directive_line(text, r'^\s*RedirectMatch')
+                self.assertIsNotNone(
+                    redirect, f'{name}: no RedirectMatch to https')
+                line = text.splitlines()[redirect]
+                self.assertIn(
+                    r'(?!/\.well-known/)', line,
+                    f'{name}: the http -> https redirect does not exclude the '
+                    f'ACME challenge, so renewal follows it and fails')
+
+    def test_the_challenge_is_aliased_before_the_redirect(self):
+        for name, text in self.configs.items():
+            with self.subTest(config=name):
+                alias = directive_line(text, r'^\s*Alias\s+/\.well-known/')
+                redirect = directive_line(text, r'^\s*RedirectMatch')
+                self.assertLess(alias, redirect)
+
+
 class ForwardedProtoTest(SimpleTestCase):
     """The redirect-loop bug."""
 
@@ -334,6 +378,19 @@ class StagingParityTest(SimpleTestCase):
                                  if not line.lstrip().startswith('#'))
         self.assertNotIn('UV_COMPILE_BYTECODE', instructions)
         self.assertIn('compileall -q -j 1', instructions)
+
+    def test_the_image_removes_the_stock_listen_directives(self):
+        """Two files declaring the same port is fatal: "Cannot define multiple
+        Listeners on the same IP:port". staging-httpd.conf owns 8080 and 8443,
+        so the stock `Listen 80` and mod_ssl's conf.d/ssl.conf have to go —
+        rewriting them to the same ports is what broke the first run."""
+        with open(os.path.join(REPO_ROOT, 'Containerfile'), encoding='utf-8') as f:
+            instructions = '\n'.join(line for line in f.read().splitlines()
+                                     if not line.lstrip().startswith('#'))
+        self.assertIn('rm -f /etc/httpd/conf.d/ssl.conf', instructions)
+        self.assertNotIn('Listen 8443', instructions)
+        # And the build proves it rather than trusting this test.
+        self.assertIn('httpd -t', instructions)
 
     def test_the_image_can_scrub_its_own_database(self):
         """The prod box has no development environment — no Python 3.12, no uv,

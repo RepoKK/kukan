@@ -191,15 +191,22 @@ Expected output, in order, ending with the line that matters:
 ==> Applying migrations
 ==> Collecting static files
 ==> Starting gunicorn on 127.0.0.1:8000
-==> Starting httpd on 8443
+==> Checking the httpd configuration
+==> Starting httpd on 8080 and 8443
 ==> Checking httpd serves /static itself, rather than proxying it
 ==> Checking httpd serves /.well-known itself, rather than proxying it
+==> Checking the ACME challenge is reachable over plain HTTP
+==> Checking plain HTTP redirects to https, except the challenge
 ==> Checking the application responds through the proxy
 ==> Checking Django was told the request was HTTPS
 ==> All staging checks passed. Serving on https://localhost:8443/
 ```
 
-Those four checks are the cutover's real failure modes, rehearsed. A
+The container listens on 8080 as well as 8443, standing in for production's
+`:80`. Publishing it is optional — the ACME check runs inside the container —
+but `-p 127.0.0.1:18080:8080` lets you try the redirect by hand.
+
+Those six checks are the cutover's real failure modes, rehearsed. A
 `STAGING CHECK FAILED` line names which one and stops the container. In
 particular, `/.well-known/ returned 404` is the one that costs a certificate in
 production, and finding it here is the entire point of this container existing.

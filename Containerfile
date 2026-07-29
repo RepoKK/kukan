@@ -51,10 +51,17 @@
 #       mainly built to ask — the glibc 2.34 ceiling in pyproject.toml holds.
 #       Died in `uv sync` on a bytecode compile timeout; see the compileall
 #       step below, which is the fix.
+#   attempt 4, production box: built and ran. gunicorn came up; httpd refused
+#       to start — this file rewrote mod_ssl's `Listen 443` to 8443, which
+#       staging-httpd.conf had already declared. Fixed by removing the stock
+#       config instead of rewriting it, and by running `httpd -t` at build
+#       time so the next one of these fails in ten seconds.
 #
-# So everything up to and including `uv sync` is now known to work on the real
-# target. Everything after it — httpd module paths especially, which move
-# between CentOS point releases — is still unproven.
+# So everything up to and including `uv sync` is proven on the real target.
+# Both vhosts have since been syntax-checked against stock CentOS Stream 9
+# httpd 2.4.62 with the paths remapped, and proxy/proxy_http/headers/ssl/
+# expires are all enabled by default there — the module-path worry in earlier
+# revisions of this comment was unfounded.
 
 FROM quay.io/centos/centos:stream9
 
@@ -139,11 +146,31 @@ RUN chmod +x /usr/local/bin/staging-entrypoint.sh
 # marker into it to prove httpd serves it rather than proxying it.
 RUN mkdir -p /opt/kukan/.well-known/acme-challenge /opt/kukan/static
 
-# httpd's stock config also listens on 80 and would collide.
-RUN sed -i 's/^Listen 80$/Listen 8080/' /etc/httpd/conf/httpd.conf \
-    && sed -i 's/^Listen 443/Listen 8443/' /etc/httpd/conf.d/ssl.conf || true
+# The stock config owns `Listen 80` (conf/httpd.conf) and `Listen 443` plus a
+# default TLS vhost (conf.d/ssl.conf, from mod_ssl). deploy/staging-httpd.conf
+# declares its own ports, so remove the stock ones rather than rewriting them.
+#
+# Rewriting is what the first run on the production box did, and rewriting 443
+# to 8443 produced a second declaration of the port kukan.conf had already
+# taken: "Cannot define multiple Listeners on the same IP:port". conf.d/ is
+# read alphabetically, so kukan.conf won and ssl.conf was the one that errored,
+# which points at the wrong file.
+#
+# mod_ssl itself stays loaded: its LoadModule is in conf.modules.d/00-ssl.conf,
+# a different file from the one removed here. welcome.conf goes too — it only
+# provides the "Testing 123" page for a server with no vhost.
+RUN rm -f /etc/httpd/conf.d/ssl.conf /etc/httpd/conf.d/welcome.conf \
+    && sed -i '/^Listen 80$/d' /etc/httpd/conf/httpd.conf
 
-EXPOSE 8443
+# Fail the BUILD on a bad vhost, not the run. This is the same check the
+# cutover runbook makes you do on the box (`apachectl configtest`), and it is
+# what would have caught the duplicate Listen above in ten seconds instead of
+# after a full build, a database copy and a container start.
+RUN httpd -t && httpd -M | grep -qE 'ssl_module' \
+    && httpd -M | grep -qE 'proxy_http_module' \
+    && httpd -M | grep -qE 'headers_module'
+
+EXPOSE 8080 8443
 
 # Refuses to start against an unscrubbed database; see the entrypoint.
 ENTRYPOINT ["/usr/local/bin/staging-entrypoint.sh"]
