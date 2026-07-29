@@ -1,4 +1,3 @@
-import json
 import logging
 from collections import defaultdict, deque
 from functools import reduce
@@ -334,16 +333,35 @@ class KanjiDetail(LoginRequiredMixin, generic.DetailView):
                       'yomi', 'sentence', 'kanken']),
                   }
 
+    #: Rows per page inside a tab, matching Buefy's `:per-page="5"`.
+    per_page = 5
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         qry = {'例文': Example.objects.filter(word__contains=context['kanji']
                                             ).exclude(sentence='').exclude(ex_kind=Example.KOTOWAZA),
                '四字熟語': Yoji.objects.filter(yoji__contains=context['kanji']),
                '諺': Example.objects.filter(word__contains=context['kanji'], ex_kind=Example.KOTOWAZA)}
-        context['ctx'] = json.dumps(
-            [{'name': k, 'number': qry[k].count(), 'table_data': v.get_table_full(qry[k])}
-             for k, v in self.table_data.items() if qry[k].count() > 0]
-        )
+        # Was a json.dumps blob for Vue to iterate. The template renders the
+        # tabs server-side now, so it wants the objects.
+        categories = []
+        for name, table in self.table_data.items():
+            objects = list(qry[name])
+            if not objects:
+                continue
+            rows = table.get_table_data(objects)
+            # Sliced here rather than in the template: Django templates
+            # cannot do arithmetic, so paginating there means emitting the
+            # index maths into the markup for JavaScript to redo per row.
+            pages = [rows[i:i + self.per_page]
+                     for i in range(0, len(rows), self.per_page)]
+            categories.append({
+                'name': name,
+                'number': len(objects),
+                'columns': table.get_col_template(),
+                'pages': pages,
+            })
+        context['categories'] = categories
         return context
 
 

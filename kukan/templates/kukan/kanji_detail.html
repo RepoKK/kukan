@@ -1,87 +1,90 @@
-{% extends 'kukan/base_ext.html' %}
+{% extends 'base_ext.html' %}
 
-{% load static %}
-{% block title %}
-「{{ kanji.kanji }}」の詳細
-{% endblock %}
+{% block title %}「{{ kanji.kanji }}」の詳細{% endblock %}
 
 {% block content %}
-    <div class="columns">
-        <div class="column is-one-third is-centered" style="text-align: center;">
-            <fr-kanji-box></fr-kanji-box>
-        </div>
-        <div class="column">
-            <table class="table is-fullwidth">
-                <thead><th>読み</th><th>例</th></thead>
+<div class="columns">
+    <div class="column is-one-third is-centered has-text-centered">
+        {% include 'kukan/_kanji_box.html' %}
+    </div>
+    <div class="column">
+        <table class="table is-fullwidth">
+            <thead><tr><th>読み</th><th>例</th></tr></thead>
+            <tbody>
                 {% for reading in kanji.reading_set.all %}
-                    <tr>
-                        <td style="white-space: nowrap;">{{reading.get_full|safe}}</td>
-                        <td>{{reading.get_list_ex2|safe}}</td>
-                    </tr>
+                <tr>
+                    <td style="white-space: nowrap;">{{ reading.get_full }}</td>
+                    <td>{{ reading.get_list_ex2 }}</td>
+                </tr>
                 {% endfor %}
                 {% for exmap in kanji.exmap_set.all %}
-                    {% if not exmap.reading %}
-                    <tr>
-                        <td colspan="2"><a href="{% url 'kukan:example_detail' exmap.example.pk %}">{{exmap.example}}</a></td>
-                    </tr>
-                    {% endif %}
+                {% if not exmap.reading %}
+                <tr>
+                    <td colspan="2">
+                        <a href="{% url 'kukan:example_detail' exmap.example.pk %}">{{ exmap.example }}</a>
+                    </td>
+                </tr>
+                {% endif %}
                 {% endfor %}
-            </table>
-        </div>
+            </tbody>
+        </table>
     </div>
-    <div class="columns">
+</div>
 
-        <div class="column">
-            <div>
-                <table class="table is-fullwidth">
-                    <thead><th>意味</th></thead>
-                    <tbody>
-                        {% for value in kanji.kanjidetails.meaning_list %}
-                            <td>{{value}}</td></tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        </div>
+{% if kanji.kanjidetails.meaning_list %}
+<div class="columns">
+    <div class="column">
+        <table class="table is-fullwidth">
+            <thead><tr><th>意味</th></tr></thead>
+            <tbody>
+                {% for value in kanji.kanjidetails.meaning_list %}
+                <tr><td>{{ value }}</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
+{% if categories %}
+{% comment %}
+Buefy's <b-tabs> over a v-for, as Alpine. One `tab` index and one `page`
+index for the whole group; switching tab resets the page, same as
+re-rendering a b-table did. Every tab's rows are server-rendered -- these
+are the examples containing one kanji, not a list view.
+{% endcomment %}
+<div x-data="{ tab: 0, page: 0 }">
+    <div class="tabs is-boxed">
+        <ul>
+            {% for category in categories %}
+            <li :class="{ 'is-active': tab === {{ forloop.counter0 }} }">
+                <a @click="tab = {{ forloop.counter0 }}; page = 0">
+                    {{ category.name }}
+                    <span class="tag is-rounded ml-2">{{ category.number }}</span>
+                </a>
+            </li>
+            {% endfor %}
+        </ul>
     </div>
 
-<template>
-    <b-tabs type="is-boxed" animated="true">
-        <b-tab-item v-for="c in ctx">
-            <template slot="header">
-                <span> [[c.name]] <b-tag rounded> [[ c.number ]] </b-tag> </span>
-            </template>
-            <template>
-                <b-table :data="c.table_data.data" striped narrowed
-                         :paginated="c.number > 5" :per-page="5"
-                         v-if="c.table_data.data.length>0">
-                    <template slot-scope="props">
-                            <b-table-column v-for="(column, index) in c.table_data.columns"
-                                :key="index"
-                                :field="column.field"
-                                :label="column.label"
-                                :visible="column.visible">
-                                    <slot :name="column.label" v-bind="{'column': column, 'props': props}">
-                                        <b-icon icon="check" v-if="column.type == 'bool' && props.row[column.field]==true"></b-icon>
-                                        <span v-if="column.type != 'bool'" v-html="props.row[column.field]"></span>
-                                    </slot>
-                            </b-table-column>
-                    </template>
-                </b-table>
-            </template>
-        </b-tab-item>
-    </b-tabs>
-</template>
+    {% for category in categories %}
+    <div x-show="tab === {{ forloop.counter0 }}"{% if not forloop.first %} x-cloak{% endif %}>
+        {% include 'ui/_static_table.html' with columns=category.columns pages=category.pages %}
+        {% if category.pages|length > 1 %}
+        <nav class="pagination is-centered" role="navigation" aria-label="pagination">
+            <ul class="pagination-list">
+                {% for _ in category.pages %}
+                <li>
+                    <a class="pagination-link"
+                       :class="{ 'is-current': page === {{ forloop.counter0 }} }"
+                       @click="page = {{ forloop.counter0 }}">{{ forloop.counter }}</a>
+                </li>
+                {% endfor %}
+            </ul>
+        </nav>
+        {% endif %}
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
 {% endblock %}
-
-{% block vue_component %}
-{% include 'vue/kanji_box.html' %}
-{% endblock %}
-
-{% block vue_data %}
-    data() {
-        return {
-            ctx: {{ctx|safe}}
-        }
-    },
-{% endblock vue_data %}

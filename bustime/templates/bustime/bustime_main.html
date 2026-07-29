@@ -75,9 +75,9 @@
     <div class="container is-widescreen">
         <section class="hero has-background-light is-small">
             {% if has_realtime %}
-            {# `every 10s` keeps firing on this element, which is never itself
+            {% comment %} `every 10s` keeps firing on this element, which is never itself
                replaced -- only its contents are. `load` paints the first
-               result without waiting out the interval. #}
+               result without waiting out the interval. {% endcomment %}
             <div hx-get="{% url 'bustime:get_time_to_next_hana' %}"
                  hx-trigger="load, every 10s"
                  hx-swap="innerHTML"></div>

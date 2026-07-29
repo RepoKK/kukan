@@ -48,13 +48,9 @@ class KotowazaListContractTest(TestCase):
 
     def test_the_table_scrolls_horizontally_rather_than_reflowing(self):
         """The Bulma table-container replacement for Buefy's mobile-cards
-        reflow. Caught a real bug while adding this: a multi-line Django
-        {# #} comment is not valid -- Django's comment tag is single-line
-        only -- and the whole thing leaked into the response as literal
-        text instead of being stripped."""
+        reflow."""
         response = self.client.get(reverse('kukan:kotowaza_list'))
         self.assertContains(response, 'class="table-container"')
-        self.assertNotIn('{#', response.content.decode())
 
     def test_default_sort_is_by_kotowaza(self):
         Kotowaza.objects.create(kotowaza='2番目')

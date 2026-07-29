@@ -1,0 +1,86 @@
+{% comment %}
+The `fr-kanji-box` Vue component, as Alpine.
+
+Two pieces of state: which glyph is shown large (`current`, switched by
+clicking a variant) and whether the attributes table is open (`open`). Both
+were Vue `data`; the two `is_cur_std`/`is_base_std` computeds are inline
+comparisons here, since Alpine evaluates expressions in the template.
+{% endcomment %}
+{% load icons %}
+<div x-data="{ current: '{{ kanji.kanji|escapejs }}', open: false }">
+    <div class="title kanji" x-text="current"></div>
+    <div>
+        {% if kanji.jitai.alt.0 %}
+        <nav class="level is-mobile">
+            <div class="level-item">
+                <div>
+                    {% if kanji.kanji == kanji.jitai.std.1 %}{% icon 'star-outline' size='is-small' %}{% endif %}
+                    <span class="tag" :class="{ 'is-info': current === '{{ kanji.jitai.std.1|escapejs }}' }">
+                        {{ kanji.jitai.std.0 }}
+                    </span>
+                    <p>
+                        <span class="subtitle is-3">
+                            <a @click="current = '{{ kanji.jitai.std.1|escapejs }}'">{{ kanji.jitai.std.1 }}</a>
+                        </span>
+                    </p>
+                </div>
+            </div>
+            <div class="level-item">
+                <div>
+                    {% if kanji.kanji != kanji.jitai.std.1 %}{% icon 'star-outline' size='is-small' %}{% endif %}
+                    <span class="tag" :class="{ 'is-info': current !== '{{ kanji.jitai.std.1|escapejs }}' }">
+                        {{ kanji.jitai.alt.0 }}
+                    </span>
+                    <p>
+                        <span class="subtitle is-3">
+                            {% for alt in kanji.jitai.alt.1 %}
+                            <a @click="current = '{{ alt.kanji|escapejs }}'">{{ alt.kanji }}</a>
+                            {% endfor %}
+                        </span>
+                    </p>
+                </div>
+            </div>
+        </nav>
+        {% endif %}
+
+        <nav class="level is-mobile">
+            <div class="level-item has-text-centered">
+                <div>
+                    <p class="heading">漢検</p>
+                    <p class="title is-6">{{ kanji.kanken }}</p>
+                </div>
+            </div>
+            <div class="level-item has-text-centered">
+                <div>
+                    <p class="heading">種別</p>
+                    <p class="title is-6">{{ kanji.classification|default_if_none:"－" }}</p>
+                </div>
+            </div>
+            <div class="level-item has-text-centered">
+                <div>
+                    <p class="heading">部首</p>
+                    <p class="title is-6">
+                        {% if kanji.bushu %}{{ kanji.bushu.bushu }}{% else %}{{ kanji.kouki_bushu.bushu }}{% endif %}
+                    </p>
+                </div>
+            </div>
+            <div class="level-item">
+                <a @click="open = !open" :aria-expanded="open" aria-controls="kanji-attributes">
+                    <span x-show="!open">{% icon 'arrow-down-drop-circle-outline' %}</span>
+                    <span x-show="open" x-cloak>{% icon 'arrow-up-drop-circle' %}</span>
+                </a>
+            </div>
+        </nav>
+
+        <div id="kanji-attributes" x-show="open" x-cloak>
+            <table class="table is-fullwidth">
+                <thead><tr><th colspan="2">属性</th></tr></thead>
+                <tbody>
+                    {% for name, value in kanji.basic_info2 %}
+                    <tr><th>{{ name }}</th><td>{{ value }}</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

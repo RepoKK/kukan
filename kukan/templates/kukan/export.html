@@ -3,12 +3,12 @@
 <section class="section">
         <form action="{% url 'kukan:export' %}" method="post">
             {% csrf_token %}
-            {# The view reads request.POST['profile']/['choice'] directly
+            {% comment %} The view reads request.POST['profile']/['choice'] directly
                (kukan/views.py ExportView.render_to_response), not through
                form.cleaned_data, so these two <select> names must stay
                "profile" and "choice" -- "choice" does not match the form
                field's own name, "type". Rendered by hand rather than via
-               {{ form.type }} for exactly that reason. #}
+               {{ form.type }} for exactly that reason. {% endcomment %}
             <div class="field">
                 <label class="label">{{ form.profile.label }}</label>
                 <div class="control">

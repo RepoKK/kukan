@@ -27,6 +27,9 @@
         <link rel="stylesheet" href="{% static 'vendor/mdi/css/materialdesignicons.min.css' %}">
         <script src="{% static 'vendor/htmx/htmx.min.js' %}"></script>
         <script defer src="{% static 'vendor/alpinejs/alpine.min.js' %}"></script>
+        {% comment %} Alpine is deferred, so anything it is about to hide is visible
+           until it runs. Same job the old base's [v-cloak] rule did. {% endcomment %}
+        <style>[x-cloak] { display: none !important; }</style>
 
         {% block extra_head %}{% endblock %}
     </head>

@@ -27,8 +27,8 @@
             <ul>
                 <li>
                     <strong>日課：</strong>
-                    {# editEnabled: true -- the detail page always shows the
-                       button; only yoji_list's table has a switch for it. #}
+                    {% comment %} editEnabled: true -- the detail page always shows the
+                       button; only yoji_list's table has a switch for it. {% endcomment %}
                     <span x-data="{ editEnabled: true }">
                         {% include 'ui/anki_toggle.html' with yoji_text=yoji.yoji in_anki=yoji.in_anki %}
                     </span>
