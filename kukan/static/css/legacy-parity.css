@@ -614,3 +614,28 @@ input[type="checkbox"] {
     --bulma-section-padding-medium: 9rem 1.5rem;
     --bulma-section-padding-large: 18rem 1.5rem;
 }
+
+/*
+ * Title/subtitle pairing. Buefy pulled a subtitle up under its title with
+ *
+ *     .title:not(.is-spaced) + .subtitle { margin-top: -1.25rem }
+ *
+ * leaving the title's own 1.5rem bottom margin in place. Bulma 1.x swapped
+ * that for `.title:not(.is-spaced):has(+ .subtitle) { margin-bottom: 0 }` —
+ * equivalent for a subtitle with text in it, but not for an empty one. The
+ * old rule's -1.25rem cancelled most of the *subtitle's* bottom margin as
+ * well, because a zero-height block's own margins collapse together; the new
+ * one leaves that 1.5rem standing alone. On tempmon's hero the subtitle is
+ * empty — its `<div>` is invalid inside a `<p>` and the parser lifts it out —
+ * so the 「Update NPSSO code」 link sat 24px below the title where it used to
+ * sit 4px below.
+ */
+.title:not(.is-spaced):has(+ .subtitle),
+.subtitle:not(.is-spaced):has(+ .title) {
+    margin-bottom: var(--bulma-block-spacing);
+}
+
+.title:not(.is-spaced) + .subtitle,
+.subtitle:not(.is-spaced) + .title {
+    margin-top: -1.25rem;
+}

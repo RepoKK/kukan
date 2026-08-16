@@ -41,22 +41,57 @@
             max: 'dataMax',
             name: 'Minutes',
             nameLocation: 'middle',
-            nameGap: 25
+            nameGap: 25,
+            // A gridline every quarter hour, and one per degree below, so a
+            // temperature can be read off the chart rather than estimated
+            // between two auto-placed ticks. `interval` drives the labels as
+            // well as the lines, and a long session would run them into each
+            // other, so overlapping ones are dropped — the gridlines stay.
+            interval: 15,
+            axisLabel: {hideOverlap: true},
+            splitLine: {show: true},
+            z: 3
         },
         yAxis: [
-            {type: 'value', scale: true, name: '℃'},
+            {
+                type: 'value',
+                scale: true,
+                name: '℃',
+                // Whole degrees, so the gridlines land on the numbers being
+                // read off them. `scale: true` alone stops at the data extent
+                // and labels it, which puts a stray 32.5 above the last whole
+                // degree; rounding the bounds outwards keeps every tick an
+                // integer.
+                min: value => Math.floor(value.min),
+                max: value => Math.ceil(value.max),
+                interval: 1,
+                axisLabel: {hideOverlap: true},
+                splitLine: {show: true},
+                z: 3
+            },
+            // The delta series' axis. `show: false` takes its gridlines with
+            // it, which is what keeps the two scales from drawing two
+            // interleaved sets of horizontal lines.
             {type: 'value', scale: true, show: false}
         ],
         series: [{
-            name: 'Temperature (℃)',
+            // The per-game background bands, on a series of their own with
+            // no data. They replace a hand-written chart.js `beforeDraw`
+            // plugin that filled rectangles onto the canvas by pixel;
+            // markArea is the built-in version and survives a resize.
+            //
+            // Separate rather than hung off the temperature line so it can
+            // sit at its own depth. The band colours are opaque, so whatever
+            // draws under them is invisible; the chart.js plugin got the
+            // right order for free by painting before the chart, and here it
+            // has to be stated. A markArea ignores its own series' `z`
+            // (measured: setting it changes nothing), so the layering is done
+            // from the other side — the axes are lifted to z 3 and the two
+            // data series to z 4, leaving the bands at the series default 2.
+            // Order ends up bands < gridlines < data, as it was.
             type: 'line',
-            smooth: 0.1,
-            symbol: 'none',
-            itemStyle: {color: 'rgb(75, 192, 192)'},
-            data: xy(tempData),
-            // Replaces a hand-written chart.js `beforeDraw` plugin that
-            // filled rectangles onto the canvas by pixel. markArea is the
-            // built-in version of the same thing, and it survives a resize.
+            data: [],
+            silent: true,
             markArea: {
                 silent: true,
                 data: bands.map(([start, end, colour]) => [
@@ -65,11 +100,20 @@
                 ])
             }
         }, {
+            name: 'Temperature (℃)',
+            type: 'line',
+            smooth: 0.1,
+            symbol: 'none',
+            itemStyle: {color: 'rgb(75, 192, 192)'},
+            data: xy(tempData),
+            z: 4
+        }, {
             name: 'Temp. delta (℃)',
             type: 'bar',
             yAxisIndex: 1,
             itemStyle: {color: 'rgb(75, 192, 192)'},
-            data: xy(tempDelta)
+            data: xy(tempDelta),
+            z: 4
         }]
     });
 
