@@ -69,7 +69,14 @@ class FilteredListView(LoginRequiredMixin, ListView):
     partial_template_name = 'ui/_table.html'
 
     def get_template_names(self):
-        if not self.request.htmx:
+        # A history restore is an htmx request that wants the *whole* page.
+        # The sort and page links carry `hx-push-url`, so pressing Back asks
+        # for one of those URLs again; when htmx has no snapshot cached it
+        # re-fetches with `HX-Request: true` and no `HX-Target`, which fell
+        # through to the rows-only fragment. The browser then rendered a bare
+        # `<table>` as an entire document -- no `<head>`, so no stylesheet,
+        # and the page came back unstyled.
+        if not self.request.htmx or self.request.htmx.history_restore_request:
             return [self.template_name]
         if self.request.htmx.target == 'filter-results':
             return [self.filter_partial_template_name]

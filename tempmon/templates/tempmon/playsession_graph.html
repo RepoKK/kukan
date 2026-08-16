@@ -32,7 +32,15 @@
     const chart = echarts.init(document.getElementById('chart'));
 
     chart.setOption({
-        tooltip: {trigger: 'axis', axisPointer: {type: 'cross'}},
+        tooltip: {
+            trigger: 'axis',
+            axisPointer: {type: 'cross'},
+            // Both series are raw sensor arithmetic — a reading, and the
+            // difference between two readings — so they arrive as full
+            // floats and the hover box read "31.700000000000003". Two
+            // decimals matches the ℃ figures in the details table above.
+            valueFormatter: value => value.toFixed(2)
+        },
         legend: {data: ['Temperature (℃)', 'Temp. delta (℃)']},
         grid: {left: 50, right: 20, top: 40, bottom: 40},
         xAxis: {

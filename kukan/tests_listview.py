@@ -39,6 +39,22 @@ class KotowazaListContractTest(TestCase):
         self.assertContains(response, '<table')
         self.assertContains(response, 'id="results"')
 
+    def test_a_history_restore_renders_the_full_page(self):
+        """Pressing Back must not land on a bare fragment.
+
+        The sort and page links carry `hx-push-url`, so Back asks for one of
+        those URLs again. With no snapshot cached htmx re-fetches it with
+        `HX-Request: true` and *no* `HX-Target`, which looks exactly like a
+        sort request -- and the rows-only fragment it used to get was then
+        rendered by the browser as a whole document, with no `<head>` and so
+        no stylesheet.
+        """
+        response = self.client.get(
+            reverse('kukan:kotowaza_list'),
+            HTTP_HX_REQUEST='true', HTTP_HX_HISTORY_RESTORE_REQUEST='true')
+        self.assertContains(response, 'navbar-burger')
+        self.assertContains(response, 'legacy-parity.css')
+
     def test_no_vue_or_buefy_remains(self):
         response = self.client.get(reverse('kukan:kotowaza_list'))
         content = response.content.decode()
