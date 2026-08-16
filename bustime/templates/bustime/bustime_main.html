@@ -25,8 +25,19 @@
 <style>
     /* The countdown reruns every second, so the digits have to be
        fixed-width or the whole line jitters. This replaces a table with a
-       collapsed sizing row that split the string one character per cell. */
-    .countdown { font-variant-numeric: tabular-nums; }
+       collapsed sizing row that split the string one character per cell.
+
+       That table also carried the browser's default `border-spacing: 2px`,
+       which put 2px between every pair of characters and 2px at each end —
+       roughly 10px of air across "21:41" that a plain span does not have, and
+       the single largest piece of type on the page. `letter-spacing` puts it
+       back; it is absolute, like `border-spacing`, so it holds for the is-1
+       and is-3 sizes alike. */
+    .countdown {
+        font-variant-numeric: tabular-nums;
+        letter-spacing: 2px;
+        padding-inline-start: 2px;
+    }
 </style>
 {% endblock %}
 
@@ -83,8 +94,18 @@
                  hx-swap="innerHTML"></div>
             {% endif %}
 
-            <div class="hero-body">
-                <template x-if="upcoming.length">
+            {% comment %}
+            Each branch carries its own `.hero-body`, rather than the two
+            sharing one. Alpine leaves the `<template>` in the DOM and inserts
+            the rendered node beside it, so with both branches inside a single
+            hero-body the `<nav class="level">` was followed by the second
+            `<template>` and stopped matching `:last-child` — which is the only
+            thing keeping Bulma's `.level:not(:last-child)` from adding 1.5rem
+            under it. Vue's `v-if` left an HTML *comment*, which `:last-child`
+            ignores, so the same markup spaced correctly before the port.
+            {% endcomment %}
+            <template x-if="upcoming.length">
+                <div class="hero-body">
                     <nav class="level is-mobile">
                         <div class="level-left">
                             <div class="level-item">
@@ -100,11 +121,13 @@
                                   x-text="countdown(upcoming[0])"></span>
                         </div>
                     </nav>
-                </template>
-                <template x-if="!upcoming.length">
+                </div>
+            </template>
+            <template x-if="!upcoming.length">
+                <div class="hero-body">
                     <div class="subtitle">本日運行終了</div>
-                </template>
-            </div>
+                </div>
+            </template>
         </section>
 
         <section class="hero has-background-light is-small">

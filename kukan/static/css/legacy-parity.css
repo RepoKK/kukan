@@ -575,3 +575,42 @@ input[type="checkbox"] {
  * them — which are not in a field — stayed put. Only the widget's own top-level
  * groups want this spacing.
  */
+
+/*
+ * Levels. Bulma 1.x gives `.level-left` / `.level-right` `flex-direction:
+ * column` and only flips them back to `row` at 769px, but `.level.is-mobile`
+ * — which exists precisely to stay a row at every width — sets `display: flex`
+ * on them without restoring the direction. So below 769px every is-mobile
+ * level stacked its own halves vertically: on the bustime page the 後 label
+ * climbed on top of the countdown and each panel grew by a line. Bulma 0.7
+ * had no such rule to undo.
+ */
+.level.is-mobile .level-left,
+.level.is-mobile .level-right {
+    flex-direction: row;
+}
+
+/*
+ * Buefy spaced level items with `margin-right: .75rem` on *every* item of an
+ * is-mobile level, last one included; Bulma 1.x replaced that with `gap`,
+ * which only ever falls between items. The gap reproduces the old spacing
+ * exactly, so all that is missing is the trailing margin — visible as the
+ * ~12px inset the 花園町 button used to keep from the right edge.
+ */
+.level.is-mobile .level-item:last-child {
+    margin-inline-end: 0.75rem;
+}
+
+/*
+ * Sections. Bulma 1.x added `--bulma-section-padding-desktop` (3rem *3rem*),
+ * applied from 1024px up; Bulma 0.7 padded every section `3rem 1.5rem` at all
+ * widths. Doubling the side padding on desktop indents anything laid out
+ * inside a section — on the bustime page it pushed the grid of later
+ * departures 24px in from the panels stacked above it, which are in a plain
+ * container and were not indented with it.
+ */
+.section {
+    --bulma-section-padding-desktop: 3rem 1.5rem;
+    --bulma-section-padding-medium: 9rem 1.5rem;
+    --bulma-section-padding-large: 18rem 1.5rem;
+}
