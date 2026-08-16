@@ -111,7 +111,12 @@
             name: 'Temp. delta (℃)',
             type: 'bar',
             yAxisIndex: 1,
-            itemStyle: {color: 'rgb(75, 192, 192)'},
+            // Grey, not the line's teal. The old dataset set `borderColor`
+            // only, so the bars took chart.js's default fill — this value —
+            // and stayed in the background where they belong: they are a
+            // per-reading difference, not a second reading. ECharts has no
+            // such default and was colouring them like the temperature line.
+            itemStyle: {color: 'rgba(0, 0, 0, 0.1)'},
             data: xy(tempDelta),
             z: 4
         }]

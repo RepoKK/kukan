@@ -354,8 +354,13 @@ input[type="number"]:focus {
  * is purple. Buefy's `b-table` used a plain clickable div and kept `.table th`
  * at #363636. Keep the anchor, drop the colour; `currentColor` so a header in
  * a themed table still follows its cell.
+ *
+ * `[hx-get]` is what distinguishes those from a header cell holding a genuine
+ * link. tempmon's detail tables put 「Details」 and 「Sessions list」 in `<th>`,
+ * and they navigate — they were purple before and should stay purple. Without
+ * the attribute this rule greyed them out too.
  */
-.table th a {
+.table th a[hx-get] {
     color: currentColor;
 }
 
