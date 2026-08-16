@@ -14,6 +14,8 @@ the extra dirname() when computing BASE_DIR.
 
 import os
 
+from django.contrib.messages import constants as message_constants
+
 from kukansite.env import env
 
 # .../kukan/kukansite/settings/base.py -> .../kukan
@@ -29,7 +31,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'django.forms',
+    'django_htmx',
     'kukan',
     'utils_django',
     'bustime',
@@ -42,6 +44,8 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    # Sets request.htmx; must come before anything that reads it below.
+    'django_htmx.middleware.HtmxMiddleware',
     # Deny by default (Django 5.1). Every view requires a login unless it is
     # explicitly marked @login_not_required.
     #
@@ -54,13 +58,16 @@ MIDDLEWARE = [
     #
     # Must come after AuthenticationMiddleware, which sets request.user.
     'django.contrib.auth.middleware.LoginRequiredMiddleware',
+    # Must come after LoginRequiredMiddleware, to see the 302 it produces. An
+    # htmx request that hits it unauthenticated would otherwise swap the login
+    # page's HTML into whatever element issued the request, instead of
+    # navigating the browser there.
+    'kukan.middleware.HtmxLoginRedirectMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
 ROOT_URLCONF = 'kukansite.urls'
-
-FORM_RENDERER = 'django.forms.renderers.TemplatesSetting'
 
 TEMPLATES = [
     {
@@ -185,6 +192,17 @@ X_FRAME_OPTIONS = 'DENY'
 # Redirect to home URL after login (Default redirects to /accounts/profile/)
 LOGIN_URL = '/login'
 LOGIN_REDIRECT_URL = '/'
+
+# Bulma's notification colour modifiers, for ui/toasts.html. Django's default
+# tags are debug/info/success/warning/error; Bulma has no "error" so that one
+# maps to "danger" instead of falling through to an unstyled default.
+MESSAGE_TAGS = {
+    message_constants.DEBUG: 'is-dark',
+    message_constants.INFO: 'is-info',
+    message_constants.SUCCESS: 'is-success',
+    message_constants.WARNING: 'is-warning',
+    message_constants.ERROR: 'is-danger',
+}
 
 SERVER_EMAIL = 'kukanjiten'
 

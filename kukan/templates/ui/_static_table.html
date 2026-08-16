@@ -1,0 +1,42 @@
+{% comment %}
+A TableData rendering with no sorting and no server-side paging, for pages
+that hold several small tables at once rather than one filtered list.
+
+`ui/_table.html` is the FilteredListView one: it owns `#results`, hx-get
+sort links and a page_obj. Neither applies here, and sharing one template
+between the two would mean threading "is this the list page" through every
+branch.
+
+`pages` is a list of row-lists, already sliced by the view. Every row is in
+the DOM and Alpine's `page` (from an ancestor scope) picks the visible
+tbody -- these are per-kanji subsets, tens of rows at most.
+{% endcomment %}
+{% load util_tags icons %}
+<div class="table-container">
+<table class="table is-striped is-narrow is-fullwidth">
+    <thead>
+        <tr>
+            {% for column in columns %}{% if column.visible %}
+            <th{% if column.type == 'numeric' %} class="has-text-right"{% endif %}>{{ column.label }}</th>
+            {% endif %}{% endfor %}
+        </tr>
+    </thead>
+    {% for rows in pages %}
+    <tbody{% if not forloop.first %} x-show="page === {{ forloop.counter0 }}" x-cloak{% elif pages|length > 1 %} x-show="page === 0"{% endif %}>
+        {% for row in rows %}
+        <tr>
+            {% for column in columns %}{% if column.visible %}
+            <td{% if column.type == 'numeric' %} class="has-text-right"{% elif column.type == 'bool' %} class="has-text-centered"{% endif %}>
+                {% if column.type == 'bool' %}
+                    {% if row|get_item:column.field %}{% icon 'check' size='is-small' %}{% endif %}
+                {% else %}
+                    {{ row|get_item:column.field }}
+                {% endif %}
+            </td>
+            {% endif %}{% endfor %}
+        </tr>
+        {% endfor %}
+    </tbody>
+    {% endfor %}
+</table>
+</div>

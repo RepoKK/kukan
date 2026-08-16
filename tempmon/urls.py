@@ -2,6 +2,7 @@ from django.urls import path
 
 from tempmon import views
 
+app_name = 'tempmon'
 urlpatterns = [
     path('add_temp_point/', views.add_temp_point, name='add_temp_point'),
     path('session_list/', views.PlaySessionListView.as_view(),

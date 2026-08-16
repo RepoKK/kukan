@@ -69,7 +69,7 @@ forgotten lock fails the build rather than silently resolving to different versi
 
 Apache owns :443, TLS, `/static` and `/.well-known`, and proxies everything else to gunicorn on
 `127.0.0.1:8000` under systemd. It no longer loads Python. Everything needed is in `deploy/`,
-and `deploy/STAGE7-CUTOVER.md` is the runbook.
+and `deploy/UPGRADE.md` is the runbook.
 
 | File | Installs as |
 |---|---|
@@ -109,7 +109,7 @@ The staging container (`Containerfile`) runs `kukansite.settings.prod` against
 It is the only place the production settings module, the proxy and the TLS path get exercised
 before the live box. The database arrives on a bind mount at `/data` and is scrubbed by the
 image itself (`podman run ... kukan-staging scrub`), so no image ever contains one.
-`deploy/PROD-BOX-STAGING.md` runs it on the production box under a separate account — the only
+`deploy/REHEARSAL.md` runs it on the production box under a separate account — the only
 way to test the `anki==24.11` ceiling, which exists because of that box's glibc 2.34.
 
 `smoke_urls` is the cheap breadth-first net: it proves each view imports, its template compiles
@@ -142,14 +142,117 @@ so it collapses bursts without blurring ordinary readings) and `FAILURE_COOLDOWN
 outage does not make every POST pay a network timeout). The token expires every few months;
 `/tempmon/psn_npsso_update/` shows the days remaining.
 
+## Frontend
+
+Server-rendered HTML plus HTMX + Alpine.js and Bulma 1.x. **Vue 2, Buefy, axios and
+`node_modules/` are gone** — Stage 10 replaced them page by page (see PLAN.md); there is no
+JavaScript build step and no `package.json` anywhere in the repo.
+
+- **`kukan/templates/base.html`** is the one base template: links the vendored files below,
+  includes `ui/toasts.html`, and offers `{% block navbar %}`, `{% block extra_head %}` and
+  `{% block body %}`. `base_ext.html` adds the fixed navbar and a container;
+  `tempmon/base.html` adds the PSN-status hero and its own favicons.
+- **`kukan/static/vendor/`** holds htmx, Alpine.js, Bulma, ECharts and the MDI webfont as
+  fetched, minified files. `kukan/static/vendor/VERSIONS.md` has exact versions and the
+  `curl` to bump one. `kukan/tests_templates.py` fails the build if a template ever links a
+  CDN again.
+- **`kukan/static/css/legacy-parity.css` must load after Bulma.** The old site never loaded
+  Bulma directly — it loaded `buefy.css`, which bundles its own Bulma build with Buefy's
+  palette *and component behaviour* on top. Swapping in stock `bulma.min.css` reverted
+  everything Buefy had been supplying to Bulma's defaults. This file pins it back, in two
+  parts, from values read out of `buefy.css` on `stage-8-psnawp` rather than by eye:
+  - **Palette, radius, type.** Buefy's primary is purple `#7957d5`, not Bulma's turquoise
+    `#00d1b2`, and its `link` is the same purple. Bulma 1.x also tints every grey
+    `hsl(221, 14%, …)` where Buefy's were pure neutral, and rounds corners 4px → 6px. The
+    overrides go on Bulma's `-h`/`-s`/`-l` custom properties, which its whole ramp — hover,
+    active, light, dark, invert — is derived from; overriding a composed `--bulma-primary`
+    would not work. `*-invert-l` is pinned too: Bulma derives text-on-colour from the
+    colour's own lightness, which gives dark text on the purple where the old site had white.
+  - **Mobile dropdowns.** `<b-dropdown>` defaulted to `mobile-modal`, so under 1088px every
+    dropdown became a centred, scrollable sheet. Bulma's `.dropdown` does not, so a filter
+    chip near the right edge opened a menu off-viewport and the bushu grid ran off the bottom
+    with the 適用 button unreachable. Only the filter bar uses `.dropdown`; the navbar uses
+    `.navbar-dropdown` and is untouched.
+- **The stroke-order font is woff2, and cached for a year.** `KanjiStrokeOrders_v4.005.woff2`
+  is 8406 glyphs at 6.6 MB, against the 17.2 MB v4.002 `.ttf` the old site shipped — woff2 is
+  Brotli-compressed, TrueType is not. v4.005 also covers six kanji v4.002 did not
+  (噓 嚙 姸 屛 幷 搔). **134 of the site's 6186 kanji still have no stroke-order glyph** and
+  fall back to the body font with no indication; there is no free source for them, KanjiVG
+  included. It is only fetched on kanji detail pages,
+  because that is the only place `div.kanji` renders, and it carries `font-display: swap` so
+  the glyph is visible in the fallback face rather than blank while 6.6 MB arrives.
+  `deploy/kukanjiten-httpd.conf` pins fonts to `max-age=31536000, immutable`, overriding the
+  one-hour `ExpiresDefault` that otherwise re-downloaded the whole file every hour. That is
+  safe only because the filename carries the version, so a new font is a new URL.
+- **`data-theme="light"` on `<html>` is load-bearing.** Bulma 1.x ships an automatic
+  `prefers-color-scheme: dark`; Bulma 0.9.4 did not. Removing the attribute turns the whole
+  site black for anyone whose OS is set to dark, with no stylesheet here having changed.
+- **`kukan/listview.py: FilteredListView`** serves all seven list pages. A normal request
+  gets the full page; an htmx one gets a fragment chosen on the `HX-Target` header —
+  `ui/_filter_results.html` (filter bar *and* rows) when the filter form applies, or
+  `ui/_table.html` (rows only) for a sort header or page link.
+  `TableData` and `FFilter.add_to_query()` are reused unchanged. `kukan/templates/ui/filters/`
+  has one template per `FFilter.kind` (`string`, `checkbox`, `yomi-simple`, `min-max`, `yomi`,
+  `bushu`, `daterange`), dispatched by `{% render_filter %}` — adding a filter type to a page
+  means adding a row to `FILTER_TEMPLATES` in `kukan/templatetags/util_tags.py`, not editing
+  that page's template.
+- **Two table partials, on purpose.** `ui/_table.html` is the list-view one and owns
+  `#results`, the hx-get sort links and `page_obj`. `ui/_static_table.html` is for pages
+  holding several small tables at once (kanji_detail's tabs) and has none of that.
+- **`ui/_filter_bar.html` is chips, not a stacked form.** A filter is hidden until
+  `ﾌｨﾙﾀｰ追加` adds it; each active one is a chip whose dropdown holds its widget and its own
+  適用; **nothing applies until 適用 or Enter**. Applying re-renders the bar as well as the
+  rows, so which chips are up and what they hold always comes from the query string —
+  filters carrying a value, plus `_show` for ones added but not yet filled in. That is
+  deliberate: keeping it in Alpine and swapping only the table means two copies of the
+  filter state that have to agree. `_show` is display state and must never reach
+  `FFilter.add_to_query`.
+- **Pagination elides.** `page_window` comes from `Paginator.get_elided_page_range`, wrapped
+  in `list()` because it is a generator and the template would consume it. kanji_list is 310
+  pages, and the first version of `_table.html` emitted 310 links.
+- **`kukan/forms.py: BulmaModelForm`** gives every field a Bulma class, a placeholder (its
+  own label, prefixed `（任意）` when optional) and `x-model`. Rendered through
+  `{% render_single_field %}` → `ui/_field.html`. A `<select>` gets neither class nor
+  placeholder: Bulma styles the wrapping `div.select`, which `ui/_field_control.html` adds.
+- **`window.toast(message, type)`** is the client-side toast API; it shares
+  `ui/toasts.html`'s region with Django's `messages`. `MESSAGE_TAGS` in `settings/base.py`
+  maps message levels onto Bulma's colours (`error` → `is-danger`; Bulma has no `.error`).
+- **`kukan/middleware.py: HtmxLoginRedirectMiddleware`** turns a `LoginRequiredMiddleware`
+  redirect into an `HX-Redirect` header for htmx requests — otherwise htmx swaps the login
+  page's HTML into whatever element made the request instead of navigating the browser
+  there. Must sit after `django_htmx.middleware.HtmxMiddleware` and after
+  `LoginRequiredMiddleware` in `MIDDLEWARE`.
+- **`example_update.html` is a client-side component, deliberately.** Its five ajax endpoints
+  return *values* — a definition for a textarea, reading options for a select, furigana to
+  insert at the caret — not markup, and htmx swaps markup. It is Alpine + `fetch`, near-1:1
+  with the Vue it replaced, and `/ajax/…` stays JSON. `kotowaza_update.html` is the small
+  version of the same thing.
+- **`{% load icons %}{% icon 'check' %}`** renders a Bulma `.icon` span around an MDI glyph.
+
+### Template gotchas that have bitten more than once
+
+- **`{# ... #}` is single-line only.** Django matches the comment token without `DOTALL`, so
+  a `{#` whose `#}` is on a later line is not a comment: every line renders as page text.
+  Silent — the page still loads. Use `{% comment %}`. `kukan/tests_templates.py` fails the
+  build on it, after three separate occurrences.
+- **`{{ value|default:True }}` substitutes on any falsy value**, including an explicit
+  `False`, so it cannot express a boolean default. Default in Python at the call site.
+- **Explanatory comments about the old stack belong in `{% comment %}`, not `//`.** A JS
+  comment ships, and `test_no_vue_or_buefy_remains` checks rendered bytes.
+- **Model methods that emit HTML return `SafeString`** (`format_html`, or `join_html` in
+  `kukan/models.py` for joining already-safe fragments). `'、'.join()` over SafeStrings
+  returns a plain `str`, which the template then escapes — the anchors render as visible
+  tags.
+
 ## Things that will bite you
 - **`add_temp_point` is a hardware contract.** The sensor firmware is not in this repo and has no
   retry buffer. Never change its URL, method, the `API_KEY` body key, the `{'result':'OK'}`
   response, `@csrf_exempt`, or the fact that it *always* returns 200 — even on error.
 - **`PlaySession.data_points` is a pickled dict in a `BinaryField`.** Do not "clean it up".
-- **Model `__str__`-style methods emit raw HTML** without `mark_safe` (`kukan/models.py`). This is
-  invisible today because templates render through Vue's `v-html`; it becomes visible escaping the
-  moment a page is server-rendered.
+- **Model methods that emit HTML must keep using `format_html`.** `Kanji.basic_info2`,
+  `Reading.get_list_ex2`, `Example.goo_link` and friends build anchors that
+  `kanji_detail.html` and `AnkiReadTable.html` render. They used string concatenation and
+  returned plain `str`, which was invisible while Vue's `v-html` was the only consumer.
 - **`kukan/fixtures/`** holds a 26 MB and a 12 MB JSON fixture. Do not regenerate them — several
   tests assert against their exact contents.
 
@@ -171,8 +274,10 @@ Two conventions worth keeping:
 
 - **Known-defect tests** assert the buggy behaviour and say so in the docstring, so the suite
   stays green while the defect stays visible. Fixing the defect is meant to turn them red.
-  Currently: empty numeric filter values (`kukan/tests_filters.py`) and the tempmon duration
-  filter (`tempmon/tests_views.py`).
+  Currently: the tempmon duration filter (`tempmon/tests_views.py`). The empty-filter-value
+  one is gone — `FFilter.filter` now guards on falsiness, because the htmx bar submits every
+  chip that is up whether or not it holds a value, which turned that latent defect into an
+  empty list any time a filter was added and left blank.
 - **Recorded web pages** for the scrapers go under `fixtures/Web/` as raw HTML. The older
   `FixWebKukan` helper pickles a `requests.Response`, which stops loading when `requests` is
   upgraded — don't add new fixtures in that format.

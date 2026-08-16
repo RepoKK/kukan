@@ -1,0 +1,68 @@
+{% load util_tags %}
+{% with parsed=value|parse_minmax %}
+<div class="field"
+     x-data="{
+        mode: '{{ parsed.mode }}',
+        exact: '{{ parsed.exact|escapejs }}',
+        min: '{{ parsed.min|escapejs }}',
+        max: '{{ parsed.max|escapejs }}',
+        exclude: {{ parsed.exclude|yesno:'true,false' }},
+        get body() {
+            if (this.mode === 'range') {
+                return (this.min === '' && this.max === '') ? '' : (this.min + '~' + this.max);
+            }
+            return this.exact;
+        },
+        get encoded() {
+            return this.body === '' ? '' : (this.exclude ? '≠ ' + this.body : this.body);
+        }
+     }">
+    {% comment %}The dropdown header already names the filter; Buefy's panels
+    carried no second heading. Kept in the markup, hidden visually, so the
+    input still has an accessible name.{% endcomment %}
+    <label class="label is-sr-only">{{ filter.label }}</label>
+    <input type="hidden" name="{{ filter.label }}" :value="encoded">
+    {% comment %}Buefy used full-width centred tabs here, not small toggles.{% endcomment %}
+    <div class="tabs is-centered is-fullwidth">
+        <ul>
+            <li :class="{'is-active': mode === 'exact'}"><a @click="mode = 'exact'">値</a></li>
+            <li :class="{'is-active': mode === 'range'}"><a @click="mode = 'range'">範囲</a></li>
+        </ul>
+    </div>
+    <div class="field" x-show="mode === 'exact'">
+        <div class="control">
+            <input class="input" type="number" x-model="exact" placeholder="{{ filter.label }}">
+        </div>
+    </div>
+    {% comment %}
+    One row each, with the comparison as a static addon rather than the
+    placeholder. Buefy rendered `>=` and `<=` through
+    `<a class="button is-static">` beside a full-width input whose placeholder
+    was the filter's own name — so the field still says what it is filtering
+    once a number has been typed into it, which a placeholder cannot do.
+    {% endcomment %}
+    <div x-show="mode === 'range'">
+        <div class="field has-addons">
+            <p class="control"><span class="button is-static">&gt;=</span></p>
+            <div class="control is-expanded">
+                <input class="input" type="number" x-model="min" placeholder="{{ filter.label }}">
+            </div>
+        </div>
+        <div class="field has-addons">
+            <p class="control"><span class="button is-static">&lt;=</span></p>
+            <div class="control is-expanded">
+                <input class="input" type="number" x-model="max" placeholder="{{ filter.label }}">
+            </div>
+        </div>
+    </div>
+    {% comment %}Right-aligned, as `is-grouped-right` had it.{% endcomment %}
+    {% comment %}`mt-3`: 除く acts on whatever is above it and needs to sit clear
+    of it. Nothing else supplies the gap — it is the last field, so Bulma's
+    `.field:not(:last-child)` margin never applies to what precedes it.{% endcomment %}
+    <div class="field is-grouped is-grouped-right mt-3">
+        <label class="checkbox">
+            <input type="checkbox" x-model="exclude"> 除く
+        </label>
+    </div>
+</div>
+{% endwith %}

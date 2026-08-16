@@ -1,12 +1,11 @@
-{% extends 'kukan/base.html' %}
+{% extends 'base.html' %}
 {% load static %}
+{% block navbar %}{% include 'ui/navbar.html' with has_search=False color='is-transparent' %}{% endblock %}
 {% block body %}
-<body>
 <form action="." method="post">
     {% csrf_token %}
     <section class="hero is-fullheight">
         <div class="hero-body">
-            <vue-navbar :has_search="false" :fix_navbar="false"></vue-navbar>
             <div class="container">
                 <div class="columns is-centered">
                     <div class="column is-two-thirds">
@@ -64,5 +63,4 @@
         </div>
     </section>
 </form>
-</body>
 {% endblock %}

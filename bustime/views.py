@@ -1,4 +1,5 @@
 import datetime as dt
+import logging
 import math
 import re
 import urllib.request
@@ -8,9 +9,11 @@ from zoneinfo import ZoneInfo
 import pandas as pd
 import requests
 from django.contrib.auth.decorators import login_not_required
-from django.http import JsonResponse
+from django.shortcuts import render
 from django.utils.decorators import method_decorator
 from django.views.generic import TemplateView
+
+logger = logging.getLogger(__name__)
 
 # Every time in this module is a Tokyo wall-clock time: the timetable, the
 # realtime feed and the "is it hot" window are all published in JST. The host's
@@ -59,11 +62,15 @@ def get_bus_time(url, station, line, direction):
     return list_times
 
 
-# bustime is a personal bus timetable with no user data, and is deliberately
-# reachable without logging in. LoginRequiredMiddleware denies by default, so
-# that has to be stated rather than assumed.
-@login_not_required
-def get_time_to_next_hana(_):
+NO_REALTIME_INFO = (-1, '-')
+
+
+def get_realtime_status():
+    """(stops away, minutes to wait) for the next 新宿駅西口-bound bus.
+
+    `(-1, '-')` means the feed had nothing approaching. `(0, 0)` means
+    まもなく -- the page says a bus is imminent and gives no minute count.
+    """
     url = 'https://tobus.jp/blsys/navi?LCD=&VCD=cresultrsi&ECD=aprslt&slst=1235'
     page = requests.get(
         url,
@@ -75,17 +82,34 @@ def get_time_to_next_hana(_):
     time_list = status.iloc[0].str.extract(r'新宿駅西口行([0-9]+)分待').dropna()
 
     if is_soon:
-        bus_stop = 0
-        bus_wait = 0
-    else:
-        try:
-            bus_stop = int(time_list.iloc[0].name / 2)
-            bus_wait = f'{int(time_list.iloc[0][0])}'
-        except IndexError:
-            bus_stop = -1
-            bus_wait = '-'
+        return 0, 0
+    try:
+        return int(time_list.iloc[0].name / 2), f'{int(time_list.iloc[0][0])}'
+    except IndexError:
+        return NO_REALTIME_INFO
 
-    return JsonResponse({
+
+# bustime is a personal bus timetable with no user data, and is deliberately
+# reachable without logging in. LoginRequiredMiddleware denies by default, so
+# that has to be stated rather than assumed.
+@login_not_required
+def get_time_to_next_hana(request):
+    """The realtime panel, as an HTML fragment htmx polls every 10 seconds.
+
+    It used to return JSON for the Vue page to render, with the failure case
+    handled by an `axios.catch` that set the "no info" sentinel. htmx has no
+    equivalent -- a 500 just leaves the previous fragment on screen -- and a
+    tobus.jp outage would otherwise log a traceback every ten seconds for
+    every open tab. So the scrape failing is the same "no info" state the
+    feed itself reports when nothing is approaching.
+    """
+    try:
+        bus_stop, bus_wait = get_realtime_status()
+    except Exception as e:
+        logger.warning(f'Realtime bus lookup failed, showing no info: {e}')
+        bus_stop, bus_wait = NO_REALTIME_INFO
+
+    return render(request, 'bustime/_realtime.html', {
         'real_next_bus_stop': bus_stop,
         'real_next_bus_wait': bus_wait,
     })
@@ -115,10 +139,18 @@ class BusTimeMain(TemplateView):
         line = '白６１'
         direction = '練馬駅・練馬車庫前' if from_shinjuku else '新宿駅西口'
         context['list_times'] = get_bus_time(url, stationMain, line, direction)
+        # Epoch milliseconds for the Alpine countdown, which needs to compare
+        # departures against the *browser's* clock -- a JST-formatted string
+        # would be a wall-clock time in an unstated zone.
+        context['departure_times_ms'] = [
+            int(t.timestamp() * 1000) for t in context['list_times']]
         context['busStopMain'] = {'name': stationMain,
                                   'class': class_main}
         context['busStopOther'] = {'name': stationOther,
                                    'class': class_other}
+        # Only 花園町 has a realtime feed; the Vue page expressed this by
+        # simply never starting the poller on the other stop.
+        context['has_realtime'] = stationMain == '花園町'
         # Tokyo's month, not the host's: on a UTC clock the last nine hours of
         # 30 September are still September locally but already October in JST.
         context['hot_day'] = 6 < dt.datetime.now(JST).month < 10

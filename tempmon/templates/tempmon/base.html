@@ -1,54 +1,33 @@
+{% extends 'base.html' %}
 {% load static %}
-<!DOCTYPE html>
-<html lang="en">
-  <head>
-        <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1">
-        <title>Temperature monitor</title>
-        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
 
-        <link rel="apple-touch-icon" sizes="180x180" href="{% static 'tempmon/favicon_io/apple-touch-icon.png' %}">
-        <link rel="icon" type="image/png" sizes="32x32" href="{% static 'tempmon/favicon_io/favicon-32x32.png' %}">
-        <link rel="icon" type="image/png" sizes="16x16" href="{% static 'tempmon/favicon_io/favicon-16x16.png' %}">
-        <link rel="manifest" href="{% static 'tempmon/favicon_io/site.webmanifest' %}">
+{% block title %}{% block page_title %}Temperature monitor{% endblock %}{% endblock %}
 
-        <link rel="stylesheet" href="{% static 'js/node_modules/buefy/lib/buefy.css' %}">
-        <link rel="stylesheet" href="{% static 'js/node_modules/@mdi/font/css/materialdesignicons.min.css' %}">
-        {% if debug %}
-            <script src="{% static 'js/node_modules/vue/dist/vue.js' %}"></script>
-        {% else %}
-            <script src="{% static 'js/node_modules/vue/dist/vue.min.js' %}"></script>
-        {% endif %}
-        <script src="{% static 'js/node_modules/buefy/lib/index.js' %}"></script>
-        <script src="{% static 'js/node_modules/axios/dist/axios.min.js' %}"></script>
+{% block favicon %}
+<link rel="apple-touch-icon" sizes="180x180" href="{% static 'tempmon/favicon_io/apple-touch-icon.png' %}">
+<link rel="icon" type="image/png" sizes="32x32" href="{% static 'tempmon/favicon_io/favicon-32x32.png' %}">
+<link rel="icon" type="image/png" sizes="16x16" href="{% static 'tempmon/favicon_io/favicon-16x16.png' %}">
+<link rel="manifest" href="{% static 'tempmon/favicon_io/site.webmanifest' %}">
+{% endblock favicon %}
 
-        <style>
-          [v-cloak] {
-            display: none;
-          }
-        </style>
-
-  </head>
-<body>
-{% if psn_ok %}
-<section class="hero is-primary is-small">
-{% else %}
-<section class="hero is-danger is-small">
-{% endif %}
-  <div class="hero-body">
-    <p class="title">
-        {% block title %}
-        <img src="{% static 'tempmon/icon_white.png' %}" alt="Tempmon">  Temperature monitor
-        {% endblock%}
-    </p>
-    <p class="subtitle">
-      {% block subtitle %}{% endblock%}
-    </p>
-  </div>
+{% block navbar %}
+<section class="hero {% if psn_ok %}is-primary{% else %}is-danger{% endif %} is-small">
+    <div class="hero-body">
+        <p class="title">
+            {% block hero_title %}
+            <img src="{% static 'tempmon/icon_white.png' %}" alt="Tempmon"> Temperature monitor
+            {% endblock %}
+        </p>
+        <p class="subtitle">
+            {% block subtitle %}{% endblock %}
+        </p>
+    </div>
 </section>
+{% endblock %}
+
+{% block body %}
 <section class="section">
-{% block details_table %}{% endblock%}
-{% block body2 %}{% endblock%}
+{% block details_table %}{% endblock %}
+{% block body2 %}{% endblock %}
 </section>
-</body>
-</html>
+{% endblock %}

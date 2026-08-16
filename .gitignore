@@ -2,7 +2,12 @@
 # /etc/kukan/kukan.env (prod) and .env (dev), neither of which is committed.
 .env
 logs/
-static/
+# Anchored: an unanchored `static/` also matches kukan/static/, the app's
+# static *source* directory, and silently swallows anything new added under
+# it (found the hard way — this is the same class of bug that ate
+# scrub_local_db.py via an unanchored `*db*`). Only STATIC_ROOT, the
+# collectstatic *output* directory at the repo root, should be ignored.
+/static/
 **/__pycache__/
 *sqlite*
 venv/

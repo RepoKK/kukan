@@ -1,0 +1,18 @@
+{# Polled every 10s by bustime_main.html, which owns the hx- attributes. #}
+<div class="hero-body has-background-warning is-warning">
+    {% if real_next_bus_stop == -1 %}
+    <p>接近情報: 該当なし</p>
+    {% else %}
+    <p>リアルタイム情報</p>
+    <p>接近情報：<span class="title">{{ real_next_bus_stop }}</span>停前</p>
+    {% if real_next_bus_stop == 0 %}
+    <p><span class="subtitle is-3">まもなく到着</span></p>
+    {% else %}
+    <p>
+        <span class="subtitle is-3">待ち時間：約</span>
+        <span class="title is-1">{{ real_next_bus_wait }}</span>
+        <span class="subtitle is-3">分</span>
+    </p>
+    {% endif %}
+    {% endif %}
+</div>

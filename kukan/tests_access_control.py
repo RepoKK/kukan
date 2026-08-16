@@ -3,11 +3,17 @@
 These exist because of a real bypass found while backfilling tests before the
 dependency upgrades.
 
-`AjaxList.dispatch` routes `?ajax=1` straight to `self.get_list` instead of to
+`AjaxList.dispatch` routed `?ajax=1` straight to `self.get_list` instead of to
 `super().dispatch()`. `LoginRequiredMixin` does its work *in* `dispatch`, so
 the ajax branch skipped the login check entirely. The HTML page redirected to
 /login exactly as intended, which is why it went unnoticed: the only way to see
 it was to request the JSON directly.
+
+`AjaxList` is gone -- every list view is a `FilteredListView`, which has no
+second dispatch path to get the check wrong on -- but the tests stay, aimed at
+the htmx partial that replaced the JSON endpoint. The shape of the mistake
+(one view, two entry points, the guard on only one of them) is what they
+guard against, and that outlives the class it was found in.
 
 The effect was that every list view — kanji, 四字熟語, 例文, 諺, test results,
 and both tempmon lists — served its full contents to anonymous callers, with
@@ -33,22 +39,22 @@ PUBLIC_URL_NAMES = {
     'bustime:get_time_to_next_hana',
     # The sensor endpoint authenticates with a shared key in the body, not a
     # session. Covered in detail by tempmon.tests_api_contract.
-    'add_temp_point',
+    'tempmon:add_temp_point',
 }
 
-# Every list view built on AjaxList, by URL name.
-AJAX_LIST_URLS = [
+# Every list view, by URL name. All are FilteredListView subclasses.
+LIST_VIEW_URLS = [
     'kukan:kanji_list',
     'kukan:yoji_list',
     'kukan:example_list',
     'kukan:kotowaza_list',
     'kukan:test_result_list',
-    'session_list',
-    'game_list',
+    'tempmon:session_list',
+    'tempmon:game_list',
 ]
 
 
-class TestAjaxListRequiresLogin(TestCase):
+class TestListViewRequiresLogin(TestCase):
     """The regression test for the bypass. One case per list view."""
 
     def setUp(self):
@@ -60,37 +66,58 @@ class TestAjaxListRequiresLogin(TestCase):
             f'{url} served content to an anonymous caller')
         self.assertIn('/login', response['Location'])
 
+    def assertHtmxRedirectsToLogin(self, response, url):
+        """`HtmxLoginRedirectMiddleware` turns the 302 into an `HX-Redirect`
+        header, because htmx would otherwise follow the redirect itself and
+        swap the login page into the results table.
+
+        That is a 200 by design -- `HttpResponseClientRedirect` has to be one
+        for htmx to read the header at all -- so the status code says nothing
+        here. What matters is the header, and that the body carries no rows.
+        """
+        self.assertIn('/login', response.get('HX-Redirect', ''),
+                      f'{url} did not send an anonymous htmx caller to login')
+        self.assertNotIn(b'<table', response.content,
+                         f'{url} served a results table to an anonymous caller')
+        self.assertNotIn(b'id="results"', response.content)
+
     def test_html_page_requires_login(self):
-        for name in AJAX_LIST_URLS:
+        for name in LIST_VIEW_URLS:
             with self.subTest(view=name):
                 url = reverse(name)
                 self.assertRedirectsToLogin(self.client.get(url), url)
 
-    def test_ajax_endpoint_requires_login(self):
-        """The bypass. This is the assertion that was failing."""
-        for name in AJAX_LIST_URLS:
+    def test_htmx_partial_requires_login(self):
+        """The modern shape of the bypass: `FilteredListView` branches on
+        `request.htmx` to serve the bare results fragment instead of the
+        page. It branches in `get_template_names`, well after the guard, but
+        assert it rather than trust it."""
+        for name in LIST_VIEW_URLS:
+            with self.subTest(view=name):
+                url = reverse(name)
+                response = self.client.get(url, HTTP_HX_REQUEST='true')
+                self.assertHtmxRedirectsToLogin(response, url)
+
+    def test_legacy_ajax_parameter_is_not_a_way_back_in(self):
+        """`?ajax=1` is now just an unrecognised query parameter. It must stay
+        that way, and never resurrect a JSON body."""
+        for name in LIST_VIEW_URLS:
             with self.subTest(view=name):
                 url = reverse(name)
                 response = self.client.get(url, {'ajax': '1'})
                 self.assertRedirectsToLogin(response, url)
-
-    def test_ajax_endpoint_returns_no_data_to_anonymous_caller(self):
-        """Belt and braces: whatever the status, it must not be a JSON body."""
-        for name in AJAX_LIST_URLS:
-            with self.subTest(view=name):
-                response = self.client.get(reverse(name), {'ajax': '1'})
                 self.assertNotEqual(response.get('Content-Type', ''),
                                     'application/json')
 
-    def test_ajax_with_paging_and_sorting_requires_login(self):
+    def test_paging_and_sorting_require_login(self):
         """The bypass was fully featured; make sure no parameter combination
         finds a way back in."""
-        for name in AJAX_LIST_URLS:
+        for name in LIST_VIEW_URLS:
             with self.subTest(view=name):
                 url = reverse(name)
                 response = self.client.get(
-                    url, {'ajax': '1', 'page': '2', 'sort_by': 'pk'})
-                self.assertRedirectsToLogin(response, url)
+                    url, {'page': '2', 'sort_by': 'pk'}, HTTP_HX_REQUEST='true')
+                self.assertHtmxRedirectsToLogin(response, url)
 
 
 class LogoutTest(TestCase):
@@ -205,7 +232,7 @@ class TestEveryNamedViewIsClassified(TestCase):
         that was actually exposed.
         """
         covered = {name for name, _ in self.get_checkable_urls()}
-        for name in ['psn_npsso_update', 'kukan:kanji_detail',
+        for name in ['tempmon:psn_npsso_update', 'kukan:kanji_detail',
                      'kukan:example_detail']:
             self.assertIn(name, covered)
 

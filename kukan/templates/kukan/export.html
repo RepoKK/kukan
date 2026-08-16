@@ -1,22 +1,38 @@
-{% extends 'kukan/base_ext.html' %}
+{% extends 'base_ext.html' %}
 {% block content %}
 <section class="section">
         <form action="{% url 'kukan:export' %}" method="post">
             {% csrf_token %}
-            <b-field label="{{ form.profile.label }}">
-                <b-select placeholder="{{ form.profile.label }}"　name="profile">
-                    {% for x,y in form.fields.profile.choices %}
-                        <option value="{{ x }}"{% if form.fields.gender.value == x %} selected{% endif %}>{{ y }}</option>
-                    {% endfor %}
-                </b-select>
-            </b-field>
-            <b-field label="{{ form.type.label }}">
-                <b-select placeholder="{{ form.type.label }}"　name="choice">
-                    {% for x,y in form.fields.type.choices %}
-                        <option value="{{ x }}"{% if form.fields.gender.value == x %} selected{% endif %}>{{ y }}</option>
-                    {% endfor %}
-                </b-select>
-            </b-field>
+            {% comment %} The view reads request.POST['profile']/['choice'] directly
+               (kukan/views.py ExportView.render_to_response), not through
+               form.cleaned_data, so these two <select> names must stay
+               "profile" and "choice" -- "choice" does not match the form
+               field's own name, "type". Rendered by hand rather than via
+               {{ form.type }} for exactly that reason. {% endcomment %}
+            <div class="field">
+                <label class="label">{{ form.profile.label }}</label>
+                <div class="control">
+                    <div class="select">
+                        <select name="profile">
+                            {% for value, label in form.fields.profile.choices %}
+                            <option value="{{ value }}">{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="field">
+                <label class="label">{{ form.type.label }}</label>
+                <div class="control">
+                    <div class="select">
+                        <select name="choice">
+                            {% for value, label in form.fields.type.choices %}
+                            <option value="{{ value }}">{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+            </div>
             <input type="submit" class="button is-primary" value="実行" />
         </form>
 </section>

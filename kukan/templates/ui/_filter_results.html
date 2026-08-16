@@ -1,0 +1,34 @@
+{% comment %}
+Filter bar and results together, under one id.
+
+Two swap targets exist on a list page, and the difference matters:
+
+* `#filter-results` (this) — what the filter form replaces. Applying or
+  removing a filter re-renders the chips as well as the rows, so the bar's
+  state always comes from the query string rather than from Alpine.
+* `#results` (ui/_table.html) — what a sort header or a page link replaces.
+  Those change neither the filters nor which chips are up, and re-rendering
+  the bar would close any dropdown the user had open.
+
+`FilteredListView.get_template_names` picks between them on the `HX-Target`
+header htmx sends.
+{% endcomment %}
+{% comment %}
+`hx-indicator` here rather than on each link: htmx resolves it by walking up
+from whatever made the request, so one attribute covers the sort headers and
+page links inside `#results` — which are swapped away and rebuilt on every
+request — as well as the filter form.
+
+The spinner sits between the two swap targets on purpose. Inside `#results` it
+would be replaced by the very swap it is reporting on; outside `#filter-results`
+it would need a wrapper in all seven list templates.
+{% endcomment %}
+<div id="filter-results" hx-indicator="#list-spinner">
+    {% include 'ui/_filter_bar.html' %}
+    <div class="list-results">
+        <div id="list-spinner" class="htmx-indicator list-spinner" aria-hidden="true">
+            <span class="loader"></span>
+        </div>
+        {% include 'ui/_table.html' %}
+    </div>
+</div>

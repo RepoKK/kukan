@@ -1,87 +1,136 @@
 {% extends 'tempmon/base_details.html' %}
-{% block switch_page %}<a href="{% url 'session_details' object.id %}">Details</a>{% endblock%}
+{% load static %}
+{% block switch_page %}<a href="{% url 'tempmon:session_details' object.id %}">Details</a>{% endblock %}
 {% block body3 %}
 <div class="block">
-    <canvas id="myChart"></canvas>
-    <!-- Somehow below prevent the graph to slowly resize after initial display -->
-    <p style="visibility: hidden">_dummy_</p>
+    <div id="chart" style="width: 100%; height: 400px;"></div>
 </div>
 <div class="block">
-    <table class='table is-narrow ' border="0">
-        {% for g in games_legend.items %}
-        <tr><td bgcolor="{{g.1.1}}" style="width: 50px"></td><td>{{g.1.0}}</td><td>{{g.1.2}}</td></tr>
+    <table class="table is-narrow">
+        {% for pk, entry in games_legend.items %}
+        <tr>
+            <td style="width: 50px; background-color: {{ entry.1 }}"></td>
+            <td>{{ entry.0 }}</td>
+            <td>{{ entry.2 }}</td>
+        </tr>
         {% endfor %}
     </table>
 </div>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
+{{ temp_data|json_script:"temp-data" }}
+{{ temp_delta|json_script:"temp-delta" }}
+{{ graph_background|json_script:"graph-background" }}
+<script src="{% static 'vendor/echarts/echarts.min.js' %}"></script>
 <script>
-const ctx = document.getElementById('myChart');
+(function () {
+    const readJson = id => JSON.parse(document.getElementById(id).textContent);
+    const xy = points => points.map(p => [p.x, p.y]);
 
-const plugin = {
-  id: 'bgColorArea',
-  beforeDraw(chart, args, options) {
-    const {ctx, chartArea: {left, top, width, bottom}, scales: {x, y}} = chart;
-    const colorBands = {{graph_background|safe}}
-    const x_start = x.getPixelForValue(0);
-    const y_start = y.getPixelForValue(y.min);
-    ctx.save();
-    for (let i = 0; i < colorBands.length; i++) {
-        const x1 = x.getPixelForValue(colorBands[i][0]);
-        const x2 = x.getPixelForValue(colorBands[i][1]);
-        ctx.fillStyle = colorBands[i][2];
-        ctx.fillRect(x1, top, x2 - x1, y_start - top);
-    }
-    ctx.restore();
-  }
-};
+    const tempData = readJson('temp-data');
+    const tempDelta = readJson('temp-delta');
+    const bands = readJson('graph-background');
+    const chart = echarts.init(document.getElementById('chart'));
 
-const graph_data = {
-    datasets: [{
-        label: 'Temperature (℃)',
-        data: {{temp_data|safe}},
-        fill: false,
-        borderColor: 'rgb(75, 192, 192)',
-        backgroundColor: 'rgb(75, 192, 192)',
-        tension: 0.1
-    }, {
-        type: 'bar',
-        label: 'Temp. delta (℃)',
-        data: {{temp_delta|safe}},
-        fill: false,
-        borderColor: 'rgb(75, 192, 192)',
-        yAxisID: 'y1',
-    }]
-};
+    chart.setOption({
+        tooltip: {
+            trigger: 'axis',
+            axisPointer: {type: 'cross'},
+            // Both series are raw sensor arithmetic — a reading, and the
+            // difference between two readings — so they arrive as full
+            // floats and the hover box read "31.700000000000003". Two
+            // decimals matches the ℃ figures in the details table above.
+            valueFormatter: value => value.toFixed(2)
+        },
+        legend: {data: ['Temperature (℃)', 'Temp. delta (℃)']},
+        grid: {left: 50, right: 20, top: 40, bottom: 40},
+        xAxis: {
+            type: 'value',
+            min: 'dataMin',
+            max: 'dataMax',
+            name: 'Minutes',
+            nameLocation: 'middle',
+            nameGap: 25,
+            // A gridline every quarter hour, and one per degree below, so a
+            // temperature can be read off the chart rather than estimated
+            // between two auto-placed ticks. `interval` drives the labels as
+            // well as the lines, and a long session would run them into each
+            // other, so overlapping ones are dropped — the gridlines stay.
+            interval: 15,
+            axisLabel: {hideOverlap: true},
+            splitLine: {show: true},
+            z: 3
+        },
+        yAxis: [
+            {
+                type: 'value',
+                scale: true,
+                name: '℃',
+                // Whole degrees, so the gridlines land on the numbers being
+                // read off them. `scale: true` alone stops at the data extent
+                // and labels it, which puts a stray 32.5 above the last whole
+                // degree; rounding the bounds outwards keeps every tick an
+                // integer.
+                min: value => Math.floor(value.min),
+                max: value => Math.ceil(value.max),
+                interval: 1,
+                axisLabel: {hideOverlap: true},
+                splitLine: {show: true},
+                z: 3
+            },
+            // The delta series' axis. `show: false` takes its gridlines with
+            // it, which is what keeps the two scales from drawing two
+            // interleaved sets of horizontal lines.
+            {type: 'value', scale: true, show: false}
+        ],
+        series: [{
+            // The per-game background bands, on a series of their own with
+            // no data. They replace a hand-written chart.js `beforeDraw`
+            // plugin that filled rectangles onto the canvas by pixel;
+            // markArea is the built-in version and survives a resize.
+            //
+            // Separate rather than hung off the temperature line so it can
+            // sit at its own depth. The band colours are opaque, so whatever
+            // draws under them is invisible; the chart.js plugin got the
+            // right order for free by painting before the chart, and here it
+            // has to be stated. A markArea ignores its own series' `z`
+            // (measured: setting it changes nothing), so the layering is done
+            // from the other side — the axes are lifted to z 3 and the two
+            // data series to z 4, leaving the bands at the series default 2.
+            // Order ends up bands < gridlines < data, as it was.
+            type: 'line',
+            data: [],
+            silent: true,
+            markArea: {
+                silent: true,
+                data: bands.map(([start, end, colour]) => [
+                    {xAxis: start, itemStyle: {color: colour}},
+                    {xAxis: end}
+                ])
+            }
+        }, {
+            name: 'Temperature (℃)',
+            type: 'line',
+            smooth: 0.1,
+            symbol: 'none',
+            itemStyle: {color: 'rgb(75, 192, 192)'},
+            data: xy(tempData),
+            z: 4
+        }, {
+            name: 'Temp. delta (℃)',
+            type: 'bar',
+            yAxisIndex: 1,
+            // Grey, not the line's teal. The old dataset set `borderColor`
+            // only, so the bars took chart.js's default fill — this value —
+            // and stayed in the background where they belong: they are a
+            // per-reading difference, not a second reading. ECharts has no
+            // such default and was colouring them like the temperature line.
+            itemStyle: {color: 'rgba(0, 0, 0, 0.1)'},
+            data: xy(tempDelta),
+            z: 4
+        }]
+    });
 
-new Chart(ctx, {
-     type: 'line',
-     plugins: [plugin],
-     data: graph_data,
-     options: {
-        responsive: true,
-         scales: {
-             x: {
-                 type: 'linear',
-                 beginAtZero: true,
-                 offset: false,
-                 bounds: 'data',
-             },
-             y: {
-                 type: 'linear',
-                 beginAtZero: false
-             },
-             y1: {
-                 type: 'linear',
-                 beginAtZero: false,
-                 display: false,
-                 position: 'right',
-                 grid: {
-                     drawOnChartArea: false, // only want the grid lines for one axis to show up
-                 },
-             }
-         }
-    }
-});
+    window.addEventListener('resize', () => chart.resize());
+})();
 </script>
-{% endblock%}
+{% endblock %}

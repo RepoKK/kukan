@@ -1,24 +1,34 @@
 import logging
-import time
 from collections import defaultdict, deque
 from functools import reduce
 
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.core.paginator import EmptyPage, Paginator
-from django.db.models import Count
+from django.db.models import Count, Q
 from django.http import JsonResponse
 from django.urls import reverse, reverse_lazy
 from django.utils import timezone
+from django.utils.html import format_html
 from django.views import generic
 from django.views.generic.base import TemplateView
 from django.views.generic.edit import CreateView, DeleteView, UpdateView
 
+import kukan.jautils as jau
 from kukan.exporting import ExporterAsResp
 from kukan.jautils import JpnText
+from kukan.listview import FilteredListView
 from kukan.onlinepedia import DefinitionWordBase
 
-from .filters import *
+from .filters import (
+    FBushu,
+    FGenericCheckbox,
+    FGenericDateRange,
+    FGenericMinMax,
+    FGenericString,
+    FGenericYesNo,
+    FYomi,
+    FYomiSimple,
+)
 from .forms import ExampleForm, ExportForm, KotowazaForm, SearchForm
 from .models import Example, ExMap, Kanji, Kotowaza, Reading, TestResult, Yoji
 
@@ -93,7 +103,7 @@ class StatsPage(LoginRequiredMixin, TemplateView):
         data['joyo'] = 0
         data['non_joyo'] = 0
         data_list.append(data.copy())
-        context['stats_table_data'] = json.dumps(data_list)
+        context['stats_data'] = data_list
         return context
 
 
@@ -143,7 +153,11 @@ class TableData:
             if self.get_choice_display:
                 value = self.get_choice_display[value]
             if self.link_fn is not None:
-                value = '<a href="' + self.link_fn(obj) + '/">' + str(value) + '</a>'
+                # format_html escapes both arguments; the old string
+                # concatenation here did not, which was harmless only as long
+                # as every caller kept treating the result as v-html'd JSON
+                # rather than server-rendered HTML.
+                value = format_html('<a href="{}/">{}</a>', self.link_fn(obj), value)
             return self.props['field'], value
 
         def add_link(self, obj):
@@ -192,167 +206,46 @@ class TableData:
         return {'columns': self.get_col_template(), 'data': self.get_table_data(lst)}
 
 
-class AjaxList(LoginRequiredMixin, generic.TemplateView):
-    model = None
-    table_data = None
-    default_sort = None
-    filters = None
-    list_title = 'LIST_TITLE'
-    is_mobile_card = True
-
-    def __init__(self):
-        super().__init__()
-        self.object_counter = '件'
-
-    def dispatch(self, request, *args, **kwargs):
-        # The ajax branch below bypasses super().dispatch(), which is where
-        # LoginRequiredMixin does its work, so the check has to happen here.
-        # Without it, `?ajax=1` served the whole table to anonymous callers
-        # while the HTML page correctly redirected to the login form.
-        if not request.user.is_authenticated:
-            return self.handle_no_permission()
-        if request.method.lower() == 'get' and request.GET.get('ajax', None) == '1':
-            handler = self.get_list
-        else:
-            handler = super().dispatch
-        return handler(request, *args, **kwargs)
-
-    def get_sortable_fields(self):
-        """Field names the table actually displays, which are the only ones
-        worth ordering by."""
-        return {col['field'] for col in self.table_data.get_col_template()}
-
-    def clean_sort_by(self, sort_by):
-        """Constrain `sort_by` to the displayed columns.
-
-        It arrives straight from the query string and used to go straight into
-        `order_by()`. Two consequences:
-
-        * an unknown name raised FieldError, so `?sort_by=nope` was a 500;
-        * any ORM path was accepted, including relation traversals such as
-          `kanjis__kanjidetails__anki_English`. Ordering by a field reveals
-          something about its values even when the field is not displayed, and
-          a deep join is expensive to run.
-
-        Anything not on the allow-list silently falls back to the default,
-        which is what the page would have shown anyway.
-        """
-        if not sort_by:
-            return self.default_sort
-        if sort_by.removeprefix('-') in self.get_sortable_fields():
-            return sort_by
-        return self.default_sort
-
-    def get_list(self, request):
-        page = request.GET.get('page', 1)
-        sort_by = self.clean_sort_by(request.GET.get('sort_by', self.default_sort))
-        table_data = {'page': int(page), 'sort_by': sort_by, 'columns': '', 'data': []}
-        start_time = time.time()
-        qry = self.get_filtered_list(request)
-
-        try:
-            p = Paginator(qry.order_by(sort_by), 20, allow_empty_first_page=True)
-            table_data.update(self.table_data.get_table_full(p.page(page).object_list))
-            end_time = time.time()
-            data = {'total_results': p.count, 'table_data': table_data,
-                    'stats': self.get_stats(qry, p, start_time, end_time)}
-            data.update(self.get_extra_json(p, page, qry))
-        except EmptyPage:
-            data = {'total_results': 0, 'table_data': table_data, 'stats': '0 ' + self.object_counter}
-
-        return JsonResponse(data)
-
-    # noinspection PyUnusedLocal,PyMethodMayBeStatic
-    def get_extra_json(self, p, page, qry):
-        return {}
-
-    # noinspection PyUnusedLocal
-    def get_stats(self, qry, p, start_time, end_time):
-        return [str(p.count) + ' ' + self.object_counter,
-                'Q:' + f'{int((end_time - start_time)*1000):d}']
-
-    def get_filtered_list(self, request):
-        qry = self.model.objects.all()
-        for flt in self.filters:
-            qry = flt.filter(request, qry)
-        return qry
-
-    def get_context_data(self, **kwargs):
-        filter_list = ""
-        for flt in self.filters:
-            flt.value = self.request.GET.get(flt.label, '')
-            filter_list += flt.to_json() + ",\n"
-        filter_list = "[" + filter_list + "]"
-
-        flt_order = []
-        for flt in self.filters:
-            flt_order.append(flt.label)
-
-        active_filters = []
-        for f_req in self.request.GET:
-            try:
-                idx = flt_order.index(f_req)
-                if idx > -1:
-                    active_filters.append(idx)
-            except ValueError:
-                pass
-
-        context = super().get_context_data(**kwargs)
-        context['filter_list'] = filter_list
-        context.update(FFilter.get_filter_context_strings())
-        context['active_filters'] = active_filters
-
-        page = self.request.GET.get('page', 1)
-        # Same allow-list as get_list, so the HTML shell and the ajax response
-        # cannot disagree about which column the table is sorted on.
-        sort_by = self.clean_sort_by(
-            self.request.GET.get('sort_by', self.default_sort))
-        context['table_data'] = json.dumps({'page': int(page), 'sort_by': sort_by, 'columns': '', 'data': []})
-
-        context['list_title'] = self.list_title
-        context['is_mobile_card'] = self.is_mobile_card
-
-        return context
-
-
-class KanjiListFilter(AjaxList):
+class KanjiListFilter(FilteredListView):
     model = Kanji
-    template_name = 'kukan/default_list.html'
+    template_name = 'kukan/kanji_list.html'
     default_sort = 'kanken'
     list_title = '漢字'
-    is_mobile_card = False
     filters = [
         FGenericString('漢字', 'kanji', 'kanji__in', list),
         FYomi(),
         FBushu(),
         FGenericMinMax('画数', 'strokes'),
-        FGenericCheckbox('種別', 'classification__classification', model,
+        FGenericCheckbox('種別', 'classification__classification', Kanji,
                          order='-classification__classification', none_label='常用・人名以外'),
-        FGenericCheckbox('JIS水準', 'jis__level', model, none_label='JIS水準不明'),
-        FGenericCheckbox('漢検', 'kanken__kyu', model, is_two_column=True, order='-kanken__difficulty'),
+        FGenericCheckbox('JIS水準', 'jis__level', Kanji, none_label='JIS水準不明'),
+        FGenericCheckbox('漢検', 'kanken__kyu', Kanji, is_two_column=True, order='-kanken__difficulty'),
         FGenericMinMax('例文数', 'ex_num'),
     ]
-    table_data = TableData(model, [
+    table_data = TableData(Kanji, [
         {'name': 'kanji', 'link': TableData.FieldProps.link_pk('kanji')},
         {'name': 'kouki_bushu', 'format': lambda x: str(x)[0]},
         'kanken', 'strokes', 'classification',
         {'name': 'ex_num', 'label': '例文数'},
     ])
 
-    def get_filtered_list(self, request):
+    def get_queryset(self):
+        # ex_num must be annotated before the filters run: FGenericMinMax
+        # filters directly on it. FilteredListView.get_queryset does not
+        # know about this annotation, so it is fully overridden rather than
+        # extended.
         val_ex = Count('exmap', filter=~Q(exmap__example__sentence=''))
         qry = Kanji.objects.annotate(ex_num=val_ex)
-
         for flt in self.filters:
-            qry = flt.filter(request, qry)
+            qry = flt.filter(self.request, qry)
+        return qry.order_by(self.sort_by)
 
-        return qry
 
-
-class YojiList(AjaxList):
+class YojiList(FilteredListView):
     model = Yoji
     template_name = 'kukan/yoji_list.html'
     default_sort = 'kanken'
+    list_title = '四字熟語'
     filters = [
         FGenericString('漢字', 'yoji'),
         FGenericString('分類', 'bunrui__bunrui'),
@@ -364,11 +257,15 @@ class YojiList(AjaxList):
         {'name': 'yoji', 'link': TableData.FieldProps.link_pk('yoji')},
         'reading', 'kanken', 'in_anki'
     ])
+    # The 日課 column needs the whole Yoji instance (for its pk/text) and the
+    # page's own csrf_token, neither of which TableData's format callable can
+    # reach -- see FilteredListView.cell_overrides.
+    cell_overrides = {'in_anki': 'ui/anki_toggle_cell.html'}
 
 
-class ExampleList(AjaxList):
+class ExampleList(FilteredListView):
     model = Example
-    template_name = 'kukan/default_list.html'
+    template_name = 'kukan/example_list.html'
     default_sort = 'kanken'
     list_title = '例文'
     filters = [
@@ -387,9 +284,9 @@ class ExampleList(AjaxList):
     ])
 
 
-class KotowazaList(AjaxList):
+class KotowazaList(FilteredListView):
     model = Kotowaza
-    template_name = 'kukan/default_list.html'
+    template_name = 'kukan/kotowaza_list.html'
     default_sort = 'kotowaza'
     list_title = '諺'
     filters = [
@@ -401,10 +298,11 @@ class KotowazaList(AjaxList):
     ])
 
 
-class TestResultList(AjaxList):
+class TestResultList(FilteredListView):
     model = TestResult
     template_name = 'kukan/test_result_list.html'
     default_sort = '-date'
+    list_title = '試験結果'
     filters = [
         FGenericCheckbox('名前', 'name', model),
         FGenericCheckbox('漢検', 'kanken__kyu', model, order='-kanken__difficulty'),
@@ -435,16 +333,35 @@ class KanjiDetail(LoginRequiredMixin, generic.DetailView):
                       'yomi', 'sentence', 'kanken']),
                   }
 
+    #: Rows per page inside a tab, matching Buefy's `:per-page="5"`.
+    per_page = 5
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         qry = {'例文': Example.objects.filter(word__contains=context['kanji']
                                             ).exclude(sentence='').exclude(ex_kind=Example.KOTOWAZA),
                '四字熟語': Yoji.objects.filter(yoji__contains=context['kanji']),
                '諺': Example.objects.filter(word__contains=context['kanji'], ex_kind=Example.KOTOWAZA)}
-        context['ctx'] = json.dumps(
-            [{'name': k, 'number': qry[k].count(), 'table_data': v.get_table_full(qry[k])}
-             for k, v in self.table_data.items() if qry[k].count() > 0]
-        )
+        # Was a json.dumps blob for Vue to iterate. The template renders the
+        # tabs server-side now, so it wants the objects.
+        categories = []
+        for name, table in self.table_data.items():
+            objects = list(qry[name])
+            if not objects:
+                continue
+            rows = table.get_table_data(objects)
+            # Sliced here rather than in the template: Django templates
+            # cannot do arithmetic, so paginating there means emitting the
+            # index maths into the markup for JavaScript to redo per row.
+            pages = [rows[i:i + self.per_page]
+                     for i in range(0, len(rows), self.per_page)]
+            categories.append({
+                'name': name,
+                'number': len(objects),
+                'columns': table.get_col_template(),
+                'pages': pages,
+            })
+        context['categories'] = categories
         return context
 
 

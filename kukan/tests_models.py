@@ -24,6 +24,7 @@ import datetime as dt
 
 from django.core.exceptions import ValidationError
 from django.test import TestCase
+from django.utils.safestring import SafeString
 
 from kukan.models import (
     Bunrui,
@@ -107,17 +108,14 @@ class ExampleRenderingTest(TestCase):
             definition='調べ見ること', is_joyo=False)
 
     def test_get_url_is_an_anchor_to_the_detail_page(self):
-        """RAW HTML, and note the unquoted href attribute."""
         self.assertEqual(
             self.example.get_url(),
-            f'<a href=/example/{self.example.pk}/>閲覧</a>')
+            f'<a href="/example/{self.example.pk}/">閲覧</a>')
 
     def test_goo_link_points_at_the_dictionary(self):
-        """RAW HTML. `word` is interpolated twice with no escaping — once into
-        the href and once as the link text."""
         self.assertEqual(
             self.example.goo_link(),
-            '<a href=https://dictionary.goo.ne.jp/srch/all/閲覧/m0u/>閲覧</a>')
+            '<a href="https://dictionary.goo.ne.jp/srch/all/閲覧/m0u/">閲覧</a>')
 
     def test_goo_link_strips_parenthesised_suffix_from_the_url_only(self):
         """'閲覧（する）' searches for 閲覧 but still displays the full word."""
@@ -381,3 +379,103 @@ class TestResultTest(TestCase):
 class BunruiTest(TestCase):
     def test_str(self):
         self.assertEqual(str(Bunrui.objects.create(bunrui='人物')), '人物')
+
+
+class HtmlEmittingModelMethodsTest(TestCase):
+    """Every model method that returns markup returns it *marked safe* and
+    with its inputs escaped.
+
+    These were built by string concatenation and returned plain `str`, which
+    worked only for as long as every consumer was Vue's `v-html` or an Anki
+    field. Server-rendering them needs the opposite of what concatenation
+    gives: the tag marked safe, and everything interpolated into it escaped.
+    A method that gets this wrong fails in one of two visible ways -- literal
+    `&lt;a href=` on the page, or an injection -- and one test each catches
+    both.
+    """
+
+    fixtures = ['baseline', '閲', '覧']
+
+    def setUp(self):
+        self.example = Example.objects.create(
+            word='閲覧', yomi='エツラン', sentence='資料を閲覧する',
+            definition='調べ見ること', is_joyo=False)
+
+    def assertSafeHtml(self, value):
+        self.assertIsInstance(value, SafeString,
+                              f'{value!r} would be escaped by a template')
+
+    def test_example_anchors_are_marked_safe(self):
+        self.assertSafeHtml(self.example.get_url())
+        self.assertSafeHtml(self.example.goo_link())
+        self.assertSafeHtml(self.example.goo_link_exact())
+
+    def test_definition_markdown_is_marked_safe(self):
+        self.example.definition = 'これは **重要** です'
+        self.example.definition2 = '*別の意味*'
+        self.assertSafeHtml(self.example.get_definition_html())
+        self.assertSafeHtml(self.example.get_definition2_html())
+
+    def test_a_word_containing_markup_is_escaped_not_injected(self):
+        self.example.word = '<script>alert(1)</script>'
+        for link in [self.example.get_url(), self.example.goo_link(),
+                     self.example.goo_link_exact()]:
+            with self.subTest(link=link):
+                self.assertNotIn('<script>', link)
+                self.assertIn('&lt;script&gt;', link)
+
+    def test_a_word_containing_a_quote_cannot_break_out_of_the_href(self):
+        """The hrefs used to be unquoted, so escaping alone would not have
+        been enough even once it was added."""
+        self.example.word = 'x" onmouseover="alert(1)'
+        link = self.example.goo_link()
+        self.assertNotIn('onmouseover="', link)
+
+    def test_joined_example_lists_stay_safe(self):
+        """`'、'.join()` over SafeStrings returns a plain str, which the
+        template then escapes -- the anchors would render as visible tags."""
+        reading = Reading.objects.filter(kanji__kanji='閲').first()
+        self.assertSafeHtml(reading.get_list_ex())
+        self.assertSafeHtml(reading.get_list_ex2())
+        self.assertSafeHtml(reading.get_list_ex_anki())
+        self.assertSafeHtml(reading.get_html_format())
+
+    def test_reading_markup_escapes_the_reading_but_keeps_the_okuri_span(self):
+        reading = Reading.objects.filter(kanji__kanji='閲').first()
+        reading.reading = '<b>けみ</b>（する）'
+        rendered = reading.get_html_format()
+        self.assertIn("<span class='okuri'>する</span>", rendered)
+        self.assertNotIn('<b>', rendered)
+
+    def test_kanji_basic_info_anchors_are_marked_safe(self):
+        kanji = Kanji.objects.get(kanji='閲')
+        values = dict(kanji.basic_info2())
+        self.assertSafeHtml(values['外部辞典'])
+
+    def test_kanji_external_ref_is_escaped_into_the_href(self):
+        kanji = Kanji.objects.get(kanji='閲')
+        kanji.kanjidetails.external_ref = 'https://x/" onclick="alert(1)'
+        values = dict(kanji.basic_info2())
+        self.assertNotIn('onclick="', values['外部辞典'])
+
+    def test_a_kanji_with_no_variant_form_gets_no_variant_row(self):
+        """`jitai['alt']` is `[label, [kanji, ...]]` -- a two-element list, so
+        always truthy. Testing it rather than its second element appended a
+        row labelled `None` with an empty value to every kanji without a
+        variant, which is most of them."""
+        kanji = Kanji.objects.get(kanji='閲')
+        self.assertEqual(kanji.jitai['alt'][1], [])
+        self.assertNotIn(None, dict(kanji.basic_info2()))
+
+    def test_a_kanji_with_variant_forms_still_lists_them(self):
+        kanji = Kanji.objects.get(kanji='閲')
+        variant = Kanji.objects.get(kanji='覧')
+        variant.kanjidetails.std_kanji = kanji
+        variant.kanjidetails.save()
+        # `jitai` is a cached_property, so re-read rather than invalidate.
+        kanji = Kanji.objects.get(kanji='閲')
+
+        label = kanji.jitai['alt'][0]
+        values = dict(kanji.basic_info2())
+        self.assertIn(label, values)
+        self.assertIn('覧', values[label])

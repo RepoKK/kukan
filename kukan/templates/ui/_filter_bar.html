@@ -1,0 +1,269 @@
+{% comment %}
+The filter bar: the Buefy chip row and "add filter" dropdown, in Alpine.
+
+Shape, which is the part worth preserving:
+
+* A filter is hidden until you ask for it. `ﾌｨﾙﾀｰ追加 ⊕` opens a dropdown of
+  checkboxes for the ones not on screen; ticking some and pressing 適用 puts
+  those chips up.
+* An active filter is a chip: a button showing its title, or `title: value`
+  once set, highlighted when set, plus an `✕` that removes it and clears it.
+* Clicking the chip opens a dropdown holding that filter's widget and its own
+  適用 button. **Nothing is applied until 適用, or Enter.** The first HTMX
+  version applied on every keystroke, which is wrong for a 6,000-row table.
+
+Every chip is server-rendered and shown or hidden with `x-show`, rather than
+built by `x-for`: the widgets inside are Django partials rendered by
+{% templatetag openblock %} render_filter {% templatetag closeblock %}, and Alpine cannot produce those.
+
+**Applying re-renders this whole bar, not just the table.** The form targets
+`#filter-results`, which wraps the bar and the results together, so after any
+apply the chip labels, the active set and every widget's state come back from
+the server rather than being patched in place. The alternative -- keeping all
+of that in Alpine and swapping only the table -- means two copies of the
+filter state that have to agree, and they stop agreeing the first time a
+widget encodes a value differently from how the chip displays it.
+
+Which chips are up is therefore in the URL: filters carrying a value, plus
+`_show` for ones added but not yet filled in. That also makes the set
+bookmarkable, which the Vue version's client-only `active_filters` was not.
+{% endcomment %}
+{% load util_tags %}
+
+{{ all_filter_labels|json_script:"filter-bar-all" }}
+{{ active_filter_labels|json_script:"filter-bar-active" }}
+
+<form id="filter-form"
+      hx-get="{{ request.path }}"
+      hx-target="#filter-results"
+      hx-push-url="true"
+      hx-swap="outerHTML"
+      hx-trigger="apply"
+      x-data="filterBar()"
+      @keydown.enter.prevent="apply()">
+
+    {% comment %}
+    Carried through every apply. Without these the form would submit only its
+    filter fields, and applying a filter would silently drop the column you
+    had sorted on.
+    {% endcomment %}
+    <input type="hidden" name="sort_by" value="{{ sort_by }}">
+    <input type="hidden" name="page" value="1" x-ref="page">
+    {% comment %}
+    Set at submit time by writeState(), not bound with :value. Alpine applies
+    a binding on its own schedule, and everything here submits immediately
+    after changing `active` -- a bound value would still hold the previous
+    one when htmx serialises the form.
+    {% endcomment %}
+    <input type="hidden" name="_show" x-ref="show" value="{{ active_filter_labels|join:',' }}">
+
+    <div class="columns is-multiline is-mobile is-variable is-1">
+        {% for filter, value in filters %}
+        {% comment %}
+        Every chip is rendered, in the view's order, and shown or hidden by
+        `x-show` — so without help the row always reads in that fixed order, no
+        matter what order the filters were added in. `order` on the flex item
+        puts it back: `active` is in insertion order, so its index is the
+        position the chip should take. The server renders them in the same
+        order (see FilteredListView.get_context_data) so a reload agrees.
+        {% endcomment %}
+        <div class="column is-narrow"
+             x-data="filterChip('{{ filter.label|escapejs }}', '{{ value|escapejs }}', '{{ value|chip_caption:filter.kind|escapejs }}')"
+             x-show="isActive(name)" x-cloak
+             :style="{ order: active.indexOf(name) }">
+            {% comment %}
+            A disabled fieldset submits none of its controls, which is how a
+            removed filter stops being sent. `border:0` because Bulma does not
+            reset the element and the browser default draws a box.
+            {% endcomment %}
+            <fieldset x-ref="fields" :disabled="!isActive(name)"
+                      style="border:0; padding:0; margin:0; min-width:0">
+                <div class="dropdown" :class="{ 'is-active': open }"
+                     @click.outside="open = false">
+                    <div class="dropdown-trigger buttons has-addons mb-0">
+                        <button type="button" class="button is-selected"
+                                :class="{ 'is-primary': applied !== '' }"
+                                @click="open = !open"
+                                aria-haspopup="true" :aria-expanded="open"
+                                x-text="chipLabel()"></button>
+                        <button type="button" class="button"
+                                :class="{ 'is-primary': applied !== '' }"
+                                @click="remove()" aria-label="フィルターを外す">
+                            <span class="icon is-small"><i class="mdi mdi-close"></i></span>
+                        </button>
+                    </div>
+
+                    <div class="dropdown-menu" role="menu">
+                        <div class="dropdown-content">
+                            <div class="dropdown-item">
+                                <nav class="level is-mobile mb-0">
+                                    <div class="level-left">
+                                        <p class="level-item"><strong>{{ filter.label }}</strong></p>
+                                    </div>
+                                    <div class="level-right">
+                                        <button type="button" class="button is-primary is-small"
+                                                @click="apply()">適用</button>
+                                    </div>
+                                </nav>
+                            </div>
+                            <div class="dropdown-item">
+                                {% render_filter filter value %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </fieldset>
+        </div>
+        {% endfor %}
+
+        {% comment %}Always last, whatever the chips reorder themselves to.{% endcomment %}
+        <div class="column is-narrow" x-show="inactive().length > 0" x-cloak
+             style="order: 999">
+            <div class="dropdown" :class="{ 'is-active': addOpen }"
+                 @click.outside="addOpen = false">
+                <div class="dropdown-trigger">
+                    {% comment %}
+                    Bulma tightens a button around a lone icon with
+                    `.icon:first-child:last-child`, pulling half the horizontal
+                    padding back on both sides. Neither `x-show` nor `x-if` can
+                    reach that selector: the hidden span is still an element
+                    child, and `x-if` leaves its `<template>` behind as one. So
+                    the icon matches `:last-child:not(:first-child)` instead,
+                    which adds a *positive* left margin — the empty gap to the
+                    left of the ⊕. `is-icon-only` says so outright and
+                    legacy-parity.css restores the margins.
+                    {% endcomment %}
+                    <button type="button" class="button is-primary is-outlined"
+                            :class="{ 'is-icon-only': active.length > 0 }"
+                            @click="addOpen = !addOpen"
+                            aria-haspopup="true" :aria-expanded="addOpen">
+                        <span x-show="active.length === 0">ﾌｨﾙﾀｰ追加</span>
+                        <span class="icon is-small"><i class="mdi mdi-plus-circle-outline"></i></span>
+                    </button>
+                </div>
+                <div class="dropdown-menu" role="menu">
+                    <div class="dropdown-content">
+                        <div class="dropdown-item">
+                            <nav class="level is-mobile mb-0">
+                                <div class="level-left">
+                                    <p class="level-item"><strong>ﾌｨﾙﾀｰ追加</strong></p>
+                                </div>
+                                <div class="level-right">
+                                    <button type="button" class="button is-primary is-small"
+                                            @click="addChecked()">適用</button>
+                                </div>
+                            </nav>
+                        </div>
+                        <div class="dropdown-item">
+                            <template x-for="label in inactive()" :key="label">
+                                <div class="field">
+                                    <label class="checkbox">
+                                        <input type="checkbox" :value="label" x-model="checked">
+                                        <span class="ml-1" x-text="label"></span>
+                                    </label>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+
+<script>
+document.addEventListener('alpine:init', () => {
+    // Beyond this a chip is wider than the column it sits in.
+    const MAX_CHIP_VALUE = 18;
+
+    const readLabels = (id) => {
+        const el = document.getElementById(id);
+        return el ? JSON.parse(el.textContent) : [];
+    };
+
+    Alpine.data('filterBar', () => ({
+        all: readLabels('filter-bar-all'),
+        active: readLabels('filter-bar-active'),
+        checked: [],
+        addOpen: false,
+
+        isActive(label) { return this.active.includes(label); },
+
+        inactive() { return this.all.filter(l => !this.active.includes(l)); },
+
+        addChecked() {
+            // Appended in the order they were ticked, after the chips already
+            // up, so the bar grows rightwards as you add filters — what the
+            // old one did. Sorting into the view's declared order instead makes
+            // a newly added chip appear somewhere in the middle of the row,
+            // nowhere near where you were just clicking.
+            //
+            // Careful with wording in this file: it is a rendered <script>, and
+            // tests_listview asserts the page mentions neither of the two
+            // frameworks Stage 10 removed. A comment naming one fails the build.
+            this.active = this.active.concat(
+                this.checked.filter(l => !this.active.includes(l)));
+            this.checked = [];
+            this.addOpen = false;
+        },
+
+        // Both hidden fields, written synchronously, then submit. See the
+        // comment on the _show input above.
+        writeState() {
+            // Back to page one: whatever was on page 12 is not what will be
+            // there once the filter changes how many rows there are.
+            this.$refs.page.value = '1';
+            this.$refs.show.value = this.active.join(',');
+        },
+
+        apply() {
+            this.writeState();
+            htmx.trigger(this.$el, 'apply');
+        },
+    }));
+
+    // `applied` decides whether the chip looks set; `caption` is what it says.
+    // They differ for 読み, whose stored value packs the text together with its
+    // radio settings -- see chip_caption in util_tags.
+    Alpine.data('filterChip', (name, initial, caption) => ({
+        name: name,
+        applied: initial,
+        caption: caption,
+        open: false,
+
+        chipLabel() {
+            if (this.applied === '') {
+                return this.name;
+            }
+            const shown = this.caption.length > MAX_CHIP_VALUE
+                ? this.caption.slice(0, MAX_CHIP_VALUE) + '...'
+                : this.caption;
+            return this.name + ': ' + shown;
+        },
+
+        apply() {
+            this.open = false;
+            this.submitBar();
+        },
+
+        remove() {
+            this.open = false;
+            this.applied = '';
+            this.active = this.active.filter(item => item !== this.name);
+            // Synchronous, and htmx serialises the form when the event below
+            // is dispatched -- so the fieldset is already out of the payload
+            // by then. Waiting for Alpine to apply :disabled would not be.
+            this.$refs.fields.disabled = true;
+            this.submitBar();
+        },
+
+        // writeState and the form element both live on the bar's scope,
+        // which Alpine makes reachable from here -- filterChip is nested
+        // inside filterBar's x-data.
+        submitBar() {
+            this.writeState();
+            htmx.trigger(document.getElementById('filter-form'), 'apply');
+        },
+    }));
+});
+</script>

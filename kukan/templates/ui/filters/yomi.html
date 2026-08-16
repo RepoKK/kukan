@@ -1,0 +1,44 @@
+{% load util_tags %}
+{% with parsed=value|parse_yomi %}
+<div class="field filter-wide"
+     x-data="{
+        text: '{{ parsed.text|escapejs }}',
+        position: '{{ parsed.position|escapejs }}',
+        onkun: '{{ parsed.onkun|escapejs }}',
+        joyo: '{{ parsed.joyo|escapejs }}'
+     }">
+    {% comment %}The dropdown header already names the filter; Buefy's panels
+    carried no second heading. Kept in the markup, hidden visually, so the
+    input still has an accessible name.{% endcomment %}
+    <label class="label is-sr-only">{{ filter.label }}</label>
+    <input type="hidden" name="{{ filter.label }}"
+           :value="text ? [text, position, onkun, joyo].join('_') : ''">
+    <div class="control">
+        <input class="input" type="text" x-model="text" placeholder="{{ filter.label }}">
+    </div>
+    <div class="control">
+        <label class="radio"><input type="radio" value="位致" x-model="position"> と一致する</label>
+        <label class="radio"><input type="radio" value="位始" x-model="position"> から始まる</label>
+        <label class="radio"><input type="radio" value="位含" x-model="position"> を含む</label>
+    </div>
+    {% comment %}
+    Buefy separated the three radio groups with `<b-dropdown-item separator>`,
+    which is this <hr>. Without them the nine radios read as one undivided
+    block and the group headings stop looking like headings.
+    {% endcomment %}
+    <hr class="dropdown-divider">
+    <p><strong>音訓読み</strong></p>
+    <div class="control">
+        <label class="radio"><input type="radio" value="読両" x-model="onkun"> 両方</label>
+        <label class="radio"><input type="radio" value="読音" x-model="onkun"> 音読み</label>
+        <label class="radio"><input type="radio" value="読訓" x-model="onkun"> 訓読み</label>
+    </div>
+    <hr class="dropdown-divider">
+    <p><strong>常用漢字表</strong></p>
+    <div class="control">
+        <label class="radio"><input type="radio" value="常全" x-model="joyo"> 全読み</label>
+        <label class="radio"><input type="radio" value="常用" x-model="joyo"> 常用読み</label>
+        <label class="radio"><input type="radio" value="常外" x-model="joyo"> 常用読み以外</label>
+    </div>
+</div>
+{% endwith %}

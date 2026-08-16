@@ -1,0 +1,19 @@
+{% load util_tags %}
+{% with parts=value|split_once:'_' %}
+<div class="field filter-wide"
+     x-data="{ text: '{{ parts.0|escapejs }}', position: '{{ parts.1|default:'位始'|escapejs }}' }">
+    {% comment %}The dropdown header already names the filter; Buefy's panels
+    carried no second heading. Kept in the markup, hidden visually, so the
+    input still has an accessible name.{% endcomment %}
+    <label class="label is-sr-only">{{ filter.label }}</label>
+    <input type="hidden" name="{{ filter.label }}" :value="text ? (text + '_' + position) : ''">
+    <div class="control">
+        <input class="input" type="text" x-model="text" placeholder="{{ filter.label }}">
+    </div>
+    <div class="control">
+        <label class="radio"><input type="radio" value="位致" x-model="position"> と一致する</label>
+        <label class="radio"><input type="radio" value="位始" x-model="position"> から始まる</label>
+        <label class="radio"><input type="radio" value="位含" x-model="position"> を含む</label>
+    </div>
+</div>
+{% endwith %}

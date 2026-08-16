@@ -1,4 +1,5 @@
-{% extends 'kukan/base_ext.html' %}
+{% extends 'base_ext.html' %}
+{% load icons %}
 
 {% block title %}
 {{ yoji.yoji }}
@@ -26,9 +27,11 @@
             <ul>
                 <li>
                     <strong>日課：</strong>
-                    <fr-addrem-anki :in_anki_init="{{yoji.in_anki|yesno:'true,false'}}"
-                                    yoji="{{yoji.yoji}}" :edit_allowed="true">
-                    </fr-addrem-anki>
+                    {% comment %} editEnabled: true -- the detail page always shows the
+                       button; only yoji_list's table has a switch for it. {% endcomment %}
+                    <span x-data="{ editEnabled: true }">
+                        {% include 'ui/anki_toggle.html' with yoji_text=yoji.yoji in_anki=yoji.in_anki %}
+                    </span>
                 </li>
                 <li><strong>漢検：</strong>{{yoji.kanken}}</li>
                 <li><strong>外部辞典：</strong>
@@ -53,10 +56,3 @@
         </div>
     </div>
 {% endblock %}
-
-{% block vue_component %}
-{% include 'vue/vue_addrem_anki.html' %}
-{% endblock %}
-
-{% block vue_data %}
-{% endblock vue_data%}

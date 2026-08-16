@@ -1,6 +1,6 @@
-{% extends 'kukan/base.html' %}
+{% extends 'base.html' %}
 {% load static %}
-{% block title %}{{busStopMain.name}}停留所時刻{% endblock %}
+{% block title %}{{ busStopMain.name }}停留所時刻{% endblock %}
 {% block favicon %}
 <link rel="apple-touch-icon" sizes="57x57" href="{% static 'bustime/favicon/apple-icon-57x57.png' %}">
 <link rel="apple-touch-icon" sizes="60x60" href="{% static 'bustime/favicon/apple-icon-60x60.png' %}">
@@ -20,25 +20,56 @@
 <meta name="msapplication-TileImage" content="/ms-icon-144x144.png">
 <meta name="theme-color" content="#ffffff">
 {% endblock favicon %}
+
+{% block extra_head %}
+<style>
+    /* The countdown reruns every second, so the digits have to be
+       fixed-width or the whole line jitters. This replaces a table with a
+       collapsed sizing row that split the string one character per cell.
+
+       That table also carried the browser's default `border-spacing: 2px`,
+       which put 2px between every pair of characters and 2px at each end —
+       roughly 10px of air across "21:41" that a plain span does not have, and
+       the single largest piece of type on the page. `letter-spacing` puts it
+       back; it is absolute, like `border-spacing`, so it holds for the is-1
+       and is-3 sizes alike. */
+    .countdown {
+        font-variant-numeric: tabular-nums;
+        letter-spacing: 2px;
+        padding-inline-start: 2px;
+    }
+</style>
+{% endblock %}
+
 {% block body %}
-<main>
-    <section class="hero is-small" v-bind:class="busStopMain.class">
+{{ departure_times_ms|json_script:"bus-times" }}
+<main x-data="{
+        times: JSON.parse(document.getElementById('bus-times').textContent),
+        now: Date.now(),
+        init() { setInterval(() => this.now = Date.now(), 1000) },
+        get upcoming() { return this.times.filter(t => t > this.now) },
+        clock(ms) { return new Date(ms).toTimeString().substring(0, 5) },
+        countdown(ms) {
+            const total = Math.floor((ms - this.now) / 1000);
+            const secs = String(total % 60).padStart(2, '0');
+            const mins = Math.floor(total / 60) % 60;
+            const hrs = Math.floor(total / 3600);
+            return hrs > 0
+                ? `${hrs}:${String(mins).padStart(2, '0')}:${secs}`
+                : `${mins}:${secs}`;
+        }
+     }">
+    <section class="hero is-small {{ busStopMain.class }}">
         <div class="hero-body">
             <nav class="level is-mobile">
-                <!-- Left side -->
                 <div class="level-left">
-                    <div class="level-item title">
-                        [[busStopMain.name]]
-                    </div>
+                    <div class="level-item title">{{ busStopMain.name }}</div>
                 </div>
-                <!-- Right side -->
                 <div class="level-right">
                     <div class="level-item">
-                        <a class="button is-small"
-                           v-bind:class="busStopOther.class"
-                           v-bind:href="['{% url 'bustime:bustime_main' %}?station=' + busStopOther.name]"
-                        >
-                            [[busStopOther.name]]
+                        <a class="button is-small {{ busStopOther.class }}"
+                           href="{% url 'bustime:bustime_main' %}?station={{ busStopOther.name|urlencode }}">
+                            {{ busStopOther.name }}
                         </a>
                     </div>
                 </div>
@@ -46,225 +77,87 @@
         </div>
     </section>
 
-    <section v-if="hot_day && busStopMain.name == '新宿駅西口'"
-             class="hero is-small is-danger">
+    {% if hot_day and busStopMain.name == '新宿駅西口' %}
+    <section class="hero is-small is-danger">
         <div>今日は暑いですから<b>冷房</b>つけましょう。</div>
     </section>
+    {% endif %}
 
     <div class="container is-widescreen">
         <section class="hero has-background-light is-small">
-            <div v-if="real_next_bus_stop!=-2" class="hero-body has-background-warning is-warning">
-                <span v-if="real_next_bus_stop!=-1">
-                    <p>リアルタイム情報</p>
-                    <p>接近情報：<span class="title">[[real_next_bus_stop]]</span>停前</p>
-                    <p v-if="real_next_bus_stop==0">
-                        <span class="subtitle is-3">まもなく到着</span>
-                    </p>
-                    <p v-else>
-                        <span class="subtitle is-3">待ち時間：約</span>
-                        <span class="title is-1">[[real_next_bus_wait]]</span>
-                        <span class="subtitle is-3">分</span>
-                    </p>
-                </span>
-                <div v-else>
-                    <p>接近情報: 該当なし</p>
-                </div>
-            </div>
-            <div class="hero-body ">
-                <nav v-if="next_time" class="level is-mobile">
-                    <!-- Left side -->
-                    <div class="level-left">
-                        <div class="level-item">
-                            <div class="block">
-                                <p>先発</p>
-                                <p><span class="title is-4">[[next_time]]</span>
-                                </p>
+            {% if has_realtime %}
+            {% comment %} `every 10s` keeps firing on this element, which is never itself
+               replaced -- only its contents are. `load` paints the first
+               result without waiting out the interval. {% endcomment %}
+            <div hx-get="{% url 'bustime:get_time_to_next_hana' %}"
+                 hx-trigger="load, every 10s"
+                 hx-swap="innerHTML"></div>
+            {% endif %}
+
+            {% comment %}
+            Each branch carries its own `.hero-body`, rather than the two
+            sharing one. Alpine leaves the `<template>` in the DOM and inserts
+            the rendered node beside it, so with both branches inside a single
+            hero-body the `<nav class="level">` was followed by the second
+            `<template>` and stopped matching `:last-child` — which is the only
+            thing keeping Bulma's `.level:not(:last-child)` from adding 1.5rem
+            under it. Vue's `v-if` left an HTML *comment*, which `:last-child`
+            ignores, so the same markup spaced correctly before the port.
+            {% endcomment %}
+            <template x-if="upcoming.length">
+                <div class="hero-body">
+                    <nav class="level is-mobile">
+                        <div class="level-left">
+                            <div class="level-item">
+                                <div class="block">
+                                    <p>先発</p>
+                                    <p><span class="title is-4" x-text="clock(upcoming[0])"></span></p>
+                                </div>
                             </div>
                         </div>
-                    </div>
-
-                    <!-- Right side -->
-                    <div class="level-right">
-                        <p class="level-item">後</p>
-                        <table class="title"
-                               :class="real_next_bus_stop!=-2 ? 'is-3' : 'is-1'">
-                            <tr style="visibility:collapse;">
-                                <td>4</td>
-                                <td>:</td>
-                                <td>4</td>
-                                <td>4</td>
-                            </tr>
-                            <tr>
-                                <td style="text-align: right">
-                                    [[time_to_next.substr(0, time_to_next.length
-                                    - 3)]]
-                                </td>
-                                <td>:</td>
-                                <td style="text-align: center">
-                                    [[time_to_next.charAt(time_to_next.length -
-                                    2)]]
-                                </td>
-                                <td style="text-align: center">
-                                    [[time_to_next.charAt(time_to_next.length -
-                                    1)]]
-                                </td>
-                            </tr>
-                        </table>
-                    </div>
-                </nav>
-                <div v-else　class="subtitle">本日運行終了</div>
-            </div>
+                        <div class="level-right">
+                            <p class="level-item">後</p>
+                            <span class="title countdown {% if has_realtime %}is-3{% else %}is-1{% endif %}"
+                                  x-text="countdown(upcoming[0])"></span>
+                        </div>
+                    </nav>
+                </div>
+            </template>
+            <template x-if="!upcoming.length">
+                <div class="hero-body">
+                    <div class="subtitle">本日運行終了</div>
+                </div>
+            </template>
         </section>
-
 
         <section class="hero has-background-light is-small">
-            <div v-if="next2_time" class="hero-body ">
-                <nav class="level is-mobile">
-                    <!-- Left side -->
-                    <div class="level-left">
-                        <div class="level-item">
-                            <div class="block">
-                                <p>次発</p>
-                                <p><span
-                                        class="title is-4">[[next2_time]]</span>
-                                </p>
+            <template x-if="upcoming.length > 1">
+                <div class="hero-body">
+                    <nav class="level is-mobile">
+                        <div class="level-left">
+                            <div class="level-item">
+                                <div class="block">
+                                    <p>次発</p>
+                                    <p><span class="title is-4" x-text="clock(upcoming[1])"></span></p>
+                                </div>
                             </div>
                         </div>
-                    </div>
-
-                    <!-- Right side -->
-                    <div class="level-right">
-                        <p class="level-item">後</p>
-                        <table class="title is-3">
-                            <tr style="visibility:collapse;">
-                                <td>4</td>
-                                <td>:</td>
-                                <td>4</td>
-                                <td>4</td>
-                            </tr>
-                            <tr>
-                                <td style="text-align: right">
-                                    [[time_to_next2.substr(0,
-                                    time_to_next2.length - 3)]]
-                                </td>
-                                <td>:</td>
-                                <td style="text-align: center">
-                                    [[time_to_next2.charAt(time_to_next2.length
-                                    - 2)]]
-                                </td>
-                                <td style="text-align: center">
-                                    [[time_to_next2.charAt(time_to_next2.length
-                                    - 1)]]
-                                </td>
-                            </tr>
-                        </table>
-                    </div>
-                </nav>
-            </div>
+                        <div class="level-right">
+                            <p class="level-item">後</p>
+                            <span class="title is-3 countdown" x-text="countdown(upcoming[1])"></span>
+                        </div>
+                    </nav>
+                </div>
+            </template>
         </section>
 
-        <section class="section" style="padding-top: 1rem;padding-bottom: 1rem">
+        <section class="section" style="padding-top: 1rem; padding-bottom: 1rem">
             <div class="columns is-multiline is-mobile">
-                <div v-for="t in jstimes.slice(2)"
-                     class="column is-one-quarter">
-                    [[new Date(t).toTimeString().substr(0, 5)]]
-                </div>
+                <template x-for="t in upcoming.slice(2)" :key="t">
+                    <div class="column is-one-quarter" x-text="clock(t)"></div>
+                </template>
             </div>
         </section>
     </div>
 </main>
-{% endblock body%}
-
-{% block vue_data %}
-    data() {
-        return {
-            busStopMain: {{busStopMain|safe}},
-            busStopOther: {{busStopOther|safe}},
-            hot_day: {{hot_day|yesno:"true,false"}},
-            jstimes: [
-                {% for bus_time in list_times %}
-                  {{ bus_time|date:"U" }}000,
-                {% endfor %}
-                ],
-            next_time: '',
-            time_to_next: '',
-            next2_time: '',
-            time_to_next2: '',
-            real_next_bus_stop: -2,
-            real_next_bus_wait: '-',
-        }
-    },
-    methods: {
-         msToTime(s) {
-            let ms = s % 1000;
-            s = (s - ms) / 1000;
-            let secs = s % 60;
-            s = (s - secs) / 60;
-            let mins = s % 60;
-            let hrs = (s - mins) / 60;
-
-            if (secs < 10) {
-                secs = '0' + secs;
-            }
-
-            if (hrs > 0) {
-                if (mins < 10) {
-                    mins = '0' + mins;
-                }
-                return hrs + ':' + mins + ':' + secs;
-            } else {
-                 return mins + ':' + secs;
-            }
-        },
-        updateTimer() {
-            let now = Date.now();
-
-            this.jstimes = this.jstimes.filter(o => o > now)
-
-            let next = this.jstimes.find(o => o > now);
-            if (next) {
-                next = new Date(next)
-                this.next_time = next.toTimeString().substr(0, 5);
-                this.time_to_next = this.msToTime(next - now);
-            } else {
-                this.next_time = null;
-                this.time_to_next = null;
-            }
-
-            let next2 = this.jstimes.find(o => o > next);
-            if (next2) {
-                next2 = new Date(next2)
-                this.next2_time = next2.toTimeString().substr(0, 5);
-                this.time_to_next2 = this.msToTime(next2 - now);
-            } else {
-                this.next2_time = null;
-                this.time_to_next2 = null;
-            }
-
-            setTimeout(() => {
-                this.updateTimer()
-            }, 1000);
-        },
-        getNextTimeTimer() {
-            axios.get(`/bustime/get_time_to_next_hana`)
-                    .then(({ data }) => {
-                        this.real_next_bus_stop = data.real_next_bus_stop
-                        this.real_next_bus_wait = data.real_next_bus_wait
-                    })
-                    .catch((error) => {
-                            this.real_next_bus_stop = -1
-                    })
-
-            setTimeout(() => {
-                this.getNextTimeTimer()
-            }, 10000);
-        },
-    },
-    created: function () {
-        this.updateTimer();
-        if ('{{busStopMain.name}}' == '花園町') {
-            this.getNextTimeTimer();
-        };
-    }
-{% endblock vue_data%}
-
+{% endblock body %}

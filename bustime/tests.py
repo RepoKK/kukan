@@ -21,7 +21,6 @@ Times are frozen because the module compares against `datetime.now()`; without
 that these tests would pass or fail depending on the hour they ran.
 """
 import datetime as dt
-import json
 import os
 from unittest.mock import patch
 
@@ -155,47 +154,43 @@ class GetBusTimeTest(TestCase):
                       'the timetable will silently come back empty')
 
 
-class GetTimeToNextHanaTest(TestCase):
-    """The realtime arrival endpoint, which returns JSON to the Vue page."""
+class GetRealtimeStatusTest(TestCase):
+    """The scrape itself, separated out from the endpoint that renders it."""
 
-    def call_view(self, page):
-        from bustime.views import get_time_to_next_hana
+    def call_parser(self, page):
+        from bustime.views import get_realtime_status
         with patch('bustime.views.requests.get') as requests_get:
             requests_get.return_value.content = page
-            response = get_time_to_next_hana(None)
-        return json.loads(response.content)
+            return get_realtime_status()
 
     def test_recorded_page_yields_a_stop_and_a_wait(self):
-        data = self.call_view(load_page('realtime_hanazono.html'))
-        self.assertEqual(set(data),
-                         {'real_next_bus_stop', 'real_next_bus_wait'})
-        self.assertEqual(data['real_next_bus_stop'], 2)
-        self.assertEqual(data['real_next_bus_wait'], '6')
+        self.assertEqual(self.call_parser(load_page('realtime_hanazono.html')),
+                         (2, '6'))
 
     def test_wait_is_a_string_and_stop_is_an_int(self):
-        """The Vue side renders the wait directly and compares the stop
-        numerically, so the types are part of the contract."""
-        data = self.call_view(load_page('realtime_hanazono.html'))
-        self.assertIsInstance(data['real_next_bus_stop'], int)
-        self.assertIsInstance(data['real_next_bus_wait'], str)
+        """The stop count is compared numerically in the template (`== 0`
+        means まもなく), so the types are part of the contract."""
+        stop, wait = self.call_parser(load_page('realtime_hanazono.html'))
+        self.assertIsInstance(stop, int)
+        self.assertIsInstance(wait, str)
 
     def test_leading_zero_is_stripped_from_the_wait(self):
         """The page says '06分待'; the UI shows '6'."""
-        data = self.call_view(load_page('realtime_hanazono.html'))
-        self.assertEqual(data['real_next_bus_wait'], '6')
+        self.assertEqual(
+            self.call_parser(load_page('realtime_hanazono.html'))[1], '6')
 
     def test_no_bus_found_returns_the_sentinel_values(self):
         """The IndexError branch: -1 and '-' mean 'nothing approaching'."""
-        data = self.call_view(self.build_status_page(''))
-        self.assertEqual(data['real_next_bus_stop'], -1)
-        self.assertEqual(data['real_next_bus_wait'], '-')
+        self.assertEqual(self.call_parser(self.build_status_page('')),
+                         (-1, '-'))
 
     def test_bus_arriving_imminently_returns_zero(self):
         """'まもなく' has no minute count, so both values collapse to 0."""
-        data = self.call_view(
-            self.build_status_page('新宿駅西口行まもなく', in_first_column=True))
-        self.assertEqual(data['real_next_bus_stop'], 0)
-        self.assertEqual(data['real_next_bus_wait'], 0)
+        self.assertEqual(
+            self.call_parser(
+                self.build_status_page('新宿駅西口行まもなく',
+                                       in_first_column=True)),
+            (0, 0))
 
     @staticmethod
     def build_status_page(cell_text, in_first_column=False):
@@ -289,8 +284,72 @@ class BusTimeMainViewTest(TestCase):
                 context = self.get_page(f'{date} 10:00:00').context
                 self.assertIs(context['hot_day'], expected)
 
-    def test_departures_reach_the_template(self):
+    def test_departures_reach_the_template_as_epoch_milliseconds(self):
         response = self.get_page()
         self.assertTrue(response.context['list_times'])
-        # The template emits epoch seconds followed by a literal '000'.
-        self.assertContains(response, 'jstimes')
+        self.assertEqual(
+            response.context['departure_times_ms'],
+            [int(t.timestamp() * 1000) for t in response.context['list_times']])
+        self.assertContains(response, 'id="bus-times"')
+
+    def test_only_hanazono_polls_the_realtime_feed(self):
+        """The Vue page expressed this by never starting the poller on the
+        other stop; here the polling element is simply not rendered."""
+        self.assertFalse(self.get_page().context['has_realtime'])
+        self.assertNotContains(self.get_page(), 'every 10s')
+
+        hanazono = self.get_page(station='花園町')
+        self.assertTrue(hanazono.context['has_realtime'])
+        self.assertContains(hanazono, 'every 10s')
+        self.assertContains(hanazono, '/bustime/get_time_to_next_hana/')
+
+    def test_no_vue_remains(self):
+        content = self.get_page().content.decode()
+        self.assertNotIn('v-for', content)
+        self.assertNotIn('v-bind', content)
+        self.assertNotIn('[[', content)
+        self.assertNotIn('node_modules', content)
+
+
+class RealtimeFragmentTest(TestCase):
+    """`get_time_to_next_hana` renders HTML for htmx to swap in, where it used
+    to return JSON for Vue to render."""
+
+    def get_fragment(self, status):
+        with patch('bustime.views.get_realtime_status', return_value=status):
+            response = self.client.get(reverse('bustime:get_time_to_next_hana'))
+        self.assertEqual(response.status_code, 200)
+        return response
+
+    def test_public(self):
+        """No login, same as before -- asserted in tests_access_control too."""
+        self.assertEqual(self.get_fragment((2, '6')).status_code, 200)
+
+    def test_approaching_bus_shows_stops_and_wait(self):
+        response = self.get_fragment((2, '6'))
+        self.assertContains(response, '停前')
+        self.assertContains(response, '>2</span>')
+        self.assertContains(response, '>6</span>')
+
+    def test_imminent_bus_shows_the_arrival_message(self):
+        response = self.get_fragment((0, 0))
+        self.assertContains(response, 'まもなく到着')
+        self.assertNotContains(response, '待ち時間')
+
+    def test_no_bus_shows_the_no_info_message(self):
+        response = self.get_fragment((-1, '-'))
+        self.assertContains(response, '該当なし')
+        self.assertNotContains(response, '停前')
+
+    def test_a_failed_scrape_renders_no_info_rather_than_a_500(self):
+        """htmx has no equivalent of the `axios.catch` that used to handle
+        this: a 500 would leave the stale fragment on screen and log a
+        traceback every ten seconds, per open tab."""
+        with patch('bustime.views.get_realtime_status',
+                   side_effect=OSError('tobus.jp unreachable')):
+            response = self.client.get(reverse('bustime:get_time_to_next_hana'))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, '該当なし')
+
+    def test_the_fragment_is_not_a_whole_page(self):
+        self.assertNotContains(self.get_fragment((2, '6')), '<html')

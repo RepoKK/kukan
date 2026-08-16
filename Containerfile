@@ -30,7 +30,7 @@
 # image after a code change does not mean re-copying data; the working
 # db.sqlite3 cannot end up in an image even by accident; and the scrub can run
 # inside the container, which is what makes this practical on a box that has no
-# development environment. See deploy/PROD-BOX-STAGING.md.
+# development environment. See deploy/REHEARSAL.md.
 #
 # BUILD HISTORY, because it is short and each entry cost something to learn.
 #

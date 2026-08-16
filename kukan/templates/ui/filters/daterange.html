@@ -1,0 +1,50 @@
+{% load util_tags %}
+{% with parsed=value|parse_daterange %}
+<div class="field"
+     x-data="{
+        mode: '{{ parsed.mode }}',
+        date: '{{ parsed.date|escapejs }}',
+        start: '{{ parsed.start|escapejs }}',
+        end: '{{ parsed.end|escapejs }}',
+        exclude: {{ parsed.exclude|yesno:'true,false' }},
+        get body() {
+            if (this.mode === 'range') {
+                return (this.start === '' && this.end === '') ? '' : (this.start + '~' + this.end);
+            }
+            return this.date;
+        },
+        get encoded() {
+            return this.body === '' ? '' : (this.exclude ? '≠ ' + this.body : this.body);
+        }
+     }">
+    {% comment %}The dropdown header already names the filter; Buefy's panels
+    carried no second heading. Kept in the markup, hidden visually, so the
+    input still has an accessible name.{% endcomment %}
+    <label class="label is-sr-only">{{ filter.label }}</label>
+    <input type="hidden" name="{{ filter.label }}" :value="encoded">
+    {% comment %}Buefy used full-width centred tabs here, not small toggles.{% endcomment %}
+    <div class="tabs is-centered is-fullwidth">
+        <ul>
+            <li :class="{'is-active': mode === 'single'}"><a @click="mode = 'single'">日付</a></li>
+            <li :class="{'is-active': mode === 'range'}"><a @click="mode = 'range'">範囲</a></li>
+        </ul>
+    </div>
+    <div class="control" x-show="mode === 'single'">
+        <input class="input" type="date" x-model="date">
+    </div>
+    <div class="field is-grouped" x-show="mode === 'range'">
+        <div class="control">
+            <input class="input" type="date" x-model="start">
+        </div>
+        <div class="control">
+            <input class="input" type="date" x-model="end">
+        </div>
+    </div>
+    {% comment %}Right-aligned and clear of the inputs above, matching 画数.{% endcomment %}
+    <div class="field is-grouped is-grouped-right mt-3">
+        <label class="checkbox">
+            <input type="checkbox" x-model="exclude"> 除く
+        </label>
+    </div>
+</div>
+{% endwith %}

@@ -3,7 +3,7 @@
 
 <table class='table is-narrow is-hidden-mobile' border="0">
     <tr><th><a href="{% url switch_link.path_name object.id %}">{{switch_link.label}}</a></th>
-        <th><a href="{% url 'session_list' %}">Sessions list</a></th></tr>
+        <th><a href="{% url 'tempmon:session_list' %}">Sessions list</a></th></tr>
     <tr><th>Session start</th><td>{{object.start_time}}</td>
         <th>Session end</th><td>{{object.end_time}}</td>
         <th>Session duration</th><td>{{duration}}</td></tr>
@@ -14,7 +14,7 @@
 
 <table class='table is-narrow is-hidden-tablet' border="0">
     <tr><th><a href="{% url switch_link.path_name object.id %}">{{switch_link.label}}</a></th>
-        <th><a href="{% url 'session_list' %}">Sessions list</a></th></tr>
+        <th><a href="{% url 'tempmon:session_list' %}">Sessions list</a></th></tr>
     <tr><th>Session start</th><td>{{object.start_time}}</td></tr>
     <tr><th>Session end</th><td>{{object.end_time}}</td></tr>
     <tr><th>Session duration</th><td>{{duration}}</td></tr>

@@ -1,0 +1,479 @@
+"""Contract tests for `FilteredListView`, through all five kukan list pages.
+
+This is the frontend rewrite's actual regression net for list views: PKs,
+ordering and page count through the real view, not a golden-diff of HTML.
+`kukan.tests_table_data` covers `TableData` -- which `FilteredListView` reuses
+unchanged -- on its own; `tempmon.tests_listview` covers the same view class
+through tempmon's two list pages.
+"""
+import datetime as dt
+
+from django.contrib.auth.models import User
+from django.template import Context, Template
+from django.test import Client, TestCase
+from django.urls import reverse
+
+from kukan.models import Kotowaza, Yoji
+
+
+class KotowazaListContractTest(TestCase):
+    def setUp(self):
+        User.objects.create_user('test_user', password='pwd')
+        self.client = Client()
+        self.client.login(username='test_user', password='pwd')
+
+    def test_requires_login(self):
+        response = Client().get(reverse('kukan:kotowaza_list'))
+        self.assertEqual(response.status_code, 302)
+        self.assertIn('/login', response['Location'])
+
+    def test_a_normal_request_renders_the_full_page(self):
+        response = self.client.get(reverse('kukan:kotowaza_list'))
+        self.assertContains(response, 'navbar-burger')
+        self.assertContains(response, '<table')
+
+    def test_an_htmx_request_renders_only_the_table_partial(self):
+        response = self.client.get(
+            reverse('kukan:kotowaza_list'), HTTP_HX_REQUEST='true')
+        self.assertNotContains(response, 'navbar-burger')
+        self.assertContains(response, '<table')
+        self.assertContains(response, 'id="results"')
+
+    def test_a_history_restore_renders_the_full_page(self):
+        """Pressing Back must not land on a bare fragment.
+
+        The sort and page links carry `hx-push-url`, so Back asks for one of
+        those URLs again. With no snapshot cached htmx re-fetches it with
+        `HX-Request: true` and *no* `HX-Target`, which looks exactly like a
+        sort request -- and the rows-only fragment it used to get was then
+        rendered by the browser as a whole document, with no `<head>` and so
+        no stylesheet.
+        """
+        response = self.client.get(
+            reverse('kukan:kotowaza_list'),
+            HTTP_HX_REQUEST='true', HTTP_HX_HISTORY_RESTORE_REQUEST='true')
+        self.assertContains(response, 'navbar-burger')
+        self.assertContains(response, 'legacy-parity.css')
+
+    def test_no_vue_or_buefy_remains(self):
+        response = self.client.get(reverse('kukan:kotowaza_list'))
+        content = response.content.decode()
+        self.assertNotIn('vue_app', content)
+        self.assertNotIn('buefy', content.lower())
+        self.assertNotIn('v-filter', content)
+
+    def test_the_table_scrolls_horizontally_rather_than_reflowing(self):
+        """The Bulma table-container replacement for Buefy's mobile-cards
+        reflow."""
+        response = self.client.get(reverse('kukan:kotowaza_list'))
+        self.assertContains(response, 'class="table-container"')
+
+    def test_default_sort_is_by_kotowaza(self):
+        Kotowaza.objects.create(kotowaza='2番目')
+        Kotowaza.objects.create(kotowaza='1番目')
+        response = self.client.get(reverse('kukan:kotowaza_list'))
+        self.assertEqual(
+            [k.kotowaza for k in response.context['object_list']],
+            ['1番目', '2番目'])
+
+    def test_sort_by_is_honoured(self):
+        Kotowaza.objects.create(kotowaza='2番目')
+        Kotowaza.objects.create(kotowaza='1番目')
+        response = self.client.get(
+            reverse('kukan:kotowaza_list'), {'sort_by': '-kotowaza'})
+        self.assertEqual(
+            [k.kotowaza for k in response.context['object_list']],
+            ['2番目', '1番目'])
+
+    def test_unknown_sort_by_falls_back_to_the_default(self):
+        """`?sort_by=nope` used to reach order_by() directly and 500."""
+        response = self.client.get(
+            reverse('kukan:kotowaza_list'), {'sort_by': 'nope'})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context['sort_by'], 'kotowaza')
+
+    def test_filter_narrows_the_result_by_pk(self):
+        keep = Kotowaza.objects.create(kotowaza='犬も歩けば棒に当たる')
+        Kotowaza.objects.create(kotowaza='猿も木から落ちる')
+        response = self.client.get(
+            reverse('kukan:kotowaza_list'), {'諺': '犬'})
+        self.assertEqual(
+            {k.pk for k in response.context['object_list']}, {keep.pk})
+
+    def test_filter_value_is_echoed_back_into_the_input(self):
+        response = self.client.get(
+            reverse('kukan:kotowaza_list'), {'諺': '犬'})
+        self.assertContains(response, 'name="諺" value="犬"')
+
+    def test_page_size_is_twenty(self):
+        for i in range(25):
+            Kotowaza.objects.create(kotowaza=f'諺{i:02}')
+        response = self.client.get(reverse('kukan:kotowaza_list'))
+        self.assertEqual(len(response.context['object_list']), 20)
+        self.assertEqual(response.context['page_obj'].paginator.count, 25)
+
+        page2 = self.client.get(
+            reverse('kukan:kotowaza_list'), {'page': 2})
+        self.assertEqual(len(page2.context['object_list']), 5)
+
+    def test_a_page_link_preserves_the_active_filter(self):
+        """Sort/page links are self-contained URLs (query_string_replace),
+        not hx-include -- this is the test that catches losing a filter
+        value on the second page."""
+        for i in range(25):
+            Kotowaza.objects.create(kotowaza=f'犬{i:02}')
+        Kotowaza.objects.create(kotowaza='猿も木から落ちる')
+        response = self.client.get(
+            reverse('kukan:kotowaza_list'), {'諺': '犬'})
+        self.assertContains(response, 'page=2')
+        self.assertContains(response, '%E7%8A%AC')  # 犬, percent-encoded
+
+    def test_sort_link_toggles_direction(self):
+        response = self.client.get(reverse('kukan:kotowaza_list'))
+        self.assertContains(response, 'sort_by=-kotowaza')
+
+    def test_empty_result_says_so_rather_than_an_empty_table(self):
+        response = self.client.get(
+            reverse('kukan:kotowaza_list'), {'諺': '絶対に存在しない諺'})
+        self.assertContains(response, '結果ありません')
+
+
+class YojiListContractTest(TestCase):
+    """YojiList: the second page moved off AjaxList, and the first with more
+    than one filter kind (string, yomi-simple, checkbox, yes/no) plus a
+    per-row cell override (the 日課/anki-toggle widget)."""
+
+    fixtures = ['baseline', '閲', '覧']
+
+    def setUp(self):
+        User.objects.create_user('test_user', password='pwd')
+        self.client = Client()
+        self.client.login(username='test_user', password='pwd')
+        self.eturan = Yoji.objects.create(
+            yoji='閲覧', reading='えつらん', meaning='しらべ見ること')
+        self.shinkan = Yoji.objects.create(
+            yoji='覧閲', reading='らんえつ', meaning='ためしに作った語')
+
+    def test_a_normal_request_renders_the_full_page(self):
+        response = self.client.get(reverse('kukan:yoji_list'))
+        self.assertContains(response, 'navbar-burger')
+        self.assertContains(response, '<table')
+
+    def test_no_vue_or_buefy_remains(self):
+        response = self.client.get(reverse('kukan:yoji_list'))
+        content = response.content.decode()
+        self.assertNotIn('vue_app', content)
+        self.assertNotIn('buefy', content.lower())
+        self.assertNotIn('v-filter', content)
+        self.assertNotIn('<fr-addrem-anki', content)
+
+    def test_string_filter_narrows_by_pk(self):
+        response = self.client.get(
+            reverse('kukan:yoji_list'), {'漢字': '閲覧'})
+        self.assertEqual(
+            {y.pk for y in response.context['object_list']}, {self.eturan.pk})
+
+    def test_yomi_simple_filter_narrows_by_pk(self):
+        response = self.client.get(
+            reverse('kukan:yoji_list'), {'読み': 'えつらん_位致'})
+        self.assertEqual(
+            {y.pk for y in response.context['object_list']}, {self.eturan.pk})
+
+    def test_yes_no_filter_narrows_by_pk(self):
+        self.eturan.in_anki = True
+        self.eturan.save()
+        response = self.client.get(
+            reverse('kukan:yoji_list'), {'日課': '日課に出る'})
+        self.assertEqual(
+            {y.pk for y in response.context['object_list']}, {self.eturan.pk})
+
+    def test_the_anki_toggle_cell_override_renders_per_row(self):
+        """The 日課 column shows the Alpine widget, not a plain checkmark --
+        the cell_overrides escape hatch is what makes that possible."""
+        response = self.client.get(reverse('kukan:yoji_list'))
+        content = response.content.decode()
+        self.assertIn(reverse('kukan:yoji_anki'), content)
+        self.assertIn("body.set('yoji', '閲覧')", content)
+        self.assertIn("body.set('yoji', '覧閲')", content)
+
+    def test_the_edit_toggle_switch_is_present(self):
+        response = self.client.get(reverse('kukan:yoji_list'))
+        self.assertContains(response, '一覧編集可能')
+        self.assertContains(response, 'editEnabled')
+
+
+class ExampleListContractTest(TestCase):
+    """ExampleList: the third page moved off AjaxList, needing string,
+    checkbox, yes/no and daterange -- no new filter kind, but the first page
+    to combine all four."""
+
+    fixtures = ['baseline', '閲', '覧']
+
+    def setUp(self):
+        from kukan.models import Example
+
+        User.objects.create_user('test_user', password='pwd')
+        self.client = Client()
+        self.client.login(username='test_user', password='pwd')
+        self.kemisuru = Example.objects.create(
+            word='閲する', yomi='けみする', sentence='書類を閲する',
+            definition='調べ確かめる', ex_kind=Example.KAKI, is_joyo=False)
+        self.ranran = Example.objects.create(
+            word='覧覧', yomi='らんらん', sentence='',
+            definition='', ex_kind=Example.YOMI, is_joyo=True)
+
+    def test_a_normal_request_renders_the_full_page(self):
+        response = self.client.get(reverse('kukan:example_list'))
+        self.assertContains(response, 'navbar-burger')
+        self.assertContains(response, '<table')
+
+    def test_no_vue_or_buefy_remains(self):
+        response = self.client.get(reverse('kukan:example_list'))
+        content = response.content.decode()
+        self.assertNotIn('vue_app', content)
+        self.assertNotIn('buefy', content.lower())
+        self.assertNotIn('v-filter', content)
+
+    def test_string_filter_narrows_by_pk(self):
+        response = self.client.get(
+            reverse('kukan:example_list'), {'単語': '閲する'})
+        self.assertEqual(
+            {e.pk for e in response.context['object_list']},
+            {self.kemisuru.pk})
+
+    def test_checkbox_filter_narrows_by_pk(self):
+        """FGenericCheckbox.get_choices() lists the raw stored values
+        (values('ex_kind')), not their display text -- 'YOMI', not '読み'."""
+        response = self.client.get(
+            reverse('kukan:example_list'), {'種類': 'YOMI'})
+        self.assertEqual(
+            {e.pk for e in response.context['object_list']},
+            {self.ranran.pk})
+
+    def test_yes_no_filter_narrows_by_pk(self):
+        response = self.client.get(
+            reverse('kukan:example_list'), {'例文': '例文有り'})
+        self.assertEqual(
+            {e.pk for e in response.context['object_list']},
+            {self.kemisuru.pk})
+
+    def test_boolean_column_renders_a_checkmark_not_true_false(self):
+        response = self.client.get(reverse('kukan:example_list'))
+        content = response.content.decode()
+        self.assertIn('mdi-check', content)
+        self.assertNotIn('>True<', content)
+        self.assertNotIn('>False<', content)
+
+    def test_special_characters_in_a_filter_value_round_trip_safely(self):
+        """The historical regression this replaces (kukan.tests.TestFilters,
+        issue #12) was quotes and JS-special characters breaking
+        FFilter.to_json() -- a hand-built, single-quoted JS object literal,
+        not valid JSON. That mechanism is gone for this page: the value now
+        lands in an HTML attribute through Django's own autoescaping, which
+        is safe against this class of bug by construction rather than by
+        care taken in a hand-rolled serialiser. Asserted against Django's
+        own escape() rather than a hand-picked expected string, so this
+        tracks the real behaviour rather than assuming it."""
+        from django.utils.html import escape
+
+        for value in ['ABC DEF', "A', 'yomi'",
+                      r'",/?:@&=+$#()!`~^[]|_/\\*.',
+                      'Test "#$%&\'()"']:
+            with self.subTest(value=value):
+                response = self.client.get(
+                    reverse('kukan:example_list'), {'意味': value})
+                self.assertEqual(response.status_code, 200)
+                self.assertContains(
+                    response, f'name="意味" value="{escape(value)}"')
+
+
+class KanjiListFilterContractTest(TestCase):
+    """kanji_list: the last and hardest of the five kukan list pages -- every
+    filter kind at once, plus a custom get_queryset() overriding
+    FilteredListView's own (an annotation, ex_num, that a filter runs
+    against, so it must exist before the filter loop runs)."""
+
+    fixtures = ['baseline', '閲', '覧']
+
+    def setUp(self):
+        User.objects.create_user('test_user', password='pwd')
+        self.client = Client()
+        self.client.login(username='test_user', password='pwd')
+
+    def test_a_normal_request_renders_the_full_page(self):
+        response = self.client.get(reverse('kukan:kanji_list'))
+        self.assertContains(response, 'navbar-burger')
+        self.assertContains(response, '<table')
+
+    def test_no_vue_or_buefy_remains(self):
+        response = self.client.get(reverse('kukan:kanji_list'))
+        content = response.content.decode()
+        self.assertNotIn('vue_app', content)
+        self.assertNotIn('buefy', content.lower())
+        self.assertNotIn('v-filter', content)
+
+    def test_default_sort_is_by_kanken(self):
+        response = self.client.get(reverse('kukan:kanji_list'))
+        self.assertEqual(response.context['sort_by'], 'kanken')
+
+    def test_string_filter_narrows_by_pk(self):
+        response = self.client.get(
+            reverse('kukan:kanji_list'), {'漢字': '閲'})
+        self.assertEqual(
+            {k.pk for k in response.context['object_list']}, {'閲'})
+
+    def test_min_max_filter_narrows_by_pk(self):
+        response = self.client.get(
+            reverse('kukan:kanji_list'), {'画数': '15'})
+        self.assertEqual(
+            {k.pk for k in response.context['object_list']}, {'閲'})
+
+    def test_bushu_filter_narrows_by_pk(self):
+        response = self.client.get(
+            reverse('kukan:kanji_list'), {'部首': '見'})
+        self.assertEqual(
+            {k.pk for k in response.context['object_list']}, {'覧'})
+
+    def test_checkbox_filter_narrows_by_pk(self):
+        from kukan.models import Kanji
+
+        classification = Kanji.objects.get(kanji='閲').classification
+        response = self.client.get(
+            reverse('kukan:kanji_list'),
+            {'種別': classification.classification})
+        self.assertEqual(
+            {k.pk for k in response.context['object_list']}, {'閲', '覧'})
+
+    def test_ex_num_annotation_survives_the_custom_get_queryset(self):
+        """The one thing this override exists for: get_queryset() is fully
+        replaced, not extended, so it is on this test to prove the
+        annotation FGenericMinMax('例文数', ...) filters against is still
+        there -- and is computed the same way (non-blank sentences only)."""
+        from kukan.models import Example, ExMap, Kanji
+
+        kanji = Kanji.objects.get(kanji='閲')
+        example = Example.objects.create(
+            word='閲する', yomi='けみする', sentence='書類を閲する',
+            definition='', is_joyo=False)
+        ExMap.objects.create(example=example, kanji=kanji, is_ateji=False,
+                             in_joyo_list=False, map_order=0)
+        blank_example = Example.objects.create(
+            word='閲す', yomi='けみす', sentence='',
+            definition='', is_joyo=False)
+        ExMap.objects.create(example=blank_example, kanji=kanji, is_ateji=False,
+                             in_joyo_list=False, map_order=1)
+
+        response = self.client.get(
+            reverse('kukan:kanji_list'), {'漢字': '閲'})
+        row = next(k for k in response.context['object_list'] if k.pk == '閲')
+        self.assertEqual(row.ex_num, 1)
+
+    def test_ex_num_filter_narrows_by_pk(self):
+        from kukan.models import Example, ExMap, Kanji
+
+        kanji = Kanji.objects.get(kanji='閲')
+        example = Example.objects.create(
+            word='閲する', yomi='けみする', sentence='書類を閲する',
+            definition='', is_joyo=False)
+        ExMap.objects.create(example=example, kanji=kanji, is_ateji=False,
+                             in_joyo_list=False, map_order=0)
+
+        response = self.client.get(
+            reverse('kukan:kanji_list'), {'例文数': '1'})
+        self.assertEqual(
+            {k.pk for k in response.context['object_list']}, {'閲'})
+
+
+class TestResultListContractTest(TestCase):
+    """test_result_list: the fifth and last kukan list page moved off
+    AjaxList. No new filter kind (checkbox, min-max, daterange all already
+    exist), but list_title has to be added to the view -- the old template
+    hard-coded "試験結果" as a Vue prop rather than reading it from context,
+    same as yoji_list and test_result_list's siblings before it."""
+
+    fixtures = ['baseline']
+
+    def setUp(self):
+        from kukan.models import Kanken, TestResult, TestSource
+
+        User.objects.create_user('test_user', password='pwd')
+        self.client = Client()
+        self.client.login(username='test_user', password='pwd')
+        source = TestSource.objects.create(series='漢検過去問題集', kyu='2級', year='2024')
+        kanken = Kanken.objects.get(kyu='２級')
+        self.first = TestResult.objects.create(
+            kanken=kanken, source=source, name='OGU', test_number=1,
+            date=dt.date(2024, 1, 5))
+        self.second = TestResult.objects.create(
+            kanken=kanken, source=source, name='COGU', test_number=2,
+            date=dt.date(2024, 2, 10))
+
+    def test_a_normal_request_renders_the_full_page(self):
+        response = self.client.get(reverse('kukan:test_result_list'))
+        self.assertContains(response, 'navbar-burger')
+        self.assertContains(response, '<table')
+        self.assertContains(response, '試験結果')
+
+    def test_no_vue_or_buefy_remains(self):
+        response = self.client.get(reverse('kukan:test_result_list'))
+        content = response.content.decode()
+        self.assertNotIn('vue_app', content)
+        self.assertNotIn('buefy', content.lower())
+        self.assertNotIn('v-filter', content)
+
+    def test_default_sort_is_by_date_descending(self):
+        response = self.client.get(reverse('kukan:test_result_list'))
+        self.assertEqual(
+            [r.pk for r in response.context['object_list']],
+            [self.second.pk, self.first.pk])
+
+    def test_checkbox_filter_narrows_by_pk(self):
+        response = self.client.get(
+            reverse('kukan:test_result_list'), {'名前': 'OGU'})
+        self.assertEqual(
+            {r.pk for r in response.context['object_list']}, {self.first.pk})
+
+    def test_min_max_filter_narrows_by_pk(self):
+        response = self.client.get(
+            reverse('kukan:test_result_list'), {'問題番号': '2'})
+        self.assertEqual(
+            {r.pk for r in response.context['object_list']}, {self.second.pk})
+
+    def test_daterange_filter_narrows_by_pk(self):
+        response = self.client.get(
+            reverse('kukan:test_result_list'), {'日付': '2024-01-05'})
+        self.assertEqual(
+            {r.pk for r in response.context['object_list']}, {self.first.pk})
+
+
+class UtilTagsTest(TestCase):
+    """The two template helpers FilteredListView's rendering depends on."""
+
+    def test_get_item_looks_up_a_dynamic_key(self):
+        html = Template(
+            "{% load util_tags %}{{ row|get_item:key }}"
+        ).render(Context({'row': {'諺': 'value'}, 'key': '諺'}))
+        self.assertEqual(html, 'value')
+
+    def test_get_item_defaults_to_empty_string(self):
+        html = Template(
+            "{% load util_tags %}[{{ row|get_item:'missing' }}]"
+        ).render(Context({'row': {}}))
+        self.assertEqual(html, '[]')
+
+    def test_query_string_replace_merges_into_the_existing_query(self):
+        from django.test import RequestFactory
+        request = RequestFactory().get('/kotowaza/list/?諺=犬')
+        html = Template(
+            "{% load util_tags %}{% query_string_replace request page=2 %}"
+        ).render(Context({'request': request}))
+        self.assertIn('page=2', html)
+        self.assertIn('%E8%AB%BA=%E7%8A%AC', html)  # 諺=犬, percent-encoded
+
+    def test_query_string_replace_overrides_an_existing_key(self):
+        from django.test import RequestFactory
+        request = RequestFactory().get('/kotowaza/list/?page=1')
+        html = Template(
+            "{% load util_tags %}{% query_string_replace request page=3 %}"
+        ).render(Context({'request': request}))
+        self.assertEqual(html, 'page=3')

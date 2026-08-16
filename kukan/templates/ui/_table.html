@@ -1,0 +1,87 @@
+{% load util_tags icons %}
+<div id="results">
+    {% comment %}
+    The stats line the Buefy table put opposite the page title: result count,
+    then timings. 件 and Q come from the server; S and T are filled in by the
+    htmx listener in static/js/stats.js -- S when the response arrives, T once it is
+    on screen. On a full page load there was no request to time, so they stay
+    blank until the first filter or sort.
+    {% endcomment %}
+    <nav class="level is-mobile mb-2" id="results-stats">
+        <div class="level-left"></div>
+        <div class="level-right">
+            <p class="level-item">{{ page_obj.paginator.count }} 件</p>
+            <p class="level-item has-text-grey">Q:{{ query_ms }}</p>
+            <p class="level-item has-text-grey" data-stat="server"></p>
+            <p class="level-item has-text-grey" data-stat="total"></p>
+        </div>
+    </nav>
+
+    <div class="table-container">
+    <table class="table is-striped is-narrow is-fullwidth">
+        <thead>
+            <tr>
+                {% for column in columns %}
+                <th{% if column.type == 'numeric' %} class="has-text-right"{% endif %}>
+                    <a hx-get="?{% query_string_replace request sort_by=sort_links|get_item:column.field page=1 %}"
+                       hx-target="#results" hx-push-url="true" hx-swap="outerHTML">
+                        {{ column.label }}{% if column.field == active_sort_field %}{% if sort_descending %} ▼{% else %} ▲{% endif %}{% endif %}
+                    </a>
+                </th>
+                {% endfor %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for row, obj in rows %}
+            <tr>
+                {% for column in columns %}
+                <td{% if column.type == 'numeric' %} class="has-text-right"{% elif column.type == 'bool' %} class="has-text-centered"{% endif %}>
+                    {% if cell_overrides|get_item:column.field %}
+                        {% include cell_overrides|get_item:column.field with obj=obj %}
+                    {% elif column.type == 'bool' %}
+                        {% if row|get_item:column.field %}{% icon 'check' size='is-small' %}{% endif %}
+                    {% else %}
+                        {{ row|get_item:column.field }}
+                    {% endif %}
+                </td>
+                {% endfor %}
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="{{ columns|length }}" class="has-text-centered has-text-grey">
+                    結果ありません
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    </div>
+
+    {% if page_window %}
+    <nav class="pagination is-centered is-small" role="navigation" aria-label="pagination">
+        <ul class="pagination-list">
+            {% for page_num in page_window %}
+            <li>
+                {% if page_num == page_ellipsis %}
+                <span class="pagination-ellipsis">&hellip;</span>
+                {% else %}
+                <a class="pagination-link{% if page_num == page_obj.number %} is-current{% endif %}"
+                   aria-label="Page {{ page_num }}"
+                   {% if page_num == page_obj.number %}aria-current="page"{% endif %}
+                   hx-get="?{% query_string_replace request page=page_num %}"
+                   hx-target="#results" hx-push-url="true" hx-swap="outerHTML">
+                    {{ page_num }}
+                </a>
+                {% endif %}
+            </li>
+            {% endfor %}
+        </ul>
+        <a class="pagination-previous"{% if not page_obj.has_previous %} disabled{% endif %}
+           {% if page_obj.has_previous %}hx-get="?{% query_string_replace request page=page_obj.previous_page_number %}"
+           hx-target="#results" hx-push-url="true" hx-swap="outerHTML"{% endif %}>&lsaquo;</a>
+        <a class="pagination-next"{% if not page_obj.has_next %} disabled{% endif %}
+           {% if page_obj.has_next %}hx-get="?{% query_string_replace request page=page_obj.next_page_number %}"
+           hx-target="#results" hx-push-url="true" hx-swap="outerHTML"{% endif %}>&rsaquo;</a>
+    </nav>
+    {% endif %}
+</div>

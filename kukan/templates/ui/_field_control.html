@@ -1,0 +1,28 @@
+{% load util_tags %}
+{% comment %}
+The control itself, split out only because `ui/_field.html` needs it in two
+places (horizontal and stacked layouts) and Django templates have no macros.
+
+Bulma styles a `<select>` through a wrapping `.select` div rather than a
+class on the element, which is why that one case is wrapped here instead of
+handled in `BulmaModelForm.widget_classes`.
+{% endcomment %}
+<div class="control{% if field.field.widget.input_type == 'select' %} is-expanded{% endif %}">
+    {% if field.field.widget.input_type == 'select' %}
+    <div class="select is-fullwidth">{{ field }}</div>
+    {% elif field.field.widget.attrs.readonly %}
+    {% comment %}
+    A readonly field reads as text, not as a box you are failing to type into.
+    The old template passed `type="is-static"` to `<b-field>` for exactly this
+    case — 例文の訂正 shows 単語 that way, since the word is fixed once the
+    example exists. `.input.is-static` is Bulma's equivalent: no border, no
+    background, no side padding.
+    {% endcomment %}
+    {{ field|add_class:"is-static" }}
+    {% else %}
+    {{ field }}
+    {% endif %}
+</div>
+{% for error in field.errors %}
+<p class="help is-danger">{{ error }}</p>
+{% endfor %}

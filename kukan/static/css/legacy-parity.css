@@ -1,0 +1,646 @@
+/*
+ * Hold Bulma 1.0.4 to the look and behaviour this site had under Buefy 0.6.6.
+ *
+ * The old frontend never loaded Bulma directly. It loaded `buefy.css`, which
+ * bundles its own Bulma build with Buefy's palette and component behaviour on
+ * top. Stage 10 replaced that file with stock `bulma.min.css`, so everything
+ * Buefy had been supplying silently reverted to Bulma's defaults. Nothing in
+ * the migration chose any of this; it is simply what showed through.
+ *
+ * Every value below was read out of
+ * `kukan/static/js/node_modules/buefy/lib/buefy.css` on stage-8-psnawp, not
+ * picked by eye.
+ *
+ * Load order matters: this file must come after `vendor/bulma/bulma.min.css`.
+ */
+
+/* ======================================================================
+ * 1. Palette, radius and type
+ * ====================================================================== */
+
+:root {
+    /* ---- accent colours -------------------------------------------------
+     * Buefy's primary is purple (#7957d5), not Bulma's turquoise (#00d1b2),
+     * and Buefy maps `link` to the same purple — that is not a copy and paste
+     * error, the old stylesheet had `a { color: #7957d5 }`.
+     *
+     * Bulma 1.x builds each colour from separate -h/-s/-l custom properties
+     * and derives its hover, active, light, dark and invert variants from
+     * them, so overriding the three components recolours the whole ramp.
+     * Overriding a composed `--bulma-primary` would not.
+     */
+    --bulma-primary-h: 256deg;
+    --bulma-primary-s: 60%;
+    --bulma-primary-l: 59%;
+
+    --bulma-link-h: 256deg;
+    --bulma-link-s: 60%;
+    --bulma-link-l: 59%;
+
+    --bulma-info-h: 212deg;
+    --bulma-info-s: 88%;
+    --bulma-info-l: 51%;
+
+    --bulma-success-h: 141deg;
+    --bulma-success-s: 71%;
+    --bulma-success-l: 48%;
+
+    --bulma-warning-h: 48deg;
+    --bulma-warning-s: 100%;
+    --bulma-warning-l: 67%;
+
+    --bulma-danger-h: 348deg;
+    --bulma-danger-s: 100%;
+    --bulma-danger-l: 61%;
+
+    --bulma-dark-h: 0deg;
+    --bulma-dark-s: 0%;
+    --bulma-dark-l: 21%;
+
+    /* ---- text drawn ON an accent ----------------------------------------
+     * Bulma derives this from the colour's own lightness, which is right for
+     * its light turquoise (dark text) and wrong for Buefy's purple. Every
+     * filled button in the old site was white on colour, except `is-warning`,
+     * which was `rgba(0, 0, 0, 0.7)` on yellow — Bulma's derived dark text
+     * already matches that one, so it is left alone.
+     */
+    --bulma-primary-invert-l: 100%;
+    --bulma-link-invert-l: 100%;
+    --bulma-info-invert-l: 100%;
+    --bulma-success-invert-l: 100%;
+    --bulma-danger-invert-l: 100%;
+    --bulma-dark-invert-l: 96%;
+
+    /* ---- accent used as text on white ------------------------------------
+     * Bulma darkens an accent when it is text rather than fill
+     * (`--bulma-primary-on-scheme-l: 21%`) to hold a contrast ratio. Buefy did
+     * not: `.has-text-primary` was the raw #7957d5. Purple at 59% clears AA
+     * against white for the sizes this site uses it at, so keep the old look.
+     */
+    --bulma-primary-on-scheme-l: 59%;
+    --bulma-link-on-scheme-l: 59%;
+
+    /* ---- neutrals --------------------------------------------------------
+     * The single most pervasive difference, and the easiest to miss: Bulma 1.x
+     * tints every grey with `--bulma-scheme-h: 221; --bulma-scheme-s: 14%`, so
+     * body text, table borders, backgrounds and disabled states are all
+     * slightly blue. Buefy's greys were pure neutral — #363636, #4a4a4a,
+     * #7a7a7a, #dbdbdb. The lightness values already agree (text 29%,
+     * text-strong 21%), so only hue and saturation need resetting.
+     */
+    --bulma-scheme-h: 0;
+    --bulma-scheme-s: 0%;
+    --bulma-text-h: 0deg;
+    --bulma-text-s: 0%;
+
+    /* ---- radius ----------------------------------------------------------
+     * Buefy 4px, Bulma 1.x 0.375rem (6px). Applies to every button, input,
+     * card, tag and dropdown, which is why the new pages read as rounder.
+     */
+    --bulma-radius-small: 2px;
+    --bulma-radius: 4px;
+    --bulma-radius-large: 6px;
+
+    /* ---- strong -----------------------------------------------------------
+     * The other half of the weight comparison, and it runs the other way:
+     * Buefy's `strong` was 700 and Bulma 1.x uses semibold, 600. That is every
+     * filter panel's own heading and the 音訓読み / 常用漢字表 sub-headings, so
+     * with the buttons dropped to 400 the headings would otherwise be barely
+     * distinguishable from the options underneath them.
+     */
+    --bulma-strong-weight: var(--bulma-weight-bold);
+
+    /* ---- control height ---------------------------------------------------
+     * Buefy sized every input, select and button to 2.25em; Bulma 1.x uses
+     * 2.5em. Buttons take their height from padding (`height: auto`) and the
+     * padding above already brings those back to 2.25em, but inputs and
+     * selects read this variable — so without it a text box is a quarter of an
+     * em taller than the button beside it, which is visible on its own and
+     * worse inside `has-addons`, where the shorter neighbour no longer covers
+     * the taller one's border and a stretch of it appears to go missing.
+     */
+    --bulma-control-height: 2.25em;
+
+    /* ---- font stack ------------------------------------------------------
+     * Bulma 1.x leads with Inter and SF Pro. Neither is vendored, so both fall
+     * through on Windows and Linux — but if a user happens to have Inter
+     * installed the site changes typeface for them and nobody else. Pin the
+     * stack the old stylesheet shipped.
+     */
+    --bulma-family-primary: BlinkMacSystemFont, -apple-system, "Segoe UI",
+        "Roboto", "Oxygen", "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans",
+        "Helvetica Neue", "Helvetica", "Arial", sans-serif;
+}
+
+/* ======================================================================
+ * 2. Mobile: dropdowns are centred sheets, not absolute menus
+ * ====================================================================== */
+
+/*
+ * `<b-dropdown>` defaulted to `mobile-modal`, so below Bulma's desktop
+ * breakpoint every Buefy dropdown left the flow and became a centred,
+ * scrollable panel. Bulma's plain `.dropdown` does not: its menu is absolutely
+ * positioned at `min-width: 12rem`, so a filter chip near the right edge of a
+ * phone opens a menu that runs off the viewport, and a tall widget — the bushu
+ * grid is up to 35 buttons — runs off the bottom with no way to scroll to the
+ * 適用 button. The old `kukan/templates/kukan/base.html` carried its own
+ * `max-height: calc(100vh - 12px)` rule for precisely this.
+ *
+ * Geometry and the 1087px breakpoint are Buefy's own values. Only the filter
+ * bar uses `.dropdown`; the navbar uses `.navbar-dropdown` and is untouched.
+ */
+@media screen and (max-width: 1087px) {
+    .dropdown.is-active .dropdown-menu {
+        position: fixed;
+        width: calc(100vw - 40px);
+        max-width: 460px;
+        max-height: calc(100vh - 120px);
+        top: 25% !important;
+        left: 50% !important;
+        bottom: auto !important;
+        right: auto !important;
+        transform: translate3d(-50%, -25%, 0);
+        white-space: normal;
+        overflow-y: auto;
+        z-index: 40;
+    }
+
+    .dropdown.is-active .dropdown-menu .dropdown-item {
+        padding: 1rem 1.5rem;
+    }
+
+    /*
+     * Buefy dimmed the page behind the panel with a real element. A
+     * pseudo-element does the same without touching the markup, but it must
+     * not take the tap: Alpine closes these dropdowns with `@click.outside`,
+     * and a backdrop that swallowed the tap would leave no way to dismiss one
+     * on a touch screen. `pointer-events: none` lets the tap through to the
+     * element underneath, which is what makes it count as "outside".
+     */
+    .dropdown.is-active::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        background: rgba(10, 10, 10, 0.86);
+        pointer-events: none;
+        z-index: 39;
+    }
+}
+
+/* ======================================================================
+ * 3. Rules the old base.html carried in a <style> block
+ * ====================================================================== */
+
+/*
+ * The old `kukan/templates/kukan/base.html` ended with an inline <style> block.
+ * Its `[v-cloak]` rule came across as `[x-cloak]`, but the rest did not, and
+ * nothing else declares them — these were simply lost with the template.
+ */
+
+/*
+ * The stroke-order typeface. `_kanji_box.html` still renders
+ * `<div class="title kanji">`, exactly as the Vue component did, but with no
+ * rule behind the class it falls back to Bulma's `.title` — a 32px glyph in
+ * the body font, instead of a 230px one showing the stroke numbers. On a kanji
+ * study site that is the point of the page, and the 18 MB font file is still
+ * shipped in `static/fonts/`, orphaned.
+ *
+ * The URL is relative because this is a plain stylesheet, not a template, so
+ * there is no {% static %} here. `STORAGES` is unset, so the default
+ * StaticFilesStorage serves it as-is and the path resolves from `static/css/`.
+ *
+ * `font-weight: bold` inside the @font-face is copied from the old block: it
+ * registers this file as the bold face, which is what `.title` then asks for.
+ */
+/*
+ * v4.005 (2025-07-27), woff2, replacing the v4.002 .ttf the old site shipped.
+ *
+ * Two changes in one, both measured rather than assumed:
+ *
+ * - **Version.** Against this site's 6186 kanji, v4.002 left 140 without a
+ *   stroke-order glyph and v4.005 leaves 134: it adds 噓 嚙 姸 屛 幷 搔 and
+ *   regresses nothing. Small, but 噓 and 搔 are jōyō.
+ * - **Format.** 8406 glyphs either way, 17.2 MB -> 6.6 MB, because woff2 is
+ *   Brotli-compressed where TrueType is not. Same reasoning `vendor/VERSIONS.md`
+ *   gives for shipping only the woff2 of the MDI webfont — every browser this
+ *   site supports has had woff2 since 2020.
+ *
+ * The remaining 134 have no free source: they are 康熙字典体, 異体字, CJK Ext A
+ * (㵎 U+3D4E) and Chinese simplified forms, and KanjiVG — the only other
+ * open-source stroke-order data — covers exactly one of them (瀆). Those kanji
+ * fall back to the body font and show no stroke numbers, silently.
+ *
+ * Bump it by fetching the .ttf from https://www.nihilist.org.uk/ and:
+ *
+ *     uv run --with fonttools --with brotli python -c "\
+ *     from fontTools.ttLib import TTFont; f = TTFont('<in>.ttf'); \
+ *     f.flavor = 'woff2'; f.save('<out>.woff2')"
+ *
+ * The filename carries the version because deploy/kukanjiten-httpd.conf pins
+ * fonts to a year of immutable caching — a new font must be a new URL.
+ *
+ * `font-display: swap` because this is a 6.6 MB download on the one page that
+ * uses it: without it the browser hides the glyph until the font arrives, and
+ * the kanji — the whole point of the page — is simply blank until then. With
+ * it the normal glyph shows immediately and is replaced by the stroke-order
+ * one when it lands.
+ */
+@font-face {
+    font-family: KanjiStrokeOrders;
+    src: url("../fonts/KanjiStrokeOrders_v4.005.woff2") format("woff2");
+    font-weight: bold;
+    font-display: swap;
+}
+
+div.kanji {
+    font-family: KanjiStrokeOrders;
+    font-size: 230px;
+}
+
+/*
+ * Native number spinners, suppressed. The bushu widget draws its own −/+ and
+ * ≪/≫ stepper buttons either side of the stroke-count input, and the min-max
+ * filter puts two number inputs side by side; the browser's own arrows on top
+ * of those are both redundant and, in a dropdown sized to a phone, wide enough
+ * to matter.
+ */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    appearance: none;
+    margin: 0;
+}
+
+input[type="number"],
+input[type="number"]:hover,
+input[type="number"]:focus {
+    -moz-appearance: textfield;
+}
+
+/* ======================================================================
+ * 4. Components Bulma 1.x restyled, or dropped outright
+ * ====================================================================== */
+
+/*
+ * Titles. Buefy's `.title` was `font-weight: 600`; Bulma 1.x ships
+ * `--bulma-title-weight: var(--bulma-weight-extrabold)`, which is 800. That is
+ * every page heading on the site — 漢字, Play sessions, Temperature monitor,
+ * the bustime stop name — reading noticeably heavier than it used to.
+ *
+ * Declared on Bulma's own `.subtitle,.title` selector rather than `:root`,
+ * because that is where Bulma sets the variable: an element-level custom
+ * property beats an inherited one, so a `:root` override would never apply.
+ * Same specificity, later in the cascade, so this wins on source order.
+ */
+.subtitle,
+.title {
+    --bulma-title-weight: var(--bulma-weight-semibold);
+}
+
+/*
+ * The list's loading overlay. `b-table :loading` drew one of these over the
+ * rows while a sort, a page change or a filter was in flight, and swapping the
+ * table for server-rendered HTML lost it — a page change takes long enough on
+ * 6186 rows that without it the page looks unresponsive.
+ *
+ * Geometry and the translucent white are Buefy's own `.loading-overlay`:
+ * `rgba(255, 255, 255, 0.5)` over the content, a 3em spinner at 0.25em stroke
+ * centred on it. htmx supplies the visibility itself — it injects
+ * `.htmx-indicator { opacity: 0 }` and `.htmx-request .htmx-indicator
+ * { opacity: 1 }` — so this only has to describe what the thing looks like.
+ *
+ * `pointer-events: none` because an opacity-0 overlay still swallows clicks,
+ * and this one covers the whole table.
+ */
+.list-results {
+    position: relative;
+}
+
+.list-spinner {
+    position: absolute;
+    inset: 0;
+    z-index: 30;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.5);
+    pointer-events: none;
+}
+
+.list-spinner .loader {
+    width: 3em;
+    height: 3em;
+    border-width: 0.25em;
+}
+
+/*
+ * `.heading` does not exist in Bulma 1.x — zero occurrences in bulma.min.css.
+ * It was a Bulma 0.x class, and `_kanji_box.html` still labels 漢検 / 種別 /
+ * 部首 with it, so those three captions lost their size, letter-spacing and
+ * uppercasing and now render as ordinary body text at full size. Restored
+ * verbatim from buefy.css.
+ */
+.heading {
+    display: block;
+    font-size: 11px;
+    letter-spacing: 1px;
+    margin-bottom: 5px;
+    text-transform: uppercase;
+}
+
+/*
+ * Sortable column headers. `ui/_table.html` makes each one an `<a>` so htmx can
+ * take the click, and an anchor picks up the link colour — so every header row
+ * is purple. Buefy's `b-table` used a plain clickable div and kept `.table th`
+ * at #363636. Keep the anchor, drop the colour; `currentColor` so a header in
+ * a themed table still follows its cell.
+ *
+ * `[hx-get]` is what distinguishes those from a header cell holding a genuine
+ * link. tempmon's detail tables put 「Details」 and 「Sessions list」 in `<th>`,
+ * and they navigate — they were purple before and should stay purple. Without
+ * the attribute this rule greyed them out too.
+ */
+.table th a[hx-get] {
+    color: currentColor;
+}
+
+/*
+ * Links inside a colour-modified hero. Buefy carried
+ *
+ *     .hero.is-primary a:not(.button):not(.dropdown-item):not(.tag),
+ *     .hero.is-primary strong { color: inherit; }
+ *
+ * for every colour modifier, and Bulma 1.x dropped it: it recolours
+ * `.hero.is-primary .title` and `.subtitle` but nothing reaches an `<a>`
+ * inside them, so the anchor keeps the ordinary link colour.
+ *
+ * With `link` pinned to the same purple as `primary`, that made tempmon's
+ * "Update NPSSO code" purple text on a purple hero — present in the markup,
+ * invisible on screen, and the only route to replacing an expired PSN token.
+ * The `is-danger` hero shown when the token has already failed had the same
+ * problem in red, which is precisely when the link is needed most.
+ */
+.hero.is-primary a:not(.button):not(.dropdown-item):not(.tag),
+.hero.is-link a:not(.button):not(.dropdown-item):not(.tag),
+.hero.is-info a:not(.button):not(.dropdown-item):not(.tag),
+.hero.is-success a:not(.button):not(.dropdown-item):not(.tag),
+.hero.is-warning a:not(.button):not(.dropdown-item):not(.tag),
+.hero.is-danger a:not(.button):not(.dropdown-item):not(.tag),
+.hero.is-dark a:not(.button):not(.dropdown-item):not(.tag),
+.hero.is-primary strong,
+.hero.is-link strong,
+.hero.is-info strong,
+.hero.is-success strong,
+.hero.is-warning strong,
+.hero.is-danger strong,
+.hero.is-dark strong {
+    color: inherit;
+}
+
+/*
+ * Filter panel width, per widget rather than for all of them.
+ *
+ * Buefy left `.dropdown-menu { min-width: 12rem }` alone — the same 192px
+ * Bulma 1.x defaults to — and only three widgets asked for more: 読み and
+ * 読み(simple) carried `style="width: 290px"` on their radio groups, and 部首
+ * `min-width: 290px` on its stepper. Everything else sized to its content.
+ *
+ * Widening `.dropdown` itself instead made every panel 322px, which is far too
+ * much for 画数 — a box that takes at most two digits — and for the checkbox
+ * lists, where it only strands short labels in empty space.
+ *
+ * 290px on the widget rather than 322px on the panel: `.dropdown-item` adds
+ * 1rem of padding each side, so the panel lands at 322px and the content at the
+ * 290px these three were drawn against. Any narrower and the three 読み radios
+ * lose `を含む` to a second line and the 部首 grid drops to four radicals a row.
+ */
+.filter-wide {
+    min-width: 290px;
+}
+
+/*
+ * Button size. Buefy padded a button `calc(0.375em - 1px)` vertically and
+ * `0.75em` horizontally; Bulma 1.x uses `0.5em` and `1em`. Every button on the
+ * site is a third taller and a third wider than it was, which is most obvious
+ * in the filter bar, where the chips are nothing but buttons.
+ */
+.button {
+    --bulma-button-padding-vertical: calc(0.375em - 1px);
+    --bulma-button-padding-horizontal: 0.75em;
+
+    /*
+     * Buefy set no weight on a button, so it inherited the body's 400. Bulma
+     * 1.x asks for `--bulma-weight-medium`, 500. A half-step is easy to miss on
+     * one button and unmistakable in a filter panel, where almost every piece
+     * of text is one — the chips, 適用, the 部首 radicals, the 画 suffix — so the
+     * whole panel reads heavier than the page around it.
+     */
+    --bulma-button-weight: var(--bulma-weight-normal);
+
+    /*
+     * ...and every control is the same height, whether or not it has a border.
+     * Bulma gives a button `height: auto` and lets padding decide, but zeroes
+     * `--bulma-button-border-width` on the colour modifiers — so `is-white` and
+     * `is-static` come out 2px shorter than a bordered `.input` beside them.
+     * In 部首's stepper that is a 34px button either side of a 36px number box.
+     * Buefy set `height: 2.25em` on buttons and inputs alike; `min-height` does
+     * the same levelling without risking a clip if a button ever wraps.
+     */
+    min-height: var(--bulma-control-height);
+}
+
+/*
+ * ...and it must not change size on hover. Bulma 1.x thickens an outlined
+ * button's border on hover:
+ *
+ *     .button.is-outlined       { --bulma-button-border-width: max(1px, 0.0625em) }
+ *     .button.is-outlined:hover { --bulma-button-border-width: max(2px, 0.125em) }
+ *
+ * and its padding does not subtract the border, so the box grows a pixel on
+ * every side. On the ﾌｨﾙﾀｰ追加 button that is enough to change the height of the
+ * chip row, and the whole page below it jumps as the pointer crosses the
+ * button. Buefy's outlined buttons held 1px through every state.
+ */
+.button.is-outlined:hover {
+    --bulma-button-border-width: max(1px, 0.0625em);
+}
+
+/*
+ * An outlined button fills with its own colour on hover. Buefy wrote this out
+ * per modifier —
+ *
+ *     .button.is-primary.is-outlined:hover { background-color: #7957d5;
+ *                                            border-color: #7957d5;
+ *                                            color: white }
+ *
+ * — and Bulma 1.x has no equivalent: its `.button.is-outlined:hover` only
+ * thickens the border and adds a shadow, so with the border pinned above,
+ * hovering ﾌｨﾙﾀｰ追加 did nothing at all. Written once against Bulma's own
+ * `--bulma-button-*` variables, which every colour modifier already sets, so
+ * it covers each of them the way Buefy's nine rules did.
+ */
+.button.is-outlined:hover,
+.button.is-outlined:focus {
+    background-color: hsl(var(--bulma-button-h), var(--bulma-button-s), var(--bulma-button-l));
+    border-color: hsl(var(--bulma-button-h), var(--bulma-button-s), var(--bulma-button-l));
+    color: hsl(var(--bulma-button-h), var(--bulma-button-s), var(--bulma-button-color-l));
+}
+
+/*
+ * A button whose only visible content is an icon. Bulma reserves this for
+ * `.icon:first-child:last-child`, which an icon cannot match while a hidden
+ * label sits beside it — so the ⊕ button kept a quarter of the horizontal
+ * padding as blank space on its left. Same negative margins Bulma would have
+ * applied itself.
+ */
+/*
+ * The selector has to out-specify the rule it is correcting.
+ * `.button .icon:last-child:not(:first-child)` is (0,4,0) — `:not()` adds
+ * nothing itself but its argument counts — so the obvious
+ * `.button.is-icon-only .icon` at (0,3,0) loses and the +3px left margin
+ * survives. Matching Bulma's structural pseudo-classes takes this to (0,5,0).
+ * Both orders are covered so it keeps working if the label ever moves after
+ * the icon.
+ */
+.button.is-icon-only .icon:last-child:not(:first-child),
+.button.is-icon-only .icon:first-child:not(:last-child) {
+    margin-inline-start: calc(var(--bulma-button-padding-horizontal) * -0.5);
+    margin-inline-end: calc(var(--bulma-button-padding-horizontal) * -0.5);
+}
+
+/*
+ * 322px, not 290px: Buefy's 290px was on a div *inside* the dropdown item, and
+ * `.dropdown-item` adds `padding: .375rem 1rem` — 32px of it horizontally. The
+ * panel has to be 322px for the content to be the 290px the widgets were built
+ * against. At 290px the three 読み radios lose `を含む` to a second line and the
+ * 部首 grid drops from five radicals a row to four.
+ */
+
+/*
+ * Native radios and checkboxes follow the browser accent colour — blue on every
+ * platform this site is used from. Buefy drew its own `b-radio`/`b-checkbox` in
+ * the theme colour, so every selected option in a filter panel was purple.
+ * `accent-color` gets that back without rebuilding the controls.
+ */
+input[type="radio"],
+input[type="checkbox"] {
+    accent-color: hsl(var(--bulma-primary-h), var(--bulma-primary-s), var(--bulma-primary-l));
+}
+
+/*
+ * ...and a gap between the control and the words it belongs to. Buefy drew its
+ * own box and label as two elements with space between them; a native input
+ * followed by a text node gets one collapsed space, so the label reads as
+ * though it were touching the box. Kept small: three of these sit on one line
+ * in 読み inside 290px, and `を含む` drops to a second line if the row grows.
+ */
+.checkbox input[type="checkbox"],
+.radio input[type="radio"] {
+    margin-inline-end: 0.25em;
+}
+
+/*
+ * Separators inside a filter panel run edge to edge. Buefy's
+ * `<b-dropdown-item separator>` *was* a dropdown item, so its rule sat at the
+ * full width of the panel; ours is an `<hr>` inside one, which the item's 1rem
+ * of horizontal padding insets on both sides. Pulling it back out is what makes
+ * the panel read as stacked sections rather than one block with lines drawn in
+ * it. The vertical margin is the gap those separate dropdown items used to
+ * leave behind.
+ */
+.dropdown-item .dropdown-divider {
+    margin-left: -1rem;
+    margin-right: -1rem;
+    margin-top: 0.75rem;
+    margin-bottom: 0.75rem;
+}
+
+/*
+ * Vertical rhythm inside a filter panel. Every group in the old panels — the
+ * text box, each radio row, each sub-heading — was its own dropdown item, and
+ * each carried `padding: .375rem 1rem`. Ours are plain siblings inside one
+ * item, so they sat flush against each other and the whole panel came out
+ * about a fifth shorter and much denser than the original.
+ *
+ * This restores the vertical half of that padding. Scoped to `.field` children
+ * inside a dropdown so it reaches the filter widgets and nothing else: the
+ * `.buttons` grid of radicals and the `has-addons` stepper rows are not
+ * `.control` siblings and keep their own spacing.
+ */
+.dropdown-item > .field > .control,
+.dropdown-item > .field > p {
+    margin-top: 0.375rem;
+    margin-bottom: 0.375rem;
+}
+
+/*
+ * `>` on both steps, deliberately. A descendant selector here also caught the
+ * `<p class="control">` pair inside 部首's nested `field has-addons`, pushing
+ * the number box and its 画 suffix 6px down while the stepper buttons beside
+ * them — which are not in a field — stayed put. Only the widget's own top-level
+ * groups want this spacing.
+ */
+
+/*
+ * Levels. Bulma 1.x gives `.level-left` / `.level-right` `flex-direction:
+ * column` and only flips them back to `row` at 769px, but `.level.is-mobile`
+ * — which exists precisely to stay a row at every width — sets `display: flex`
+ * on them without restoring the direction. So below 769px every is-mobile
+ * level stacked its own halves vertically: on the bustime page the 後 label
+ * climbed on top of the countdown and each panel grew by a line. Bulma 0.7
+ * had no such rule to undo.
+ */
+.level.is-mobile .level-left,
+.level.is-mobile .level-right {
+    flex-direction: row;
+}
+
+/*
+ * Buefy spaced level items with `margin-right: .75rem` on *every* item of an
+ * is-mobile level, last one included; Bulma 1.x replaced that with `gap`,
+ * which only ever falls between items. The gap reproduces the old spacing
+ * exactly, so all that is missing is the trailing margin — visible as the
+ * ~12px inset the 花園町 button used to keep from the right edge.
+ */
+.level.is-mobile .level-item:last-child {
+    margin-inline-end: 0.75rem;
+}
+
+/*
+ * Sections. Bulma 1.x added `--bulma-section-padding-desktop` (3rem *3rem*),
+ * applied from 1024px up; Bulma 0.7 padded every section `3rem 1.5rem` at all
+ * widths. Doubling the side padding on desktop indents anything laid out
+ * inside a section — on the bustime page it pushed the grid of later
+ * departures 24px in from the panels stacked above it, which are in a plain
+ * container and were not indented with it.
+ */
+.section {
+    --bulma-section-padding-desktop: 3rem 1.5rem;
+    --bulma-section-padding-medium: 9rem 1.5rem;
+    --bulma-section-padding-large: 18rem 1.5rem;
+}
+
+/*
+ * Title/subtitle pairing. Buefy pulled a subtitle up under its title with
+ *
+ *     .title:not(.is-spaced) + .subtitle { margin-top: -1.25rem }
+ *
+ * leaving the title's own 1.5rem bottom margin in place. Bulma 1.x swapped
+ * that for `.title:not(.is-spaced):has(+ .subtitle) { margin-bottom: 0 }` —
+ * equivalent for a subtitle with text in it, but not for an empty one. The
+ * old rule's -1.25rem cancelled most of the *subtitle's* bottom margin as
+ * well, because a zero-height block's own margins collapse together; the new
+ * one leaves that 1.5rem standing alone. On tempmon's hero the subtitle is
+ * empty — its `<div>` is invalid inside a `<p>` and the parser lifts it out —
+ * so the 「Update NPSSO code」 link sat 24px below the title where it used to
+ * sit 4px below.
+ */
+.title:not(.is-spaced):has(+ .subtitle),
+.subtitle:not(.is-spaced):has(+ .title) {
+    margin-bottom: var(--bulma-block-spacing);
+}
+
+.title:not(.is-spaced) + .subtitle,
+.subtitle:not(.is-spaced) + .title {
+    margin-top: -1.25rem;
+}

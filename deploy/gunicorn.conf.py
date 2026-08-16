@@ -30,7 +30,7 @@ bind = os.environ.get('GUNICORN_BIND', '127.0.0.1:8000')
 #     would double the worst case rather than the typical one.
 #     That is what the (now deleted) utilskanji/janome_daemon.py existed to
 #     avoid back when Apache ran many mod_wsgi instances — see
-#     deploy/STAGE7-CUTOVER.md. At one worker it is not worth a second process.
+#     deploy/UPGRADE.md. At one worker it is not worth a second process.
 #
 # Concurrency comes from threads instead. Four is enough to keep a slow
 # request — an Anki export, a kanjipedia scrape — from blocking the whole site,

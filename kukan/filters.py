@@ -1,6 +1,4 @@
 import collections
-import json
-import urllib.parse
 from abc import ABC, abstractmethod
 from datetime import datetime, timedelta
 
@@ -16,47 +14,28 @@ class FFilter(ABC):
     label = ''
     value = ''
 
-    @staticmethod
-    def get_filter_context_strings():
-        return {
-            'FFilter': {
-                'transl': {
-                    'addfilter': 'ﾌｨﾙﾀｰ追加',
-                    'apply': '適用',
-                    'value': '値',
-                    'selectall': '全選択',
-                    'range': '範囲',
-                    'exclude': '除く',
-                    'time': '時間',
-                    'date': '日付',
-                    'daterange': '日時範囲',
-                    'datestart': '開始',
-                    'dateend': '終了',
-                    'noresult': '結果ありません',
-                },
-                'template': {
-                    'std': '@apply="handleApply" @rm_fil="rm_fil" :title="title" @active-change="activeChange"'
-                           ':current_filter="filterDisp" :keep_title="keep_title"'
-                }
-            }
-        }
-
     def __init__(self, label, kind):
         self.kind = kind
         self.label = label
         self.value = ''
 
-    def to_json(self):
-        return (f"{{'name':'{self.kind}', 'label':'{self.label}', "
-                f"'extra':{self.get_extra_json()}, "
-                f"'value':'{urllib.parse.quote(self.value)}'}}")
-
-    def get_extra_json(self):
-        return "{}"
-
     def filter(self, request, qry):
+        """An empty value is no filter at all, not a filter matching nothing.
+
+        The Vue bar assembled the query itself and simply left an empty filter
+        out, so `add_to_query` never saw one and `if flt is not None` was
+        enough. The htmx bar is a real <form>: every chip that is up submits
+        its input, empty or not. Under the old guard `種別=` built an empty
+        `IN ()` and returned zero rows, so adding a second filter and leaving
+        it blank -- or clearing one you had used -- emptied the whole list,
+        and `読み=` raised ValueError unpacking four parts out of one.
+
+        Filters that are up but unset are the normal state of the bar, so the
+        empty case has to mean "no constraint" here rather than in each of the
+        nine `add_to_query` implementations.
+        """
         flt = request.GET.get(self.label, None)
-        if flt is not None:
+        if flt:
             qry = self.add_to_query(flt, qry)
         return qry
 
@@ -73,7 +52,7 @@ class FGenericCheckbox(FFilter):
         self.order = order if order else field
         self.none_label = none_label
         self.none_position = none_position
-        super().__init__(title, 'v-filter-checkbox')
+        super().__init__(title, 'checkbox')
 
     def add_to_query(self, flt, qry):
         flt = flt.split(', ')
@@ -85,7 +64,8 @@ class FGenericCheckbox(FFilter):
         qry = qry.filter(q)
         return qry
 
-    def get_extra_json(self):
+    def get_choices(self):
+        """The choice list rendered by kukan/templates/ui/filters/checkbox.html."""
         sys_list = [x[self.field] for x in self.model.objects.order_by(self.order).distinct().values(self.field)]
         try:
             sys_list.pop(sys_list.index(None))
@@ -93,14 +73,14 @@ class FGenericCheckbox(FFilter):
         except ValueError:
             pass
         ret = [{'native': idx, 'label': x, 'col': idx % self.nb_col} for idx, x in enumerate(sys_list)]
-        ret = {'comptype': "b-checkbox", 'elements': ret}
-        return json.dumps(ret)
+        return {'comptype': 'b-checkbox', 'elements': ret}
+
 
 
 class FGenericMinMax(FFilter):
     def __init__(self, title, field):
         self.field = field
-        super().__init__(title, 'v-filter-min-max')
+        super().__init__(title, 'min-max')
 
     def add_to_query(self, flt, qry):
         flt_fct = qry.filter
@@ -123,7 +103,7 @@ class FGenericMinMax(FFilter):
 class FGenericDateRange(FFilter):
     def __init__(self, title, field):
         self.field = field
-        super().__init__(title, 'v-filter-daterange')
+        super().__init__(title, 'daterange')
 
     def add_to_query(self, flt, qry):
         flt_fct = qry.filter
@@ -158,7 +138,7 @@ class FGenericString(FFilter):
         self.field = field
         self.lh_criteria = lh_criteria if lh_criteria else self.field + '__contains'
         self.rh_fct = rh_fct if rh_fct else lambda x: x
-        super().__init__(title, 'v-filter-string')
+        super().__init__(title, 'string')
 
     def add_to_query(self, flt, qry):
         kwargs = {self.lh_criteria: self.rh_fct(flt)}
@@ -173,7 +153,7 @@ class FGenericYesNo(FFilter):
         self.label_yes = label_yes
         self.label_no = label_no
         self.inverse = inverse
-        super().__init__(title, 'v-filter-checkbox')
+        super().__init__(title, 'checkbox')
 
     def add_to_query(self, flt, qry):
         kwargs = {self.field: self.criteria}
@@ -185,20 +165,24 @@ class FGenericYesNo(FFilter):
         qry = flt_fct(**kwargs)
         return qry
 
-    def get_extra_json(self):
-        ret = {'comptype': "b-radio",
-               'elements': [{'native': 0, 'label': self.label_yes, 'col': 0},
+    def get_choices(self):
+        return {'comptype': 'b-radio',
+                'elements': [{'native': 0, 'label': self.label_yes, 'col': 0},
                             {'native': 1, 'label': self.label_no, 'col': 0}]}
-        return json.dumps(ret)
+
 
 
 class FYomiSimple(FFilter):
     def __init__(self, field):
         self.field = field
-        super().__init__('読み', 'v-filter-yomi-simple')
+        super().__init__('読み', 'yomi-simple')
 
     def add_to_query(self, flt, qry):
-        yomi, position = flt.split('_')
+        # A hand-shortened or truncated URL -- "?読み=ゆ" -- must not 500 the
+        # list page. `parse_yomi` already falls back to the widget's defaults
+        # for the same input on the way in; do the same on the way out.
+        yomi, _, position = flt.partition('_')
+        position = position or '位致'
         yomi = yomi.translate(jau.kat2hir)
 
         if position == '位始':
@@ -214,10 +198,16 @@ class FYomiSimple(FFilter):
 
 class FYomi(FFilter):
     def __init__(self):
-        super().__init__('読み', 'v-filter-yomi')
+        super().__init__('読み', 'yomi')
 
     def add_to_query(self, flt, qry):
-        yomi, position, onkun, joyo = flt.split('_')
+        # Padded rather than unpacked, so a hand-shortened or truncated URL --
+        # "?読み=ゆ" -- falls back to the widget's own defaults instead of
+        # raising ValueError and 500-ing the list page. Matches `parse_yomi`,
+        # which does the same for the same input on the way in.
+        parts = flt.split('_')
+        parts += ['位致', '読両', '常全'][len(parts) - 1:]
+        yomi, position, onkun, joyo = parts[:4]
         yomi = yomi.translate(jau.kat2hir)
         readings = Reading.objects.all()
 
@@ -247,15 +237,16 @@ class FYomi(FFilter):
 
 class FBushu(FFilter):
     def __init__(self):
-        super().__init__('部首', 'v-filter-bushu')
+        super().__init__('部首', 'bushu')
 
-    def get_extra_json(self):
+    def get_choices(self):
+        """The radical list rendered by kukan/templates/ui/filters/bushu.html."""
         dct = collections.defaultdict(list)
         for x in KoukiBushu.objects.values_list('bushu', 'kakusu'):
             dct[x[1]].append(x[0])
-        ret = {'listBushu': [{'strokeNumber': k, 'bushu': dct[k]} for k in dct],
-               'kakusu': KoukiBushu.objects.aggregate(min=Min('kakusu'), max=Max('kakusu'))}
-        return json.dumps(ret)
+        return {'listBushu': [{'strokeNumber': k, 'bushu': dct[k]} for k in dct],
+                'kakusu': KoukiBushu.objects.aggregate(min=Min('kakusu'), max=Max('kakusu'))}
+
 
     def add_to_query(self, flt, qry):
         qry = qry.filter(kouki_bushu__bushu__in=flt)
