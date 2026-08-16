@@ -112,7 +112,17 @@ what `add_vuejs_field_properties` used to splice in as raw JS.
                                     <template x-if="!kj.joyo">
                                         <div class="select is-fullwidth">
                                             <select required x-model="readingSelected[idx]">
-                                                <option :value="null">未設定</option>
+                                                {% comment %}
+                                                Empty value, not `:value="null"`. Alpine binds
+                                                the DOM attribute, so null rendered the literal
+                                                string "null" -- which satisfied `required` and
+                                                was posted as a reading id. `<b-select
+                                                placeholder>` emitted an empty, unselectable
+                                                option, which is what makes `required` mean
+                                                anything and matches the server's own
+                                                「未設定の読みがあります」 check.
+                                                {% endcomment %}
+                                                <option value="" disabled hidden>未設定</option>
                                                 <template x-for="rd in kj.readings" :key="rd.key">
                                                     <option :value="rd.key" x-text="rd.read"></option>
                                                 </template>
@@ -205,6 +215,13 @@ function exampleUpdate() {
         return response.json();
     }
 
+    // "no reading chosen" is null on the wire and '' in the select, which is
+    // the placeholder's value. x-model compares by `value + ''`, so a null
+    // left as-is looks for an option valued "null", matches none, and the
+    // browser then falls through to the first *selectable* option -- landing
+    // an unset reading on 当て字 rather than on 未設定.
+    const blankForNull = list => list.map(v => (v === null ? '' : v));
+
     // Spread, not Object.assign. Object.assign *invokes* a getter on the
     // source and copies the value it returns, so `hasOptionalInput` and
     // `showOptional` were evaluated once, at construction, against an object
@@ -244,7 +261,28 @@ function exampleUpdate() {
                         reading_selected: this.readingSelected.join(','),
                     });
                     this.readingData = data.reading_data;
-                    this.readingSelected = data.reading_selected;
+                    {% comment %}
+                    A {% templatetag openblock %} comment {% templatetag closeblock %},
+                    not `//`: the explanation names old-stack directives and a
+                    JS comment ships in the rendered page, where
+                    `test_no_vue_or_buefy_remains` reads it as leftover Vue.
+
+                    The selects only exist once readingData has rendered, and
+                    their options come from a nested `<template x-for>` that
+                    Alpine initialises *after* the `x-model` on the select
+                    itself. Set both in one go and x-model runs against a
+                    select with no options yet, matches nothing, and the
+                    browser falls back to the first one -- so every reading
+                    displayed as 未設定 however it was actually stored, and
+                    saving the form wrote that back. Nothing re-runs the
+                    binding afterwards, because the value never changes.
+
+                    Vue's v-model did not care: it matched on the value bound
+                    to each option rather than on the option's DOM string, and
+                    patched the select after its children.
+                    {% endcomment %}
+                    await this.$nextTick();
+                    this.readingSelected = blankForNull(data.reading_selected);
                 } catch (e) {
                     console.log('loadReadings failed: ' + e);
                 }
@@ -283,7 +321,7 @@ function exampleUpdate() {
                         window.toast('読み方の自動設定失敗', 'is-warning');
                         return;
                     }
-                    this.readingSelected = data.candidate;
+                    this.readingSelected = blankForNull(data.candidate);
                 } catch (e) {
                     window.toast('読み方の自動設定失敗', 'is-danger');
                 }

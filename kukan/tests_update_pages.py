@@ -135,6 +135,36 @@ class ExampleUpdateTest(LoggedInTestCase):
         self.assertContains(response, 'name="reading_selected"')
         self.assertContains(response, 'readingSelected.join')
 
+    def test_the_unset_reading_option_carries_an_empty_value(self):
+        """`:value="null"` rendered the literal string "null".
+
+        Alpine binds a DOM attribute, where Vue bound the value itself, so
+        the placeholder came out as `value="null"`: a non-empty value, which
+        satisfies `required` and posts "null" where `get_yomi` expects a
+        Reading id. `<b-select placeholder>` emitted an empty option, and an
+        empty one is also what makes `required` agree with the form's own
+        「未設定の読みがあります」 check.
+        """
+        response = self.get()
+        self.assertContains(response, '<option value="" disabled hidden>未設定')
+        self.assertNotContains(response, ':value="null"')
+
+    def test_the_stored_readings_are_applied_after_the_options_render(self):
+        """Otherwise every reading displays as 未設定 however it was stored.
+
+        The options come from a `<template x-for>` nested inside the select,
+        which Alpine initialises *after* the `x-model` on the select itself.
+        Assigning both in one go leaves x-model matching against a select
+        with no options, so it selects nothing and the browser falls back to
+        the first entry -- and saving the form writes that back. Nothing
+        re-runs the binding afterwards, because the value never changes.
+        """
+        response = self.get()
+        content = response.content.decode()
+        self.assertIn('await this.$nextTick();', content)
+        self.assertLess(content.index('await this.$nextTick();'),
+                        content.index('this.readingSelected = blankForNull('))
+
     def test_the_definition_fields_are_real_textareas(self):
         """They were `TextInput(attrs={'type': 'textarea'})` -- how Buefy
         asked `<b-input>` for a textarea. Rendered by plain Django that is
