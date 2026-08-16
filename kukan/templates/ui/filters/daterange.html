@@ -17,9 +17,13 @@
             return this.body === '' ? '' : (this.exclude ? '≠ ' + this.body : this.body);
         }
      }">
-    <label class="label">{{ filter.label }}</label>
+    {% comment %}The dropdown header already names the filter; Buefy's panels
+    carried no second heading. Kept in the markup, hidden visually, so the
+    input still has an accessible name.{% endcomment %}
+    <label class="label is-sr-only">{{ filter.label }}</label>
     <input type="hidden" name="{{ filter.label }}" :value="encoded">
-    <div class="tabs is-toggle is-small">
+    {% comment %}Buefy used full-width centred tabs here, not small toggles.{% endcomment %}
+    <div class="tabs is-centered is-fullwidth">
         <ul>
             <li :class="{'is-active': mode === 'single'}"><a @click="mode = 'single'">日付</a></li>
             <li :class="{'is-active': mode === 'range'}"><a @click="mode = 'range'">範囲</a></li>
@@ -36,8 +40,11 @@
             <input class="input" type="date" x-model="end">
         </div>
     </div>
-    <label class="checkbox">
-        <input type="checkbox" x-model="exclude"> 除く
-    </label>
+    {% comment %}Right-aligned and clear of the inputs above, matching 画数.{% endcomment %}
+    <div class="field is-grouped is-grouped-right mt-3">
+        <label class="checkbox">
+            <input type="checkbox" x-model="exclude"> 除く
+        </label>
+    </div>
 </div>
 {% endwith %}

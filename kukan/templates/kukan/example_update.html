@@ -3,6 +3,21 @@
 
 {% block title %}例文の訂正{% endblock %}
 
+{% block banner %}
+<section class="hero is-link is-hidden-mobile">
+    <div class="hero-body">
+        <div class="container">
+            <h2 class="title">例文の訂正</h2>
+        </div>
+    </div>
+</section>
+<div class="container">
+    <div class="notification is-primary is-hidden-tablet">
+        <strong>例文の訂正</strong>
+    </div>
+</div>
+{% endblock %}
+
 {% block content %}
 {% comment %}
 The Vue component, as Alpine. Near-1:1, because what the five ajax endpoints
@@ -14,15 +29,6 @@ component and keeps the JSON endpoints unchanged.
 `x-data` is seeded from `form|form_values` through `json_script`, which is
 what `add_vuejs_field_properties` used to splice in as raw JS.
 {% endcomment %}
-<section class="hero is-link is-hidden-mobile mb-4">
-    <div class="hero-body">
-        <h2 class="title">例文の訂正</h2>
-    </div>
-</section>
-<div class="notification is-primary is-hidden-tablet">
-    <strong>例文の訂正</strong>
-</div>
-
 {{ form|form_values|json_script:"form-values" }}
 <div x-data="exampleUpdate()">
     <div class="modal" :class="{ 'is-active': showCandidates }" x-cloak>
@@ -199,9 +205,17 @@ function exampleUpdate() {
         return response.json();
     }
 
-    return Object.assign(
-        JSON.parse(document.getElementById('form-values').textContent),
-        {
+    // Spread, not Object.assign. Object.assign *invokes* a getter on the
+    // source and copies the value it returns, so `hasOptionalInput` and
+    // `showOptional` were evaluated once, at construction, against an object
+    // whose `word_native` was still undefined -- `undefined !== ''` is true, so
+    // both froze at `true`. The optional fields were then permanently on show
+    // and the button that toggles them permanently disabled, on every example.
+    // Spreading copies the JSON's data properties and leaves the getters below
+    // as real accessors on the object being built.
+    return {
+        ...JSON.parse(document.getElementById('form-values').textContent),
+
             showCandidates: false,
             candidates: [],
             readingData: [],
@@ -329,7 +343,7 @@ function exampleUpdate() {
                     field.selectionStart = field.selectionEnd = start + value.length;
                 });
             },
-        });
+    };
 }
 </script>
 {% endblock %}

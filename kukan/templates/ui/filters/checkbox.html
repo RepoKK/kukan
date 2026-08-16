@@ -10,31 +10,55 @@
             if (i > -1) { this.selected.splice(i, 1); } else { this.selected.push(label); }
         }
      }">
-    <label class="label">{{ filter.label }}</label>
+    {% comment %}The dropdown header already names the filter; Buefy's panels
+    carried no second heading. Kept in the markup, hidden visually, so the
+    input still has an accessible name.{% endcomment %}
+    <label class="label is-sr-only">{{ filter.label }}</label>
     <input type="hidden" name="{{ filter.label }}" :value="selected.join(', ')">
     <div class="columns is-mobile">
         <div class="column">
             {% for elem in choices.elements %}{% if elem.col == 0 %}
+            {% comment %}One .field each, as Buefy had it: `.field:not(:last-child)`
+            is what put 0.75rem between the boxes. A bare <br> stacks them on
+            consecutive lines with nothing between.{% endcomment %}
+            <div class="field">
             <label class="{% if choices.comptype == 'b-radio' %}radio{% else %}checkbox{% endif %}">
                 <input type="{% if choices.comptype == 'b-radio' %}radio{% else %}checkbox{% endif %}"
                        :checked="selected.includes('{{ elem.label|escapejs }}')"
                        @change="toggle('{{ elem.label|escapejs }}')">
                 {{ elem.label }}
-            </label><br>
+            </label>
+            </div>
             {% endif %}{% endfor %}
         </div>
+        {% comment %}
+        Only when there is something to put in it. Buefy guarded this with
+        `v-if="col1.length>0"`; rendering it unconditionally leaves an empty
+        half-width column beside a half-width one, so a short list like 種別
+        wraps its labels for no reason instead of running full width.
+        {% endcomment %}
+        {% if choices.elements|has_second_column %}
         <div class="column">
             {% for elem in choices.elements %}{% if elem.col == 1 %}
+            {% comment %}One .field each, as Buefy had it: `.field:not(:last-child)`
+            is what put 0.75rem between the boxes. A bare <br> stacks them on
+            consecutive lines with nothing between.{% endcomment %}
+            <div class="field">
             <label class="{% if choices.comptype == 'b-radio' %}radio{% else %}checkbox{% endif %}">
                 <input type="{% if choices.comptype == 'b-radio' %}radio{% else %}checkbox{% endif %}"
                        :checked="selected.includes('{{ elem.label|escapejs }}')"
                        @change="toggle('{{ elem.label|escapejs }}')">
                 {{ elem.label }}
-            </label><br>
+            </label>
+            </div>
             {% endif %}{% endfor %}
         </div>
+        {% endif %}
     </div>
     {% if choices.comptype == 'b-checkbox' %}
+    {% comment %}Buefy put a separator above 全選択, so it reads as an action on
+    the list rather than another member of it.{% endcomment %}
+    <hr class="dropdown-divider">
     <label class="checkbox">
         <input type="checkbox"
                :checked="selected.length == {{ choices.elements|length }}"

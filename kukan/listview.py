@@ -130,10 +130,21 @@ class FilteredListView(LoginRequiredMixin, ListView):
         # the "add filter" dropdown. This is the `active_filters` the Vue bar
         # took as indices, by label instead -- the labels are the query-string
         # keys, so they survive a filter being reordered on the view.
-        shown = {label for label
-                 in self.request.GET.get('_show', '').split(',') if label}
-        context['active_filter_labels'] = [
-            flt.label for flt in self.filters
-            if self.request.GET.get(flt.label) or flt.label in shown]
+        #
+        # `_show` is a list, not a set, because its order is the order the
+        # chips were added and that is the order the bar shows them in. A set
+        # here would silently sort them back into the view's declaration order
+        # on every reload, which is the thing `order:` in the template exists
+        # to prevent.
+        shown = [label for label
+                 in self.request.GET.get('_show', '').split(',') if label]
+        active = [label for label in shown
+                  if label in {flt.label for flt in self.filters}]
+        # A filter carrying a value but never named in `_show` -- a hand-edited
+        # or bookmarked URL -- still has to get a chip. Those go after the ones
+        # whose position is known, in the view's order.
+        active += [flt.label for flt in self.filters
+                   if self.request.GET.get(flt.label) and flt.label not in active]
+        context['active_filter_labels'] = active
         context['all_filter_labels'] = [flt.label for flt in self.filters]
         return context

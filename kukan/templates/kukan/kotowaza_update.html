@@ -3,16 +3,22 @@
 
 {% block title %}諺の訂正{% endblock %}
 
-{% block content %}
-<section class="hero is-link is-hidden-mobile mb-4">
+{% block banner %}
+<section class="hero is-link is-hidden-mobile">
     <div class="hero-body">
-        <h2 class="title">諺の訂正</h2>
+        <div class="container">
+            <h2 class="title">諺の訂正</h2>
+        </div>
     </div>
 </section>
-<div class="notification is-primary is-hidden-tablet">
-    <strong>諺の訂正</strong>
+<div class="container">
+    <div class="notification is-primary is-hidden-tablet">
+        <strong>諺の訂正</strong>
+    </div>
 </div>
+{% endblock %}
 
+{% block content %}
 {{ form|form_values|json_script:"form-values" }}
 <div x-data="Object.assign(
         JSON.parse(document.getElementById('form-values').textContent),

@@ -1,7 +1,7 @@
 {% load icons %}
 {% with choices=filter.get_choices %}
 {{ choices.listBushu|json_script:"bushu-choices" }}
-<div class="field"
+<div class="field filter-wide"
      x-data="{
         text: '{{ value|escapejs }}',
         kakusu: {{ choices.kakusu.min }},
@@ -16,31 +16,72 @@
             this.kakusu = Math.min(Math.max(this.kakusu + delta, this.min), this.max);
         }
      }">
-    <label class="label">{{ filter.label }}</label>
+    {% comment %}The dropdown header already names the filter; Buefy's panels
+    carried no second heading. Kept in the markup, hidden visually, so the
+    input still has an accessible name.{% endcomment %}
+    <label class="label is-sr-only">{{ filter.label }}</label>
     <input type="hidden" name="{{ filter.label }}" :value="text">
-    <div class="field has-addons">
-        <div class="control is-expanded">
-            <input class="input" type="text" x-model="text" placeholder="{{ filter.label }}">
+    {% comment %}
+    The placeholder is 康煕部首, not the filter's own label: this box takes a
+    Kangxi radical, and "部首" alone does not say which of the two the column
+    means. Buefy hard-coded the same string here. The backspace button is
+    `is-black is-inverted`, which is what made it read as a key rather than
+    another form control.
+    {% endcomment %}
+    {% comment %}
+    Gapless columns, not `field has-addons`. `has-addons` overlaps its controls
+    by 1px so they share a border, which is right for a segmented control and
+    wrong here: the backspace button is `is-inverted`, so its border is
+    transparent, and it covers the text box's right edge with nothing. The box
+    reads as though its border had been rubbed out. Columns leave both with
+    their own border and radius, which is how this row looked before.
+    {% endcomment %}
+    <div class="columns is-gapless is-mobile">
+        <div class="column">
+            <input class="input" type="text" x-model="text" placeholder="康煕部首">
         </div>
-        <div class="control">
-            <button type="button" class="button" @click="text = text.slice(0, -1)">
+        <div class="column is-narrow">
+            <button type="button" class="button is-black is-inverted"
+                    @click="text = text.slice(0, -1)">
                 {% icon 'backspace' size='is-small' %}
             </button>
         </div>
     </div>
-    <div class="field has-addons has-addons-centered">
-        <div class="control"><button type="button" class="button" @click="step(-5)">
-            {% icon 'chevron-double-left' size='is-small' %}</button></div>
-        <div class="control"><button type="button" class="button" @click="step(-1)">
-            {% icon 'minus' size='is-small' %}</button></div>
-        <div class="control">
-            <input class="input has-text-centered" style="width: 4rem;" type="number"
-                   x-model.number="kakusu" :min="min" :max="max">
+    {% comment %}
+    Buefy had a separator between the radical box and the stroke-count stepper.
+    {% endcomment %}
+    <hr class="dropdown-divider">
+
+    {% comment %}
+    `is-white` on the steppers and the 画 static addon after the number are both
+    Buefy's: without the addon the row reads as five anonymous buttons around a
+    bare number, with no indication the number is a stroke count.
+    {% endcomment %}
+    {% comment %}
+    Same shape as the row above, and for the same reason: only the number and
+    its 画 suffix belong joined, so `has-addons` goes around those two alone.
+    Wrapping all six controls in one `has-addons` strip overlaps every border
+    with its neighbour, and the `is-white` steppers have no border to share, so
+    the number box loses its right edge and 画 loses both of its.
+    {% endcomment %}
+    <div class="columns is-gapless is-mobile is-centered">
+        <div class="column is-narrow"><button type="button" class="button is-white"
+            @click="step(-5)">{% icon 'chevron-left' size='is-small' %}</button></div>
+        <div class="column is-narrow"><button type="button" class="button is-white"
+            @click="step(-1)">{% icon 'minus' size='is-small' %}</button></div>
+        <div class="column is-narrow">
+            <div class="field has-addons">
+                <p class="control">
+                    <input class="input has-text-centered" style="width: 50px;" type="number"
+                           x-model.number="kakusu" :min="min" :max="max">
+                </p>
+                <p class="control"><span class="button is-static">画</span></p>
+            </div>
         </div>
-        <div class="control"><button type="button" class="button" @click="step(1)">
-            {% icon 'plus' size='is-small' %}</button></div>
-        <div class="control"><button type="button" class="button" @click="step(5)">
-            {% icon 'chevron-double-right' size='is-small' %}</button></div>
+        <div class="column is-narrow"><button type="button" class="button is-white"
+            @click="step(1)">{% icon 'plus' size='is-small' %}</button></div>
+        <div class="column is-narrow"><button type="button" class="button is-white"
+            @click="step(5)">{% icon 'chevron-right' size='is-small' %}</button></div>
     </div>
     <div class="buttons">
         <template x-for="b in currentBushu" :key="b">

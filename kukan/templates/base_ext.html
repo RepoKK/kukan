@@ -2,6 +2,14 @@
 {% block html_class %}has-navbar-fixed-top{% endblock %}
 {% block navbar %}{% include 'ui/navbar.html' with has_search=True color='is-light' %}{% endblock %}
 {% block body %}
+{% comment %}
+Outside the section and the container on purpose: the update pages put a hero
+here, and it is meant to run the full width of the window with only its own
+title aligned to the container. Rendered inside `content` it picks up the
+container's margins and the section's padding, and sits as an inset purple
+block instead of a banner.
+{% endcomment %}
+{% block banner %}{% endblock %}
 <section class="section" style="padding-top: 1rem; padding-bottom: 1rem">
     <main>
         <div class="container">

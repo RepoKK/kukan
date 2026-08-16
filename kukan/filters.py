@@ -20,8 +20,22 @@ class FFilter(ABC):
         self.value = ''
 
     def filter(self, request, qry):
+        """An empty value is no filter at all, not a filter matching nothing.
+
+        The Vue bar assembled the query itself and simply left an empty filter
+        out, so `add_to_query` never saw one and `if flt is not None` was
+        enough. The htmx bar is a real <form>: every chip that is up submits
+        its input, empty or not. Under the old guard `種別=` built an empty
+        `IN ()` and returned zero rows, so adding a second filter and leaving
+        it blank -- or clearing one you had used -- emptied the whole list,
+        and `読み=` raised ValueError unpacking four parts out of one.
+
+        Filters that are up but unset are the normal state of the bar, so the
+        empty case has to mean "no constraint" here rather than in each of the
+        nine `add_to_query` implementations.
+        """
         flt = request.GET.get(self.label, None)
-        if flt is not None:
+        if flt:
             qry = self.add_to_query(flt, qry)
         return qry
 
@@ -164,7 +178,11 @@ class FYomiSimple(FFilter):
         super().__init__('読み', 'yomi-simple')
 
     def add_to_query(self, flt, qry):
-        yomi, position = flt.split('_')
+        # A hand-shortened or truncated URL -- "?読み=ゆ" -- must not 500 the
+        # list page. `parse_yomi` already falls back to the widget's defaults
+        # for the same input on the way in; do the same on the way out.
+        yomi, _, position = flt.partition('_')
+        position = position or '位致'
         yomi = yomi.translate(jau.kat2hir)
 
         if position == '位始':
@@ -183,7 +201,13 @@ class FYomi(FFilter):
         super().__init__('読み', 'yomi')
 
     def add_to_query(self, flt, qry):
-        yomi, position, onkun, joyo = flt.split('_')
+        # Padded rather than unpacked, so a hand-shortened or truncated URL --
+        # "?読み=ゆ" -- falls back to the widget's own defaults instead of
+        # raising ValueError and 500-ing the list page. Matches `parse_yomi`,
+        # which does the same for the same input on the way in.
+        parts = flt.split('_')
+        parts += ['位致', '読両', '常全'][len(parts) - 1:]
+        yomi, position, onkun, joyo = parts[:4]
         yomi = yomi.translate(jau.kat2hir)
         readings = Reading.objects.all()
 

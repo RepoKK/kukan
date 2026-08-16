@@ -59,9 +59,18 @@ bookmarkable, which the Vue version's client-only `active_filters` was not.
 
     <div class="columns is-multiline is-mobile is-variable is-1">
         {% for filter, value in filters %}
+        {% comment %}
+        Every chip is rendered, in the view's order, and shown or hidden by
+        `x-show` — so without help the row always reads in that fixed order, no
+        matter what order the filters were added in. `order` on the flex item
+        puts it back: `active` is in insertion order, so its index is the
+        position the chip should take. The server renders them in the same
+        order (see FilteredListView.get_context_data) so a reload agrees.
+        {% endcomment %}
         <div class="column is-narrow"
-             x-data="filterChip('{{ filter.label|escapejs }}', '{{ value|escapejs }}')"
-             x-show="isActive(name)" x-cloak>
+             x-data="filterChip('{{ filter.label|escapejs }}', '{{ value|escapejs }}', '{{ value|chip_caption:filter.kind|escapejs }}')"
+             x-show="isActive(name)" x-cloak
+             :style="{ order: active.indexOf(name) }">
             {% comment %}
             A disabled fieldset submits none of its controls, which is how a
             removed filter stops being sent. `border:0` because Bulma does not
@@ -107,11 +116,25 @@ bookmarkable, which the Vue version's client-only `active_filters` was not.
         </div>
         {% endfor %}
 
-        <div class="column is-narrow" x-show="inactive().length > 0" x-cloak>
+        {% comment %}Always last, whatever the chips reorder themselves to.{% endcomment %}
+        <div class="column is-narrow" x-show="inactive().length > 0" x-cloak
+             style="order: 999">
             <div class="dropdown" :class="{ 'is-active': addOpen }"
                  @click.outside="addOpen = false">
                 <div class="dropdown-trigger">
+                    {% comment %}
+                    Bulma tightens a button around a lone icon with
+                    `.icon:first-child:last-child`, pulling half the horizontal
+                    padding back on both sides. Neither `x-show` nor `x-if` can
+                    reach that selector: the hidden span is still an element
+                    child, and `x-if` leaves its `<template>` behind as one. So
+                    the icon matches `:last-child:not(:first-child)` instead,
+                    which adds a *positive* left margin — the empty gap to the
+                    left of the ⊕. `is-icon-only` says so outright and
+                    legacy-parity.css restores the margins.
+                    {% endcomment %}
                     <button type="button" class="button is-primary is-outlined"
+                            :class="{ 'is-icon-only': active.length > 0 }"
                             @click="addOpen = !addOpen"
                             aria-haspopup="true" :aria-expanded="addOpen">
                         <span x-show="active.length === 0">ﾌｨﾙﾀｰ追加</span>
@@ -169,10 +192,17 @@ document.addEventListener('alpine:init', () => {
         inactive() { return this.all.filter(l => !this.active.includes(l)); },
 
         addChecked() {
-            // In the order the view declares them, not the order they were
-            // ticked, so the chip row does not reshuffle itself.
-            this.active = this.all.filter(
-                l => this.active.includes(l) || this.checked.includes(l));
+            // Appended in the order they were ticked, after the chips already
+            // up, so the bar grows rightwards as you add filters — what the
+            // old one did. Sorting into the view's declared order instead makes
+            // a newly added chip appear somewhere in the middle of the row,
+            // nowhere near where you were just clicking.
+            //
+            // Careful with wording in this file: it is a rendered <script>, and
+            // tests_listview asserts the page mentions neither of the two
+            // frameworks Stage 10 removed. A comment naming one fails the build.
+            this.active = this.active.concat(
+                this.checked.filter(l => !this.active.includes(l)));
             this.checked = [];
             this.addOpen = false;
         },
@@ -192,18 +222,22 @@ document.addEventListener('alpine:init', () => {
         },
     }));
 
-    Alpine.data('filterChip', (name, initial) => ({
+    // `applied` decides whether the chip looks set; `caption` is what it says.
+    // They differ for 読み, whose stored value packs the text together with its
+    // radio settings -- see chip_caption in util_tags.
+    Alpine.data('filterChip', (name, initial, caption) => ({
         name: name,
         applied: initial,
+        caption: caption,
         open: false,
 
         chipLabel() {
             if (this.applied === '') {
                 return this.name;
             }
-            const shown = this.applied.length > MAX_CHIP_VALUE
-                ? this.applied.slice(0, MAX_CHIP_VALUE) + '...'
-                : this.applied;
+            const shown = this.caption.length > MAX_CHIP_VALUE
+                ? this.caption.slice(0, MAX_CHIP_VALUE) + '...'
+                : this.caption;
             return this.name + ': ' + shown;
         },
 

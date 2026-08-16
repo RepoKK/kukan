@@ -131,10 +131,44 @@ class FilterBarTest(ListPageTestBase):
         response = self.get(_show='部首')
         self.assertEqual(response.context['active_filter_labels'], ['部首'])
 
-    def test_show_and_valued_filters_are_combined_in_view_order(self):
+    def test_show_keeps_the_order_the_filters_were_added_in(self):
+        """`_show` is written in the order the chips were added, so it is the
+        order they come back in -- not the order the view declares them.
+
+        The view lists 漢字 before 部首; asking for them the other way round has
+        to survive the round trip, or the bar reshuffles itself on every reload
+        and a chip you just added jumps somewhere else.
+        """
+        response = self.get(**{'_show': '部首,漢字'})
+        self.assertEqual(response.context['active_filter_labels'],
+                         ['部首', '漢字'])
+
+    def test_a_valued_filter_missing_from_show_is_appended(self):
+        """A hand-edited or bookmarked URL can carry a value without naming the
+        filter in `_show`. It still gets a chip, after the ones whose position
+        is known, since nothing records where the user would have put it.
+        """
         response = self.get(**{'漢字': '閲', '_show': '部首'})
         self.assertEqual(response.context['active_filter_labels'],
-                         ['漢字', '部首'])
+                         ['部首', '漢字'])
+
+    def test_yomi_chip_shows_the_reading_not_the_encoding(self):
+        """A 読み value packs the text with its radio settings. The chip has to
+        show the reading and the options that actually narrow the search --
+        "せい (始/音)" -- and not the stored "せい_位始_読音_常全", which reads
+        as a fragment of the URL rather than as a search.
+        """
+        response = self.get(**{'読み': 'せい_位始_読音_常全'})
+        content = response.content.decode()
+        self.assertIn('せい (始/音)', content)
+        self.assertNotIn("'せい_位始_読音_常全')", content)
+
+    def test_yomi_chip_omits_the_default_options(self):
+        """位致 / 読両 / 常全 are what the filter does anyway, so naming them
+        would make every chip longer for nothing.
+        """
+        response = self.get(**{'読み': 'せい_位致_読両_常全'})
+        self.assertIn("'せい'", response.content.decode())
 
     def test_a_repeated_label_is_not_listed_twice(self):
         response = self.get(**{'漢字': '閲', '_show': '漢字'})

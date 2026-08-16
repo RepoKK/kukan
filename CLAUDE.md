@@ -156,6 +156,34 @@ JavaScript build step and no `package.json` anywhere in the repo.
   fetched, minified files. `kukan/static/vendor/VERSIONS.md` has exact versions and the
   `curl` to bump one. `kukan/tests_templates.py` fails the build if a template ever links a
   CDN again.
+- **`kukan/static/css/legacy-parity.css` must load after Bulma.** The old site never loaded
+  Bulma directly — it loaded `buefy.css`, which bundles its own Bulma build with Buefy's
+  palette *and component behaviour* on top. Swapping in stock `bulma.min.css` reverted
+  everything Buefy had been supplying to Bulma's defaults. This file pins it back, in two
+  parts, from values read out of `buefy.css` on `stage-8-psnawp` rather than by eye:
+  - **Palette, radius, type.** Buefy's primary is purple `#7957d5`, not Bulma's turquoise
+    `#00d1b2`, and its `link` is the same purple. Bulma 1.x also tints every grey
+    `hsl(221, 14%, …)` where Buefy's were pure neutral, and rounds corners 4px → 6px. The
+    overrides go on Bulma's `-h`/`-s`/`-l` custom properties, which its whole ramp — hover,
+    active, light, dark, invert — is derived from; overriding a composed `--bulma-primary`
+    would not work. `*-invert-l` is pinned too: Bulma derives text-on-colour from the
+    colour's own lightness, which gives dark text on the purple where the old site had white.
+  - **Mobile dropdowns.** `<b-dropdown>` defaulted to `mobile-modal`, so under 1088px every
+    dropdown became a centred, scrollable sheet. Bulma's `.dropdown` does not, so a filter
+    chip near the right edge opened a menu off-viewport and the bushu grid ran off the bottom
+    with the 適用 button unreachable. Only the filter bar uses `.dropdown`; the navbar uses
+    `.navbar-dropdown` and is untouched.
+- **The stroke-order font is woff2, and cached for a year.** `KanjiStrokeOrders_v4.005.woff2`
+  is 8406 glyphs at 6.6 MB, against the 17.2 MB v4.002 `.ttf` the old site shipped — woff2 is
+  Brotli-compressed, TrueType is not. v4.005 also covers six kanji v4.002 did not
+  (噓 嚙 姸 屛 幷 搔). **134 of the site's 6186 kanji still have no stroke-order glyph** and
+  fall back to the body font with no indication; there is no free source for them, KanjiVG
+  included. It is only fetched on kanji detail pages,
+  because that is the only place `div.kanji` renders, and it carries `font-display: swap` so
+  the glyph is visible in the fallback face rather than blank while 6.6 MB arrives.
+  `deploy/kukanjiten-httpd.conf` pins fonts to `max-age=31536000, immutable`, overriding the
+  one-hour `ExpiresDefault` that otherwise re-downloaded the whole file every hour. That is
+  safe only because the filename carries the version, so a new font is a new URL.
 - **`data-theme="light"` on `<html>` is load-bearing.** Bulma 1.x ships an automatic
   `prefers-color-scheme: dark`; Bulma 0.9.4 did not. Removing the attribute turns the whole
   site black for anyone whose OS is set to dark, with no stylesheet here having changed.
@@ -246,8 +274,10 @@ Two conventions worth keeping:
 
 - **Known-defect tests** assert the buggy behaviour and say so in the docstring, so the suite
   stays green while the defect stays visible. Fixing the defect is meant to turn them red.
-  Currently: empty numeric filter values (`kukan/tests_filters.py`) and the tempmon duration
-  filter (`tempmon/tests_views.py`).
+  Currently: the tempmon duration filter (`tempmon/tests_views.py`). The empty-filter-value
+  one is gone — `FFilter.filter` now guards on falsiness, because the htmx bar submits every
+  chip that is up whether or not it holds a value, which turned that latent defect into an
+  empty list any time a filter was added and left blank.
 - **Recorded web pages** for the scrapers go under `fixtures/Web/` as raw HTML. The older
   `FixWebKukan` helper pickles a `requests.Response`, which stops loading when `requests` is
   upgraded — don't add new fixtures in that format.

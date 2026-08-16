@@ -20,9 +20,20 @@ FILTER_TEMPLATES = {
 
 @register.filter
 def add_class(field, class_name):
-    return field.as_widget(attrs={
-        "class": " ".join((field.css_classes(), class_name))
-    })
+    """`field` rendered with `class_name` on top of the classes it already has.
+
+    `as_widget(attrs=...)` replaces the widget's attributes rather than merging
+    them, so the class the form put there -- `input`, from
+    `BulmaModelForm.widget_classes` -- has to be carried across by hand or it
+    is dropped and the control silently loses its Bulma styling. The two login
+    fields hid that by passing `"input is-rounded"` and re-supplying it
+    themselves; anything that passed only a modifier got a bare, unstyled
+    widget.
+    """
+    existing = field.field.widget.attrs.get('class', '')
+    classes = ' '.join(part for part in (existing, field.css_classes(), class_name)
+                       if part)
+    return field.as_widget(attrs={'class': classes})
 
 
 @register.filter
@@ -42,6 +53,62 @@ def split_comma_space(value):
     encoding a multi-value filter's query-string value round-trips through.
     """
     return value.split(', ') if value else []
+
+
+#: How a 読み / 読み(simple) value's trailing parts read on the chip. The
+#: encoding carries every option, including the defaults; only the ones that
+#: change the search are worth the space.
+YOMI_CHIP_MARKERS = {
+    '位始': '始',
+    '位含': '含',
+    '読音': '音',
+    '読訓': '訓',
+    '常用': '常用',
+    '常外': '常外',
+}
+
+
+@register.filter
+def chip_caption(value, kind):
+    """What a filter chip shows for `value`, rather than the raw query string.
+
+    Most filters store what the user typed, and the chip can show it as-is.
+    `yomi` and `yomi-simple` do not: they pack the text together with their
+    radio settings as "せい_位始_読音_常全", and putting that on the chip means
+    the chip reads as the URL rather than as the search. The Vue bar had a
+    per-component `filterDisp` for exactly this; doing it here keeps the
+    knowledge of the encoding next to `parse_yomi`, which decodes the same
+    string for the panel, instead of splitting it across a template and a
+    script.
+
+    Defaults (位致 / 読両 / 常全) are deliberately not shown -- they are what
+    the filter does anyway, so naming them makes every chip longer for nothing.
+    """
+    if not value:
+        return ''
+    if kind not in ('yomi', 'yomi-simple'):
+        return value
+
+    text, *rest = value.split('_')
+    markers = [YOMI_CHIP_MARKERS[part] for part in rest
+               if part in YOMI_CHIP_MARKERS]
+    return f'{text} ({"/".join(markers)})' if markers else text
+
+
+@register.filter
+def has_second_column(elements):
+    """Whether a checkbox filter's choices spill into a second column.
+
+    `get_choices` tags each element with `col`, and the checkbox template
+    renders one Bulma column per value. The second one must not be emitted
+    when it would be empty: two `.column`s split the panel in half whether or
+    not both hold anything, so a three-item filter like 種別 would wrap its
+    labels inside a half-width column beside a blank one. Buefy guarded the
+    same markup with `v-if="col1.length>0"`.
+    """
+    return any(getattr(elem, 'col', None) == 1 or
+               (isinstance(elem, dict) and elem.get('col') == 1)
+               for elem in elements or [])
 
 
 @register.filter

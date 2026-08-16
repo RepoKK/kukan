@@ -35,6 +35,12 @@ chosen against a white background.
         {% endblock favicon %}
 
         <link rel="stylesheet" href="{% static 'vendor/bulma/bulma.min.css' %}">
+        {% comment %}
+        Must stay after bulma.min.css: it overrides Bulma 1.x's colour, radius
+        and font custom properties with the values the site had under Buefy,
+        and restores Buefy's mobile dropdown behaviour.
+        {% endcomment %}
+        <link rel="stylesheet" href="{% static 'css/legacy-parity.css' %}">
         <link rel="stylesheet" href="{% static 'vendor/mdi/css/materialdesignicons.min.css' %}">
         <script src="{% static 'vendor/htmx/htmx.min.js' %}"></script>
         <script defer src="{% static 'vendor/alpinejs/alpine.min.js' %}"></script>

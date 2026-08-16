@@ -1,6 +1,15 @@
 <div class="field">
-    <label class="label">{{ filter.label }}</label>
+    {% comment %}The dropdown header already names the filter; Buefy's panels
+    carried no second heading. Kept in the markup, hidden visually, so the
+    input still has an accessible name.{% endcomment %}
+    <label class="label is-sr-only">{{ filter.label }}</label>
     <div class="control">
-        <input class="input" type="text" name="{{ filter.label }}" value="{{ value }}">
+        {% comment %}
+        Placeholder as well as the hidden label: this is the one widget with no
+        other visible cue once the heading is gone, and Buefy's `b-input` here
+        carried `:placeholder="title"`.
+        {% endcomment %}
+        <input class="input" type="text" name="{{ filter.label }}" value="{{ value }}"
+               placeholder="{{ filter.label }}">
     </div>
 </div>

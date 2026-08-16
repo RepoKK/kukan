@@ -5,6 +5,11 @@
 {% endblock %}
 
 {% block content %}
+{% comment %}
+Wrapped like the list tables (Stage 10h): four columns of Japanese headings do
+not fit a phone, and `<b-table>` used to supply the scroll container itself.
+{% endcomment %}
+<div class="table-container">
 <table class="table is-striped is-narrow is-fullwidth">
     <thead>
         <tr>
@@ -25,4 +30,5 @@
         {% endfor %}
     </tbody>
 </table>
+</div>
 {% endblock content %}

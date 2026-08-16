@@ -1,8 +1,11 @@
 {% load util_tags %}
 {% with parts=value|split_once:'_' %}
-<div class="field"
+<div class="field filter-wide"
      x-data="{ text: '{{ parts.0|escapejs }}', position: '{{ parts.1|default:'位始'|escapejs }}' }">
-    <label class="label">{{ filter.label }}</label>
+    {% comment %}The dropdown header already names the filter; Buefy's panels
+    carried no second heading. Kept in the markup, hidden visually, so the
+    input still has an accessible name.{% endcomment %}
+    <label class="label is-sr-only">{{ filter.label }}</label>
     <input type="hidden" name="{{ filter.label }}" :value="text ? (text + '_' + position) : ''">
     <div class="control">
         <input class="input" type="text" x-model="text" placeholder="{{ filter.label }}">

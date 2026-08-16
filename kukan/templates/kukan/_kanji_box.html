@@ -14,7 +14,13 @@ comparisons here, since Alpine evaluates expressions in the template.
         <nav class="level is-mobile">
             <div class="level-item">
                 <div>
-                    {% if kanji.kanji == kanji.jitai.std.1 %}{% icon 'star-outline' size='is-small' %}{% endif %}
+                    {% comment %}
+                    `.kanji` on both sides: jitai.std.1 is a Kanji instance, not
+                    a string. The Vue version compared `'{{ kanji.jitai.std.1 }}'`,
+                    which stringified it through __str__ first, so a bare `==`
+                    here is always False and the star always lands on 旧字体.
+                    {% endcomment %}
+                    {% if kanji.kanji == kanji.jitai.std.1.kanji %}{% icon 'star-outline' size='is-small' %}{% endif %}
                     <span class="tag" :class="{ 'is-info': current === '{{ kanji.jitai.std.1|escapejs }}' }">
                         {{ kanji.jitai.std.0 }}
                     </span>
@@ -27,7 +33,7 @@ comparisons here, since Alpine evaluates expressions in the template.
             </div>
             <div class="level-item">
                 <div>
-                    {% if kanji.kanji != kanji.jitai.std.1 %}{% icon 'star-outline' size='is-small' %}{% endif %}
+                    {% if kanji.kanji != kanji.jitai.std.1.kanji %}{% icon 'star-outline' size='is-small' %}{% endif %}
                     <span class="tag" :class="{ 'is-info': current !== '{{ kanji.jitai.std.1|escapejs }}' }">
                         {{ kanji.jitai.alt.0 }}
                     </span>

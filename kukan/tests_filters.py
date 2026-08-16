@@ -117,22 +117,44 @@ class TestFFilterRequestPlumbing(FilterTestBase):
         result = self.flt.filter(request, Kanji.objects.all())
         self.assertEqual({k.kanji for k in result}, {'汀', '叩'})
 
-    def test_empty_parameter_raises_known_defect(self):
-        """KNOWN DEFECT, pinned rather than endorsed.
+    def test_empty_parameter_leaves_query_untouched(self):
+        """An empty value is no filter, not a filter matching nothing.
 
-        `filter` guards with `is not None`, so an empty value ('?画数=') is
-        treated as a real filter and reaches the ORM, where a numeric field
-        rejects ''. Live effect: `/kanji/list/?画数=&ajax=1` returns 500. The
-        HTML page still renders 200, so the user sees a page whose table never
-        populates rather than an error.
+        This was the known defect this class was written around: `filter`
+        guarded with `is not None`, so '?画数=' reached the ORM and a numeric
+        field rejected ''. It became a live bug rather than a latent one when
+        the filter bar stopped assembling the query itself -- the htmx bar is
+        a form, and every chip that is up submits its input whether or not it
+        holds anything. A chip added and left blank emptied the whole list,
+        and clearing a filter you had used did not bring the rows back.
 
-        The fix is to guard on falsiness instead, but that changes behaviour
-        and belongs in its own change. This test exists so that whoever makes
-        that fix sees this turn red and updates it deliberately.
+        Guarding on falsiness makes an empty parameter behave exactly like an
+        absent one, which is what the bar means by it.
         """
         request = self.factory.get('/kanji/list/', {'画数': ''})
-        with self.assertRaises(ValueError):
-            list(self.flt.filter(request, Kanji.objects.all()))
+        result = self.flt.filter(request, Kanji.objects.all())
+        self.assertEqual(result.count(), 4)
+
+    def test_empty_parameter_is_inert_for_every_kind(self):
+        """Not just the numeric one: a blank chip of any kind has to be inert.
+
+        `種別=` built an empty `IN ()` and matched nothing, and `読み=` raised
+        unpacking four parts out of one. Both are reachable from the bar by
+        adding a filter and not filling it in.
+        """
+        for flt in (FGenericMinMax('画数', 'strokes'), FYomi()):
+            with self.subTest(kind=flt.kind):
+                request = self.factory.get('/kanji/list/', {flt.label: ''})
+                result = flt.filter(request, Kanji.objects.all())
+                self.assertEqual(result.count(), 4)
+
+    def test_a_truncated_yomi_value_does_not_raise(self):
+        """A hand-shortened or bookmarked '?読み=ゆ' carries one part where the
+        encoding has four. It has to fall back to the widget's defaults, the
+        way `parse_yomi` does on the way in, rather than 500 the list page.
+        """
+        request = self.factory.get('/kanji/list/', {'読み': 'ゆ'})
+        self.assertIsNotNone(list(FYomi().filter(request, Kanji.objects.all())))
 
 
 class TestFGenericMinMax(FilterTestBase):
