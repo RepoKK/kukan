@@ -4,12 +4,12 @@ import logging
 import os
 import re
 import subprocess
+from pathlib import Path
 
 import dropbox
 from django.conf import settings
 from django.db import connection
 from dropbox import exceptions, files
-from pathlib import Path
 
 from utils_django.management_command import FBaseCommand
 
@@ -50,14 +50,12 @@ class DbBackup:
                     f'remove daily backup older than {self.daily_keep_cutoff}')
 
     def _db_backup(self):
-        os_cmd = 'sqlite3 {} ".backup \'{}\'"'.format(self.db_name,
-                                                      self.backup_path)
+        os_cmd = f'sqlite3 {self.db_name} ".backup \'{self.backup_path}\'"'
         try:
             subprocess.run(os_cmd, shell=True, stdout=subprocess.PIPE,
                            check=True)
-            tar_bz2_contents = bz2.compress(open(self.backup_path, 'rb').read())
-            with open(self.compressed_backup, "wb") as f:
-                f.write(tar_bz2_contents)
+            tar_bz2_contents = bz2.compress(self.backup_path.read_bytes())
+            self.compressed_backup.write_bytes(tar_bz2_contents)
         except subprocess.CalledProcessError as err:
             logger.error('Failed to backup database: %s', err.output)
             raise
@@ -97,9 +95,8 @@ class DbBackup:
 
         for e in self.dbx.files_list_folder(self.dbx_base_dir).entries:
             year = re.match('(20[0-9][0-9])', e.name)
-            if year: 
-                if datetime.datetime.today().year - int(year[1]) > 2:
-                    self.dbx.files_delete_v2(e.path_lower)
+            if year and datetime.datetime.today().year - int(year[1]) > 2:
+                self.dbx.files_delete_v2(e.path_lower)
 
     def backup_and_upload(self):
         self._set_backup_day()
